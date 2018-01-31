@@ -1,0 +1,73 @@
+---
+layout: "oraclepaas"
+page_title: "Provider: Oracle PaaS"
+sidebar_current: "docs-oraclepaas-index"
+description: |-
+  The Oracle PaaS provider is used to interact with the many resources supported by the Oracle PaaS Cloud. The provider needs to be configured with credentials for the Oracle PaaS Cloud API.
+---
+
+# Oracle PaaS Cloud Provider
+
+The Oracle PaaS Cloud provider is used to interact with the many resources supported by the Oracle PaaS Cloud.
+The provider needs to be configured with credentials for the Oracle PaaS Cloud API.
+
+Use the navigation to the left to read about the available resources.
+
+## Example Usage
+
+```hcl
+# Configure the Oracle PaaS Cloud
+provider "oraclepaas" {
+  user              = "..."
+  password          = "..."
+  identity_domain   = "..."
+  database_endpoint = "..."
+}
+
+# Create a Database Service Instance
+resource "oraclepaas_database_service_instance" "default" {
+  name        = "default-service-instance"
+  description = "default-service-instance"
+  edition = "EE"
+  level = "PAAS"
+  shape = "oc3"
+  subscription_type = "HOURLY"
+  version = "12.2.0.1"
+  vm_public_key = "ssh-key"
+  parameter {
+    admin_password = "Test_String7"
+    backup_destination = "NONE"
+    sid = "ORCL"
+    usable_storage = 15
+  }
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `user` - (Optional) The username to use, generally your email address. It can also
+  be sourced from the `OPC_USERNAME` environment variable.
+
+* `password` - (Optional) The password associated with the username to use. It can also be sourced from
+  the `OPC_PASSWORD` environment variable.
+
+* `identity_domain` - (Optional) The Identity Domain or Service Instance ID of the environment to use. It can also be sourced from the `OPC_IDENTITY_DOMAIN` environment variable.  
+
+* `database_endpoint` - (Optional) The API endpoint to use, associated with your Oracle PaaS Cloud account.
+This is known as the `REST Endpoint` within the Oracle portal. It can also be sourced from the
+`ORACLEPAAS_DATABASE_ENDPOINT` environment variable.
+
+* `max_retries` - (Optional) The maximum number of tries to make for a successful response when operating on
+resources within Oracle PaaS Cloud. It can also be sourced from the `OPC_MAX_RETRIES` environment variable.
+Defaults to 1.
+
+* `insecure` - (Optional) Skips TLS Verification for using self-signed certificates. Should only be used if
+absolutely needed. Can also via setting the `OPC_INSECURE` environment variable to `true`.
+
+## Testing
+
+Credentials must be provided via the `OPC_USERNAME`, `OPC_PASSWORD`,
+`OPC_IDENTITY_DOMAIN` and `ORACLEPAAS_DATABASE_ENDPOINT` environment variables in order to run
+acceptance tests.
