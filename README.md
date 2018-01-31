@@ -16,17 +16,17 @@ Requirements
 Building The Provider
 ---------------------
 
-Clone repository to: `$GOPATH/src/github.com/terraform-providers/terraform-provider-oraclepaas`
+Clone repository to: `$GOPATH/src/github.com/hashicorp/terraform-provider-oraclepaas`
 
 ```sh
-$ mkdir -p $GOPATH/src/github.com/terraform-providers; cd $GOPATH/src/github.com/terraform-providers
-$ git clone https://github.com/terraform-providers/terraform-provider-oraclepaas.git
+$ mkdir -p $GOPATH/src/github.com/hashicorp; cd $GOPATH/src/github.com/hashicorp
+$ git clone https://github.com/hashicorp/terraform-provider-oraclepaas.git
 ```
 
 Enter the provider directory and build the provider
 
 ```sh
-$ cd $GOPATH/src/github.com/terraform-providers/terraform-provider-oraclepaas
+$ cd $GOPATH/src/github.com/hashicorp/terraform-provider-oraclepaas
 $ make build
 ```
 

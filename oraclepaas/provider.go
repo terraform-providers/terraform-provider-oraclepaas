@@ -1,4 +1,4 @@
-package opaas
+package oraclepaas
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"

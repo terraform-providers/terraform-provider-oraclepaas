@@ -1,4 +1,4 @@
-package opaas
+package oraclepaas
 
 import (
 	"fmt"
@@ -60,7 +60,7 @@ type OPAASResourceState struct {
 	*terraform.InstanceState
 }
 
-func opaasResourceCheck(resourceName string, f func(checker *OPAASResourceState) error) resource.TestCheckFunc {
+func oraclepaasResourceCheck(resourceName string, f func(checker *OPAASResourceState) error) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {

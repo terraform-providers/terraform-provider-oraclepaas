@@ -1,4 +1,4 @@
-package opaas
+package oraclepaas
 
 import (
 	"crypto/tls"
@@ -44,7 +44,7 @@ func (c *Config) Client() (*OPAASClient, error) {
 
 	if logging.IsDebugOrHigher() {
 		config.LogLevel = opc.LogDebug
-		config.Logger = opaasLogger{}
+		config.Logger = oraclepaasLogger{}
 	}
 
 	// Setup HTTP Client based on insecure
@@ -59,7 +59,7 @@ func (c *Config) Client() (*OPAASClient, error) {
 
 	config.HTTPClient = httpClient
 
-	opaasClient := &OPAASClient{}
+	oraclepaasClient := &OPAASClient{}
 
 	if c.DatabaseEndpoint != "" {
 		databaseEndpoint, err := url.ParseRequestURI(c.DatabaseEndpoint)
@@ -71,7 +71,7 @@ func (c *Config) Client() (*OPAASClient, error) {
 		if err != nil {
 			return nil, err
 		}
-		opaasClient.databaseClient = databaseClient
+		oraclepaasClient.databaseClient = databaseClient
 	}
 
 	if c.JavaEndpoint != "" {
@@ -84,15 +84,15 @@ func (c *Config) Client() (*OPAASClient, error) {
 		if err != nil {
 			return nil, err
 		}
-		opaasClient.javaClient = javaClient
+		oraclepaasClient.javaClient = javaClient
 	}
 
-	return opaasClient, nil
+	return oraclepaasClient, nil
 }
 
-type opaasLogger struct{}
+type oraclepaasLogger struct{}
 
-func (l opaasLogger) Log(args ...interface{}) {
+func (l oraclepaasLogger) Log(args ...interface{}) {
 	tokens := make([]string, 0, len(args))
 	for _, arg := range args {
 		if token, ok := arg.(string); ok {

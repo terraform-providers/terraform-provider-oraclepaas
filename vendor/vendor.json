@@ -691,5 +691,5 @@
 			"revisionTime": "2017-08-04T00:04:37Z"
 		}
 	],
-	"rootPath": "github.com/terraform-providers/terraform-provider-opaas"
+	"rootPath": "github.com/hashicorp/terraform-provider-opaas"
 }

@@ -1,4 +1,4 @@
-package opaas
+package oraclepaas
 
 import (
 	"fmt"
