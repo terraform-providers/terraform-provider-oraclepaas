@@ -140,10 +140,13 @@ const (
 type ServiceInstance struct {
 	// The URL to use to connect to Oracle Application Express on the service instance.
 	ApexURL string `json:"apex_url"`
+	// Applicable only in Oracle Cloud Infrastructure regions.
+	// Name of the availability domain within the region where the Oracle Database Cloud Service instance is provisioned.
+	AvailabilityDomain string `json:"availabilityDomain"`
 	// The backup configuration of the service instance.
 	BackupDestination string `json:"backup_destination"`
 	// The version of cloud tooling for backup and recovery supported by the service instance.
-	BackupSupportedVersion string `backup_supported_version`
+	BackupSupportedVersion string `json:"backup_supported_version"`
 	// The database character set of the database.
 	CharSet string `json:"charset"`
 	// The Oracle Storage Cloud container for backups.
@@ -188,6 +191,8 @@ type ServiceInstance struct {
 	// This attribute is only applicable to accounts where regions are supported.
 	// This attribute is returned when you set the ?outputLevel=verbose query parameter.
 	IPReservations string `json:"ipReservations"`
+	// Indicates whether service instance was provisioned with the 'Bring Your Own License' (BYOL) option.
+	IsBYOL bool `json:"isBYOL"`
 	// The Oracle Java Cloud Service instances using this Database Cloud Service instance.
 	JAASInstancesUsingService string `json:"jaas_instances_using_service"`
 	// The date-and-time stamp when the service instance was last modified.
@@ -221,6 +226,9 @@ type ServiceInstance struct {
 	SMPluginVersion string `json:"sm_plugin_version"`
 	// The status of the service instance
 	Status ServiceInstanceState `json:"status"`
+	// Applicable only in Oracle Cloud Infrastructure regions.
+	// Name of the subnet within the region where the Oracle Database Cloud Service instance is provisioned.
+	Subnet string `json:"subnet"`
 	// The billing frequency of the service instance; either MONTHLY or HOURLY.
 	SubscriptionType ServiceInstanceSubscriptionType `json:"subscriptionType"`
 	// The time zone of the operating system.
@@ -228,11 +236,16 @@ type ServiceInstance struct {
 	// For service instances hosting an Oracle RAC database, the size in GB of the storage shared
 	// and accessed by the nodes of the RAC database.
 	TotalSharedStorage int `json:"total_shared_storage"`
+	// Indicates whether the service instance was provisioned with high performance storage.
+	UseHighPerformanceStorage bool `json:"useHighPerformanceStorage"`
 	// The Oracle Database version on the service instance.
 	Version string `json:"version"`
 }
 
 type CreateServiceInstanceInput struct {
+	// Name of the availability domain within the region where the Oracle Database Cloud Service instance is to be provisioned.
+	// Optional
+	AvailabilityDomain string `json:"availabilityDomain,omitempty"`
 	// Free-form text that provides additional information about the service instance.
 	// Optional.
 	Description string `json:"description,omitempty"`
@@ -243,6 +256,27 @@ type CreateServiceInstanceInput struct {
 	// Cloud Service instance as Cluster Database.
 	// Required.
 	Edition ServiceInstanceEdition `json:"edition"`
+	// Specify if you want an email notification sent upon successful or unsuccessful completion of the instance-creation operation.
+	// When true, you must also specify notificationEmail. Valid values are true and false. Default value is false.
+	// Optional
+	EnableNotification bool `json:"enableNotification,omitempty"`
+	// Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
+	// When true, your Oracle Cloud account will be charged a lesser amount for the new instance because the right to use Oracle Database is covered by your perpetual license agreement.
+	// Valid values are true and false. Default value is false.
+	// Optional
+	IsBYOL bool `json:"isBYOL,omitempty"`
+	// This parameter is not available on Oracle Cloud at Customer.
+	// Applicable only if region is an Oracle Cloud Infrastructure Classic region.
+	// The three-part name of a custom IP network to use. For example: /Compute-identity_domain/user/object.
+	// A region must be specified in order to use ipNetwork. Only IP networks created in the specified region can be used.
+	// ipNetwork cannot be used with ipReservations.
+	// Optional
+	IPNetwork string `json:"ipNetwork,omitempty"`
+	// Applicable only if region is an Oracle Cloud Infrastructure Classic region.
+	// A single IP reservation name or multiple IP reservation names separated by commas. Only IP reservations created in the specified region can be used.
+	// When IP reservations are used, all compute nodes of an instance must be provisioned with IP reservations, so the number of names in ipReservations must match the number of compute nodes in the service instance.
+	// Optional
+	IPReservations []string `json:"ipReservations,omitempty"`
 	// Service level for the service instance
 	// Required.
 	Level ServiceInstanceLevel `json:"level"`
@@ -258,15 +292,33 @@ type CreateServiceInstanceInput struct {
 	// Must be unique within the identity domain.
 	// Required.
 	Name string `json:"serviceName"`
+	// Required if enableNotification is set to true.
+	// The email address to send completion notifications to.
+	// This parameter is not available on Oracle Cloud at Customer.
+	// Optional
+	NotificationEmail string `json:"notificationEmail,omitempty"`
+	// Applicable only to accounts that support regions.
+	// Name of the Oracle Cloud Infrastructure or Oracle Cloud Infrastructure Classic region where the Oracle Database Cloud Service instance is to be provisioned.
+	// Optional
+	Region string `json:"region,omitempty"`
 	// Desired compute shape. A shape defines the number of Oracle Compute Units (OCPUs) and amount
 	// of memory (RAM).
 	// Required.
 	Shape ServiceInstanceShape `json:"shape"`
+	// Required if region is an Oracle Cloud Infrastructure region.
+	// Name of the subnet within the region where the Oracle Database Cloud Service instance is to be provisioned.
+	// Optional
+	Subnet string `json:"subnet,omitempty"`
 	// Billing unit. Valid values are:
 	// HOURLY: Pay only for the number of hours used during your billing period. This is the default.
 	// MONTHLY: Pay one price for the full month irrespective of the number of hours used.
 	// Required.
 	SubscriptionType ServiceInstanceSubscriptionType `json:"subscriptionType"`
+	// Specify if high performance storage should be used for the Database Cloud Service instance. Default data storage will allocate your database
+	// block storage on spinning devices. By checking this box, your block storage will be allocated on solid state devices. Valid values are true and false.
+	// Default value is false.
+	// Optional
+	UseHighPerformanceStorage bool `json:"useHighPerformanceStorage,omitempty"`
 	// Oracle Database software version
 	// Required.
 	Version ServiceInstanceVersion `json:"version"`
@@ -355,25 +407,54 @@ type ParameterInput struct {
 	// You cannot set goldenGate to true if either isRac or failoverDatabase is set to true.
 	// Optional
 	GoldenGate bool `json:"-"`
+	// Specify if an Oracle Hybrid Disaster Recovery configuration comprising a primary database on customer premisesand a standby database in Oracle Public Cloud should be configured.
+	// Valid values are yes and no. Default value is no.
+	// You cannot set failoverDatabase or isRac to yes if Hybrid Disaster Recovery options is chosen.
+	// Optional
+	HDG bool `json:"-"`
+	// Name of the Oracle Storage Cloud Service container where the backup from on-premise instance is stored. This parameter is required if hdg is set to yes.
+	// Optional
+	HDGCloudStorageContainer string `json:"hdgCloudStorageContainer,omitempty"`
+	// Password of the Oracle Cloud user specified in hdgCloudStorageUser. This parameter is required if hdg is set to yes.
+	// Optional
+	HDGCloudStoragePassword string `json:"hdgCloudStoragePassword,omitempty"`
+	// User name of an Oracle Cloud user who has read access to the container specified in hdgCloudStorageContainer. This parameter is required if hdg is set to yes.
+	// Optional
+	HDGCloudStorageUser string `json:"hdgCloudStorageUser,omitempty"`
 	// Specify if the service instance's database should, after the instance is created, be replaced
 	// by a database stored in an existing cloud backup that was created using Oracle Database Backup
 	// Cloud Service. Default value is false.
 	// Optional
 	IBKUP bool `json:"-"`
+	// Name of the Oracle Storage Cloud Service container where the existing cloud backup is stored. This parameter is required if ibkup is set to yes and ibkupOnPremise is set to yes.
+	// Optional
+	IBKUPCloudStorageContainer string `json:"ibkupCloudStorageContainer,omitempty"`
 	// Name of the Oracle Storage Cloud Service container where the existing cloud backup is stored.
 	// This parameter is required if ibkup is set to yes.
+	// Optional
 	IBKUPCloudStoragePassword string `json:"ibkupCloudStoragePassword,omitempty"`
 	// User name of an Oracle Cloud user who has read access to the container specified in
 	// ibkupCloudStorageContainer.
 	// This parameter is required if ibkup is set to yes.
+	// Optional
 	IBKUPCloudStorageUser string `json:"ibkupCloudStorageUser,omitempty"`
 	// Database id of the database from which the existing cloud backup was created.
 	// This parameter is required if ibkup is set to yes.
+	// Optional
 	IBKUPDatabaseID string `json:"ibkupDatabaseID,omitempty"`
 	// Password used to create the existing, password-encrypted cloud backup.
 	// This password is used to decrypt the backup.
 	// This parameter is required if ibkup is set to yes.
+	// Optional
 	IBKUPDecryptionKey string `json:"ibkupDecryptionKey,omitempty"`
+	// Specify if the existing cloud backup being used to replace the database is from an on-premises database or another Database Cloud Service instance.
+	// Valid values are true for an on-premises database and false for a Database Cloud Service instance. Default value is true.
+	// Optional
+	IBKUPOnPremise bool `json:"ibkupOnPremise,omitempty"`
+	// Oracle Databsae Cloud Service instance name from which the database of new Oracle Database Cloud Service instance should be created.
+	// This parameter is required if ibkup is set to yes and ibkupOnPremise is set to no.
+	// Optional
+	IBKUPServiceID string `json:"ibkupServiceID"`
 	// String containing the xsd:base64Binary representation of the cloud backup's wallet archive file.
 	// Optional
 	IBKUPWalletFileContent string `json:"ibkupWalletFileContent,omitempty"`
@@ -440,6 +521,7 @@ type ParameterRequest struct {
 	DisasterRecoveryString string `json:"disasterRecovery,omitempty"`
 	FailoverDatabaseString string `json:"failoverDatabase,omitempty"`
 	GoldenGateString       string `json:"goldenGate,omitempty"`
+	HDGString              string `json:"hdg,omitempty"`
 	IsRACString            string `json:"isRac,omitempty"`
 	IBKUPString            string `json:"ibkup,omitempty"`
 }
@@ -486,6 +568,7 @@ func createRequest(input *CreateServiceInstanceInput) *CreateServiceInstanceRequ
 		DisasterRecoveryString: convertOracleBool(input.Parameter.DisasterRecovery),
 		FailoverDatabaseString: convertOracleBool(input.Parameter.FailoverDatabase),
 		GoldenGateString:       convertOracleBool(input.Parameter.GoldenGate),
+		HDGString:              convertOracleBool(input.Parameter.HDG),
 		IsRACString:            convertOracleBool(input.Parameter.IsRAC),
 		IBKUPString:            convertOracleBool(input.Parameter.IBKUP),
 	}

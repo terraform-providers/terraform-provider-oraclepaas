@@ -336,7 +336,7 @@ type ServiceInstance struct {
 	// Number of Managed Servers in the domain.
 	NumNodes int `json:"num_nodes"`
 	// Total number of Oracle Compute Units (OCPUs) allocated across all nodes in the service instance.
-	OCPUCount int `json"ocpu_count"`
+	OCPUCount int `json:"ocpu_count"`
 	// Groups information about the Coherence data tier.
 	Options []Option `json:"options"`
 	// URL to load balancer Administration Console.
