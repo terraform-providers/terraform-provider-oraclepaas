@@ -32,12 +32,7 @@ func NewJavaClient(c *opc.Config) (*JavaClient, error) {
 }
 
 func (c *JavaClient) executeRequest(method, path string, body interface{}) (*http.Response, error) {
-	reqBody, err := c.client.MarshallRequestBody(body)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := c.client.BuildRequestBody(method, path, reqBody)
+	req, err := c.client.BuildRequestBody(method, path, body.([]byte))
 	if err != nil {
 		return nil, err
 	}

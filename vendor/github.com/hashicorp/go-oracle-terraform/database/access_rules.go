@@ -54,7 +54,7 @@ const (
 type AccessRuleDestination string
 
 const (
-	AccessRuleDefaultDestination AccessRuleDestination = "DB"
+	AccessRuleDefaultDestination AccessRuleDestination = "DB_1"
 )
 
 // Used for the GET request, as there's no direct GET request for a single Access Rule
@@ -251,6 +251,8 @@ type DeleteAccessRuleInput struct {
 	// modified on an access rule.
 	// Required
 	Status AccessRuleStatus `json:"status"`
+	// Time to wait for an access rule to be ready
+	Timeout time.Duration `json:"-"`
 }
 
 // Deletes an AccessRule with the provided input struct. Returns any errors that occurred.
@@ -269,6 +271,22 @@ func (c *UtilityClient) DeleteAccessRule(input *DeleteAccessRuleInput) error {
 	if err := c.updateResource(input.Name, input, &result); err != nil {
 		return err
 	}
+
+
+	timeout := input.Timeout
+	if timeout == 0 {
+		timeout = WaitForAccessRuleTimeout
+	}
+
+	getInput := &GetAccessRuleInput{
+		Name: input.Name,
+	}
+
+	_, err := c.WaitForAccessRuleDeleted(getInput, timeout)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -286,6 +304,24 @@ func (c *UtilityClient) WaitForAccessRuleReady(input *GetAccessRuleInput, timeou
 		}
 		// Rule not found, wait
 		return false, nil
+	})
+	return info, err
+}
+
+func (c *UtilityClient) WaitForAccessRuleDeleted(input *GetAccessRuleInput, timeout time.Duration) (*AccessRuleInfo, error) {
+	var info *AccessRuleInfo
+	var getErr error
+	err := c.client.WaitFor("access rule to be deleted", timeout, func() (bool, error) {
+		info, getErr = c.GetAccessRule(input)
+		if getErr != nil {
+			return true, nil
+		}
+		if info != nil {
+			// Rule found, continue
+			return false, nil
+		}
+		// Rule not found, return. Desired case
+		return true, nil
 	})
 	return info, err
 }
