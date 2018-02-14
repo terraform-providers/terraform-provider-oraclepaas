@@ -81,119 +81,109 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"parameter": {
-				Type:     schema.TypeList,
+			"db_demo": {
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"db_demo": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-						"admin_password": {
-							Type:      schema.TypeString,
-							Required:  true,
-							ForceNew:  true,
-							Sensitive: true,
-						},
-						"backup_destination": {
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-							ValidateFunc: validation.StringInSlice([]string{
-								string(database.ServiceInstanceBackupDestinationBoth),
-								string(database.ServiceInstanceBackupDestinationOSS),
-								string(database.ServiceInstanceBackupDestinationNone),
-							}, true),
-						},
-						"char_set": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  "AL32UTF8",
-						},
-						"disaster_recovery": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							ForceNew: true,
-							Default:  false,
-						},
-						"failover_database": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							ForceNew: true,
-							Default:  false,
-						},
-						"golden_gate": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							ForceNew: true,
-							Default:  false,
-						},
-						"is_rac": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							ForceNew: true,
-							Default:  false,
-						},
-						"n_char_set": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  database.ServiceInstanceNCharSetUTF16,
-							ValidateFunc: validation.StringInSlice([]string{
-								string(database.ServiceInstanceNCharSetUTF16),
-								string(database.ServiceInstanceNCharSetUTF8),
-							}, true),
-						},
-						"pdb_name": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  "pdb1",
-						},
-						"sid": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  "ORCL",
-						},
-						"snapshot_name": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-						"source_service_name": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-						"timezone": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  "UTC",
-						},
-						"type": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  database.ServiceInstanceTypeDB,
-							ValidateFunc: validation.StringInSlice([]string{
-								string(database.ServiceInstanceTypeDB),
-							}, true),
-						},
-						"usable_storage": {
-							Type:         schema.TypeInt,
-							Required:     true,
-							ForceNew:     true,
-							ValidateFunc: validation.IntBetween(15, 2048),
-						},
-					},
-				},
+			},
+			"admin_password": {
+				Type:      schema.TypeString,
+				Required:  true,
+				ForceNew:  true,
+				Sensitive: true,
+			},
+			"backup_destination": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(database.ServiceInstanceBackupDestinationBoth),
+					string(database.ServiceInstanceBackupDestinationOSS),
+					string(database.ServiceInstanceBackupDestinationNone),
+				}, true),
+			},
+			"char_set": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "AL32UTF8",
+			},
+			"disaster_recovery": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
+			"golden_gate": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
+			"is_rac": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
+			"n_char_set": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  database.ServiceInstanceNCharSetUTF16,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(database.ServiceInstanceNCharSetUTF16),
+					string(database.ServiceInstanceNCharSetUTF8),
+				}, true),
+			},
+			"pdb_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "pdb1",
+			},
+			"sid": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "ORCL",
+			},
+			"snapshot_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"source_service_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"timezone": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "UTC",
+			},
+			"type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  database.ServiceInstanceTypeDB,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(database.ServiceInstanceTypeDB),
+				}, true),
+			},
+			"failover_database": {
+				Type:     schema.TypeBool,
+				ForceNew: true,
+				Optional: true,
+				Default:  false,
+			},
+			"usable_storage": {
+				Type:         schema.TypeInt,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.IntBetween(15, 2048),
 			},
 			"ibkup": {
 				Type:     schema.TypeList,
@@ -269,15 +259,9 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 					},
 				},
 			},
-			"apex_url": {
-				Type:     schema.TypeString,
+			"region": {
+				Type: schema.TypeString,
 				ForceNew: true,
-				Computed: true,
-			},
-			"backup_supported_version": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
 			},
 			"cloud_storage_container": {
 				Type:     schema.TypeString,
@@ -285,26 +269,6 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				Computed: true,
 			},
 			"compute_site_name": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"connect_descriptor_with_public_ip": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"created_by": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"creation_time": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"current_version": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Computed: true,
@@ -319,77 +283,12 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
-			"failover_database": {
-				Type:     schema.TypeBool,
-				ForceNew: true,
-				Computed: true,
-			},
 			"glassfish_url": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Computed: true,
 			},
-			"hdg_prem_ip": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"hybrid_db": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"identity_domain": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"ip_network": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"ip_reservations": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"jaas_instances_using_service": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"listener_port": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"num_ip_reservations": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"num_nodes": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"rac_database": {
-				Type:     schema.TypeBool,
-				ForceNew: true,
-				Computed: true,
-			},
-			"region": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
 			"uri": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"sm_plugin_version": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Computed: true,
-			},
-			"total_shared_storage": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Computed: true,
@@ -467,46 +366,36 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	log.Printf("[DEBUG] Read state of database service instance %s: %#v", d.Id(), result)
 	d.Set("name", result.Name)
 	d.Set("description", result.Description)
-	d.Set("apex_url", result.ApexURL)
 	d.Set("backup_destination", result.BackupDestination)
-	d.Set("backup_supported_version", result.BackupSupportedVersion)
 	d.Set("char_set", result.CharSet)
 	d.Set("cloud_storage_container", result.CloudStorageContainer)
 	d.Set("compute_site_name", result.ComputeSiteName)
 	d.Set("connect_descriptor", result.ConnectDescriptor)
-	d.Set("connect_descriptor_with_public_ip", result.ConnectorDescriptorWithPublicIP)
-	d.Set("created_by", result.CreatedBy)
-	d.Set("creation_time", result.CreationTime)
-	d.Set("current_version", result.CurrentVersion)
 	d.Set("dbaas_monitor_url", result.DBAASMonitorURL)
 	d.Set("edition", result.Edition)
 	d.Set("em_url", result.EMURL)
 	d.Set("failover_database", result.FailoverDatabase)
 	d.Set("glassfish_url", result.GlassFishURL)
-	d.Set("hdg_prem_ip", result.HDGPremIP)
-	d.Set("hybrid_db", result.HybridDG)
-	d.Set("identity_domain", result.IdentityDomain)
-	d.Set("ip_network", result.IPNetwork)
-	d.Set("ip_reservations", result.IPReservations)
-	d.Set("jaas_instances_using_service", result.JAASInstancesUsingService)
 	d.Set("level", result.Level)
-	d.Set("listener_port", result.ListenerPort)
 	d.Set("n_char_set", result.NCharSet)
 	d.Set("num_ip_reservations", result.NumIPReservations)
-	d.Set("num_nodes", result.NumNodes)
 	d.Set("pdb_name", result.PDBName)
-	d.Set("rac_database", result.PDBName)
-	d.Set("region", result.Region)
 	d.Set("uri", result.URI)
 	d.Set("shape", result.Shape)
 	d.Set("sid", result.SID)
-	d.Set("sm_plugin_version", result.SMPluginVersion)
 	d.Set("subscription_type", result.SubscriptionType)
 	d.Set("timezone", result.Timezone)
-	d.Set("total_shared_storage", result.TotalSharedStorage)
 	d.Set("version", result.Version)
-	// TODO Add parameter and vm_public_key to read when they get added to api.
+
+	setAttributesFromConfig(d)
+
 	return nil
+}
+
+// Certain values aren't received from the get call and need to be specified from the config
+func setAttributesFromConfig(d *schema.ResourceData) {
+	d.Set("disaster_recovery", d.Get("disaster_recovery"))
+
 }
 
 func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -530,41 +419,37 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 }
 
 func expandParameter(client *database.ServiceInstanceClient, d *schema.ResourceData) database.ParameterInput {
-	parameterInfo := d.Get("parameter").([]interface{})
-	parameter := database.ParameterInput{}
-	if len(parameterInfo) > 0 {
-		attrs := parameterInfo[0].(map[string]interface{})
-		parameter = database.ParameterInput{
-			AdminPassword:     attrs["admin_password"].(string),
-			BackupDestination: database.ServiceInstanceBackupDestination(attrs["backup_destination"].(string)),
-			CharSet:           attrs["char_set"].(string),
-			DisasterRecovery:  attrs["disaster_recovery"].(bool),
-			FailoverDatabase:  attrs["failover_database"].(bool),
-			GoldenGate:        attrs["golden_gate"].(bool),
-			IsRAC:             attrs["is_rac"].(bool),
-			NCharSet:          database.ServiceInstanceNCharSet(attrs["n_char_set"].(string)),
-			PDBName:           attrs["pdb_name"].(string),
-			SID:               attrs["sid"].(string),
-			Timezone:          attrs["timezone"].(string),
-			Type:              database.ServiceInstanceType(attrs["type"].(string)),
-			UsableStorage:     strconv.Itoa(attrs["usable_storage"].(int)),
-		}
-
-		if val, ok := attrs["snapshot_name"].(string); ok && val != "" {
-			parameter.SnapshotName = val
-		}
-		if val, ok := attrs["source_service_name"].(string); ok && val != "" {
-			parameter.SourceServiceName = val
-		}
-		if val, ok := attrs["db_demo"].(string); ok {
-			addParam := database.AdditionalParameters{
-				DBDemo: val,
-			}
-			parameter.AdditionalParameters = addParam
-		}
-		expandIbkup(d, &parameter)
-		expandCloudStorage(d, &parameter)
+	parameter := database.ParameterInput{
+		AdminPassword:     d.Get("admin_password").(string),
+		BackupDestination: database.ServiceInstanceBackupDestination(d.Get("backup_destination").(string)),
+		CharSet:           d.Get("char_set").(string),
+		DisasterRecovery:  d.Get("disaster_recovery").(bool),
+		FailoverDatabase:  d.Get("failover_database").(bool),
+		GoldenGate:        d.Get("golden_gate").(bool),
+		IsRAC:             d.Get("is_rac").(bool),
+		NCharSet:          database.ServiceInstanceNCharSet(d.Get("n_char_set").(string)),
+		PDBName:           d.Get("pdb_name").(string),
+		SID:               d.Get("sid").(string),
+		Timezone:          d.Get("timezone").(string),
+		Type:              database.ServiceInstanceType(d.Get("type").(string)),
+		UsableStorage:     strconv.Itoa(d.Get("usable_storage").(int)),
 	}
+
+	if val, ok := d.Get("snapshot_name").(string); ok && val != "" {
+		parameter.SnapshotName = val
+	}
+	if val, ok := d.Get("source_service_name").(string); ok && val != "" {
+		parameter.SourceServiceName = val
+	}
+	if val, ok := d.Get("db_demo").(string); ok {
+		addParam := database.AdditionalParameters{
+			DBDemo: val,
+		}
+		parameter.AdditionalParameters = addParam
+	}
+	expandIbkup(d, &parameter)
+	expandCloudStorage(d, &parameter)
+
 	return parameter
 }
 

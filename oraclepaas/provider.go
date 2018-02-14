@@ -32,14 +32,14 @@ func Provider() terraform.ResourceProvider {
 			"database_endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OPAAS_DATABASE_ENDPOINT", nil),
+				DefaultFunc: schema.EnvDefaultFunc("ORACLEPAAS_DATABASE_ENDPOINT", nil),
 				Description: "The HTTP endpoint for Oracle Database operations.",
 			},
 
 			"java_endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OPAAS_JAVA_ENDPOINT", nil),
+				DefaultFunc: schema.EnvDefaultFunc("ORACLEPAAS_JAVA_ENDPOINT", nil),
 				Description: "The HTTP endpoint for Oracle Java operations.",
 			},
 
