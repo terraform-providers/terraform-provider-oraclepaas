@@ -84,8 +84,7 @@ func (c *UtilityResourceClient) unmarshalResponseBody(resp *http.Response, iface
 	var tmp interface{}
 	dcd := json.NewDecoder(buf)
 	if err := dcd.Decode(&tmp); err != nil {
-		return fmt.Errorf("%+v", resp)
-		return err
+		return fmt.Errorf("Error decoding: %s\n%+v", err.Error(), resp)
 	}
 
 	// Use mapstructure to weakly decode into the resulting interface
