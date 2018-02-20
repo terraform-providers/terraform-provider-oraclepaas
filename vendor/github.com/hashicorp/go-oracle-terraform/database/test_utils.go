@@ -28,7 +28,7 @@ func GetDatabaseTestClient(c *opc.Config) (*DatabaseClient, error) {
 	}
 
 	if c.APIEndpoint == nil {
-		apiEndpoint, err := url.Parse(os.Getenv("OPC_DATABASE_ENDPOINT"))
+		apiEndpoint, err := url.Parse(os.Getenv("ORACLEPAAS_DATABASE_ENDPOINT"))
 		if err != nil {
 			return nil, err
 		}
