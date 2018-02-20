@@ -57,6 +57,8 @@ The following arguments are supported:
 
 * `usable_storage` - (Required) Storage size for data (in GB). Minimum value is `15`. Maximum value depends on the backup destination: if `BOTH` is specified, the maximum value is `1200`; if `OSS` or `NONE` is specified, the maximum value is `2048`.
 
+* `availability_domain` - (Optional) Name of the availability domain within the region where the Oracle Database Cloud Service instance is to be provisioned.
+
 * `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database stored in an existing cloud backup that was created using Oracle Database Backup Cloud Service. Instantiate from Backup is documented below.
 
 * `ip_network` - (Optional) This attribute is only applicable to accounts where regions are supported. The three-part name of an IP network to which the service instance is added. For example: /Compute-identity_domain/user/object
@@ -100,6 +102,8 @@ Default value is `false`.
 * `source_service_name` - (Optional) Indicates that the service instance should be created as a "snapshot clone" of another service instance. Provide the name of the existing service instance whose snapshot is to be used.
 
 * `snapshot_name` - (Optional) The name of the snapshot of the service instance specified by sourceServiceName that is to be used to create a "snapshot clone". This parameter is valid only if source_service_name is specified.
+
+* `subnet` - (Optional) Name of the subnet within the region where the Oracle Database Cloud Service instance is to be provisioned.
 
 * `timezone` - (Optional) Time Zone for the Database Cloud Service instance. Default value is `UTC`.
 

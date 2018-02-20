@@ -308,6 +308,11 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"availability_domain": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"ip_network": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -331,9 +336,14 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				ForceNew: true,
 			},
 			"high_performance_storage": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+				ForceNew: true,
+			},
+			"subnet": {
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 			"cloud_storage_container": {
@@ -359,6 +369,10 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 			"glassfish_url": {
 				Type:     schema.TypeString,
 				ForceNew: true,
+				Computed: true,
+			},
+			"identity_domain": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"uri": {
@@ -404,6 +418,14 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 
 	if v, ok := d.GetOk("ip_network"); ok {
 		input.IPNetwork = v.(string)
+	}
+
+	if v, ok := d.GetOk("availability_domain"); ok {
+		input.AvailabilityDomain = v.(string)
+	}
+
+	if v, ok := d.GetOk("subnet"); ok {
+		input.Subnet = v.(string)
 	}
 
 	// Only the PaaS level can have a parameter.
@@ -453,6 +475,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 
 	log.Printf("[DEBUG] Read state of database service instance %s: %#v", d.Id(), result)
 	d.Set("name", result.Name)
+	d.Set("availability_domain", result.AvailabilityDomain)
 	d.Set("description", result.Description)
 	d.Set("backup_destination", result.BackupDestination)
 	d.Set("character_set", result.CharSet)
@@ -465,6 +488,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("failover_database", result.FailoverDatabase)
 	d.Set("high_performance_storage", result.UseHighPerformanceStorage)
 	d.Set("glassfish_url", result.GlassFishURL)
+	d.Set("identity_domain", result.IdentityDomain)
 	d.Set("ip_network", result.IPNetwork)
 	d.Set("byol", result.IsBYOL)
 	d.Set("level", result.Level)
@@ -473,6 +497,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("uri", result.URI)
 	d.Set("shape", result.Shape)
 	d.Set("sid", result.SID)
+	d.Set("subnet", result.Subnet)
 	d.Set("subscription_type", result.SubscriptionType)
 	d.Set("timezone", result.Timezone)
 	d.Set("version", result.Version)
