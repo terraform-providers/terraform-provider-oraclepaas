@@ -110,7 +110,6 @@ func testAccCheckDatabaseAccessRuleDestroy(s *terraform.State) error {
 	return nil
 }
 
-// TODO add database service instance
 func testAccDatabaseAccessRuleBasic(rInt int) string {
 	return fmt.Sprintf(`
 resource "oraclepaas_database_service_instance" "test" {
