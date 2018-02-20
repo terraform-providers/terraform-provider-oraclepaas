@@ -137,8 +137,8 @@ resource "oraclepaas_database_service_instance" "test" {
     sid = "ORCL"
     usable_storage = 15
     
-	cloud_storage {
-      container = "Storage-%s/acctest-%d"
+	backups {
+      cloud_storage_container = "Storage-%s/acctest-%d"
       create_if_missing = true
     }
 }`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt)

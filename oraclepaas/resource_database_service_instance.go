@@ -50,8 +50,9 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 			},
 			"level": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Default:  string(database.ServiceInstanceLevelBasic),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(database.ServiceInstanceLevelPAAS),
 					string(database.ServiceInstanceLevelBasic),
@@ -76,7 +77,7 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"vm_public_key": {
+			"ssh_public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -94,15 +95,16 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 			},
 			"backup_destination": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Default:  string(database.ServiceInstanceBackupDestinationNone),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(database.ServiceInstanceBackupDestinationBoth),
 					string(database.ServiceInstanceBackupDestinationOSS),
 					string(database.ServiceInstanceBackupDestinationNone),
 				}, true),
 			},
-			"char_set": {
+			"character_set": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -126,7 +128,7 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				ForceNew: true,
 				Default:  false,
 			},
-			"n_char_set": {
+			"national_character_set": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -185,13 +187,18 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validation.IntBetween(15, 2048),
 			},
-			"ibkup": {
+			"instantiate_from_backup": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"cloud_storage_container": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
 						"cloud_storage_password": {
 							Type:      schema.TypeString,
 							Optional:  true,
@@ -216,7 +223,18 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
-						"ibkup_wallet_file_content": {
+						"on_premise": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default:  false,
+						},
+						"service_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"wallet_file_content": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
@@ -224,26 +242,26 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 					},
 				},
 			},
-			"cloud_storage": {
-				Type:     schema.TypeSet,
+			"backups": {
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"container": {
+						"cloud_storage_container": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"username": {
+						"cloud_storage_username": {
 							Type:      schema.TypeString,
 							Optional:  true,
 							ForceNew:  true,
 							Computed:  true,
 							Sensitive: true,
 						},
-						"password": {
+						"cloud_storage_password": {
 							Type:      schema.TypeString,
 							Optional:  true,
 							ForceNew:  true,
@@ -259,8 +277,63 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 					},
 				},
 			},
+			"hybrid_disaster_recovery": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cloud_storage_container": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"cloud_storage_username": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"cloud_storage_password": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							ForceNew:  true,
+							Sensitive: true,
+						},
+					},
+				},
+			},
 			"region": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"ip_network": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"ip_reservations": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"notification_email": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"byol": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+			"high_performance_storage": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  false,
 				ForceNew: true,
 			},
 			"cloud_storage_container": {
@@ -309,21 +382,36 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	client := dbClient.ServiceInstanceClient()
 
 	input := database.CreateServiceInstanceInput{
-		Name:             d.Get("name").(string),
-		Edition:          database.ServiceInstanceEdition(d.Get("edition").(string)),
-		Level:            database.ServiceInstanceLevel(d.Get("level").(string)),
-		Shape:            database.ServiceInstanceShape(d.Get("shape").(string)),
-		SubscriptionType: database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
-		Version:          database.ServiceInstanceVersion(d.Get("version").(string)),
-		VMPublicKey:      d.Get("vm_public_key").(string),
+		Name:                      d.Get("name").(string),
+		Edition:                   database.ServiceInstanceEdition(d.Get("edition").(string)),
+		IPReservations:            getStringList(d, "ip_reservations"),
+		IsBYOL:                    d.Get("byol").(bool),
+		Level:                     database.ServiceInstanceLevel(d.Get("level").(string)),
+		Shape:                     database.ServiceInstanceShape(d.Get("shape").(string)),
+		SubscriptionType:          database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
+		UseHighPerformanceStorage: d.Get("high_performance_storage").(bool),
+		Version:                   database.ServiceInstanceVersion(d.Get("version").(string)),
+		VMPublicKey:               d.Get("ssh_public_key").(string),
 	}
-	if description, ok := d.GetOk("description"); ok {
-		input.Description = description.(string)
+	if v, ok := d.GetOk("description"); ok {
+		input.Description = v.(string)
+	}
+
+	if v, ok := d.GetOk("notification_email"); ok {
+		input.EnableNotification = true
+		input.NotificationEmail = v.(string)
+	}
+
+	if v, ok := d.GetOk("ip_network"); ok {
+		input.IPNetwork = v.(string)
 	}
 
 	// Only the PaaS level can have a parameter.
 	if input.Level == database.ServiceInstanceLevelPAAS {
-		input.Parameter = expandParameter(client, d)
+		input.Parameter, err = expandParameter(client, d)
+		if err != nil {
+			return err
+		}
 	}
 
 	info, err := client.CreateServiceInstance(&input)
@@ -367,7 +455,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("name", result.Name)
 	d.Set("description", result.Description)
 	d.Set("backup_destination", result.BackupDestination)
-	d.Set("char_set", result.CharSet)
+	d.Set("character_set", result.CharSet)
 	d.Set("cloud_storage_container", result.CloudStorageContainer)
 	d.Set("compute_site_name", result.ComputeSiteName)
 	d.Set("connect_descriptor", result.ConnectDescriptor)
@@ -375,10 +463,12 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("edition", result.Edition)
 	d.Set("em_url", result.EMURL)
 	d.Set("failover_database", result.FailoverDatabase)
+	d.Set("high_performance_storage", result.UseHighPerformanceStorage)
 	d.Set("glassfish_url", result.GlassFishURL)
+	d.Set("ip_network", result.IPNetwork)
+	d.Set("byol", result.IsBYOL)
 	d.Set("level", result.Level)
-	d.Set("n_char_set", result.NCharSet)
-	d.Set("num_ip_reservations", result.NumIPReservations)
+	d.Set("national_character_set", result.NCharSet)
 	d.Set("pdb_name", result.PDBName)
 	d.Set("uri", result.URI)
 	d.Set("shape", result.Shape)
@@ -386,6 +476,12 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("subscription_type", result.SubscriptionType)
 	d.Set("timezone", result.Timezone)
 	d.Set("version", result.Version)
+
+	// TODO change IPReservations to an []string in the sdk
+	/*
+		if err := setStringList(d, "ip_reservations", result.IPReservations); err != nil {
+			return err
+		} */
 
 	setAttributesFromConfig(d)
 
@@ -418,16 +514,16 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 	return nil
 }
 
-func expandParameter(client *database.ServiceInstanceClient, d *schema.ResourceData) database.ParameterInput {
+func expandParameter(client *database.ServiceInstanceClient, d *schema.ResourceData) (database.ParameterInput, error) {
 	parameter := database.ParameterInput{
 		AdminPassword:     d.Get("admin_password").(string),
 		BackupDestination: database.ServiceInstanceBackupDestination(d.Get("backup_destination").(string)),
-		CharSet:           d.Get("char_set").(string),
+		CharSet:           d.Get("character_set").(string),
 		DisasterRecovery:  d.Get("disaster_recovery").(bool),
 		FailoverDatabase:  d.Get("failover_database").(bool),
 		GoldenGate:        d.Get("golden_gate").(bool),
 		IsRAC:             d.Get("is_rac").(bool),
-		NCharSet:          database.ServiceInstanceNCharSet(d.Get("n_char_set").(string)),
+		NCharSet:          database.ServiceInstanceNCharSet(d.Get("national_character_set").(string)),
 		PDBName:           d.Get("pdb_name").(string),
 		SID:               d.Get("sid").(string),
 		Timezone:          d.Get("timezone").(string),
@@ -448,43 +544,81 @@ func expandParameter(client *database.ServiceInstanceClient, d *schema.ResourceD
 		parameter.AdditionalParameters = addParam
 	}
 	expandIbkup(d, &parameter)
-	expandCloudStorage(d, &parameter)
+	err := expandBackups(d, &parameter)
+	if err != nil {
+		return parameter, err
+	}
+	expandHDG(d, &parameter)
 
-	return parameter
+	return parameter, nil
 }
 
 func expandIbkup(d *schema.ResourceData, parameter *database.ParameterInput) {
-	ibkupInfo := d.Get("ibkup").([]interface{})
+	ibkupInfo := d.Get("instantiate_from_backup").([]interface{})
 	if len(ibkupInfo) > 0 {
 		attrs := ibkupInfo[0].(map[string]interface{})
 		parameter.IBKUP = true
-		parameter.IBKUPDatabaseID = attrs["cloud_storage_username"].(string)
-		if val, ok := attrs["decryption_key"].(string); ok && val != "" {
-			parameter.IBKUPCloudStorageUser = val
+		parameter.IBKUPDatabaseID = attrs["cloud_storage_container"].(string)
+		parameter.IBKUPOnPremise = attrs["on_premise"].(bool)
+		if val, ok := attrs["cloud_storage_username"]; ok {
+			parameter.IBKUPCloudStorageUser = val.(string)
 		}
-		if val, ok := attrs["cloud_storage_password"].(string); ok && val != "" {
-			parameter.IBKUPCloudStoragePassword = val
+		if val, ok := attrs["cloud_storage_password"]; ok {
+			parameter.IBKUPCloudStoragePassword = val.(string)
 		}
-		if val, ok := attrs["decryption_key"].(string); ok && val != "" {
-			parameter.IBKUPDecryptionKey = val
+		if val, ok := attrs["decryption_key"]; ok {
+			parameter.IBKUPDecryptionKey = val.(string)
 		}
-		if val, ok := attrs["wallet_file_content"].(string); ok && val != "" {
-			parameter.IBKUPWalletFileContent = val
+		if val, ok := attrs["service_id"]; ok {
+			parameter.IBKUPServiceID = val.(string)
+		}
+		if val, ok := attrs["wallet_file_content"]; ok {
+			parameter.IBKUPWalletFileContent = val.(string)
 		}
 	}
 }
 
-func expandCloudStorage(d *schema.ResourceData, parameter *database.ParameterInput) {
-	cloudStorageInfo := d.Get("cloud_storage").(*schema.Set)
-	for _, i := range cloudStorageInfo.List() {
-		attrs := i.(map[string]interface{})
-		parameter.CloudStorageContainer = attrs["container"].(string)
+func expandBackups(d *schema.ResourceData, parameter *database.ParameterInput) error {
+	cloudStorageInfo := d.Get("backups").([]interface{})
+
+	if parameter.BackupDestination == database.ServiceInstanceBackupDestinationBoth || parameter.BackupDestination == database.ServiceInstanceBackupDestinationOSS {
+		if len(cloudStorageInfo) == 0 {
+			return fmt.Errorf("`backups` must be set if `backup_destination` is set to `OSS` or `BOTH`")
+		}
+	}
+
+	if len(cloudStorageInfo) > 0 {
+		attrs := cloudStorageInfo[0].(map[string]interface{})
+		parameter.CloudStorageContainer = attrs["cloud_storage_container"].(string)
 		parameter.CreateStorageContainerIfMissing = attrs["create_if_missing"].(bool)
-		if val, ok := attrs["username"].(string); ok && val != "" {
+		if val, ok := attrs["cloud_storage_username"].(string); ok && val != "" {
 			parameter.CloudStorageUsername = val
 		}
-		if val, ok := attrs["password"].(string); ok && val != "" {
+		if val, ok := attrs["cloud_storage_password"].(string); ok && val != "" {
 			parameter.CloudStoragePassword = val
 		}
 	}
+	return nil
+}
+
+func expandHDG(d *schema.ResourceData, parameter *database.ParameterInput) error {
+	hdgInfo := d.Get("hybrid_disaster_recovery").([]interface{})
+
+	if len(hdgInfo) > 0 {
+		if parameter.FailoverDatabase == true || parameter.IsRAC == true {
+			return fmt.Errorf("`hybrid_disaster_recovery` cannot be set if `is_rac` or `failover_database` is set to true")
+		}
+		attrs := hdgInfo[0].(map[string]interface{})
+		parameter.HDG = true
+		parameter.HDGCloudStorageContainer = attrs["cloud_storage_container"].(string)
+		// TODO read these values in the sdk like we do with cloud storage
+		if val, ok := attrs["cloud_storage_username"].(string); ok && val != "" {
+			parameter.HDGCloudStorageUser = val
+		}
+		if val, ok := attrs["cloud_storage_password"].(string); ok && val != "" {
+			parameter.HDGCloudStoragePassword = val
+		}
+	}
+
+	return nil
 }

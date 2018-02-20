@@ -24,12 +24,10 @@ resource "oraclepaas_database_service_instance" "default" {
   subscription_type = "HOURLY"
   version = "12.2.0.1"
   vm_public_key = "An ssh public key"
-  parameter {
-    admin_password = "Test_String7"
-    backup_destination = "NONE"
-    sid = "ORCL"
-    usable_storage = 15
-  }
+  admin_password = "Test_String7"
+  backup_destination = "NONE"
+  sid = "ORCL"
+  usable_storage = 15
 }
 ```
 
@@ -51,17 +49,6 @@ The following arguments are supported:
 
 * `vm_public_key` - (Required) Public key for the secure shell (SSH). This key will be used for authentication when connecting to the Database Cloud Service instance using an SSH client.
 
-* `parameter` - (Optional) Additional configuration for a service instance. This set is required if level is PAAS. Parameter is documented below.
-
-* `ibkup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database stored in an existing cloud backup that was created using Oracle Database Backup Cloud Service. IBKUP is documented below.
-
-* `cloud_storage` - (Optional) Provides Cloud Storage for service instance backups. Cloud Storage
-is documented below
-
-* `description` - (Optional) A description of the Service Instance.
-
-Parameter supports the following:
-
 * `admin_password` - (Required) Password for Oracle Database administrator users sys and system. The password must meet the following requirements: Starts with a letter. Is between 8 and 30 characters long. Contains letters, at least one number, and optionally, any number of these special characters: dollar sign `$`, pound sign `#`, and underscore `_`.
 
 * `backup_destination` - (Required) Backup Destination. Possible values are `BOTH`, `OSS`, `NONE`.
@@ -70,17 +57,43 @@ Parameter supports the following:
 
 * `usable_storage` - (Required) Storage size for data (in GB). Minimum value is `15`. Maximum value depends on the backup destination: if `BOTH` is specified, the maximum value is `1200`; if `OSS` or `NONE` is specified, the maximum value is `2048`.
 
-* `disaster_recovery` - (Optional) Specify if an Oracle Data Guard configuration is created using the Disaster Recovery option or the High Availability option. Valid values are `yes` and `no`. Default value is no.
+* `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database stored in an existing cloud backup that was created using Oracle Database Backup Cloud Service. Instantiate from Backup is documented below.
 
-* `failover_database` - Specify if an Oracle Data Guard configuration comprising a primary database and a standby database is created. Valid values are `yes` and `no`. Default value is `no`.
+* `ip_network` - (Optional) This attribute is only applicable to accounts where regions are supported. The three-part name of an IP network to which the service instance is added. For example: /Compute-identity_domain/user/object
 
-* `golden_gate` - (Optional) Specify if the database should be configured for use as the replication database of an Oracle GoldenGate Cloud Service instance. Valid values are `yes` and `no`. Default value is `no`. You cannot set `goldenGate` to `yes` if either `is_rac` or `failoverDatabase` is set to `yes`.
+* `ip_reservations` - (Optional) Groups one or more IP reservations in use on this service instance. This attribute is only applicable to accounts where regions are supported.
 
-* `is_rac` - (Optional) Specify if a cluster database using Oracle Real Application Clusters should be configured. Valid values are `yes` and `no`. Default value is `no`.
+* `backups` - (Optional) Provides Cloud Storage information for how to implement service instance backups. Backups is documented below
+
+* `byol` - (Optional) Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
+Default value is `false`.
+
+* `description` - (Optional) A description of the Service Instance.
+
+* `disaster_recovery` - (Optional) Specify if an Oracle Data Guard configuration is created using the Disaster Recovery option or the High Availability option.
+Default value is `false`.
+
+* `failover_database` - (Optional) Specify if an Oracle Data Guard configuration comprising a primary database and a standby database is created. 
+Default value is `false`.
+
+* `high_performance_storage` - (Optional) Specifies whether the service instance will be provisioned with high performance storage.
+Default value is `false`.
+
+* `golden_gate` - (Optional) Specify if the database should be configured for use as the replication database of an Oracle GoldenGate Cloud Service instance. 
+You cannot set `goldenGate` to `true` if either `is_rac` or `failoverDatabase` is set to `true`. Default value is `false`.
+
+* `hybrid_disastery_recovery` - (Optional) Provides information about an Oracle Hybrid Disaster Recovery configuration. Hybrid Disaster Recovery is documented below.
+
+* `is_rac` - (Optional) Specify if a cluster database using Oracle Real Application Clusters should be configured. 
+Default value is `false`.
 
 * `n_char_set` - (Optional) National Character Set for the Database Cloud Service instance. Valid values are `AL16UTF16` and `UTF8`. Default value is `AL16UTF16`.
 
+* `notification_email` - (Optional)  The email address to send notifications around successful or unsuccessful completions of the instance-creation operation.
+
 * `pdb_name` - (Optional) This attribute is valid when Database Cloud Service instance is configured with version 12c. Pluggable Database Name for the Database Cloud Service instance. Default value is `pdb1`.
+
+* `region` - (Optional) Specifies the location where the service instance is provisioned (only for accounts where regions are supported).
 
 * `sid` - (Optional) Database Name for the Database Cloud Service instance. Default value is `ORCL`.
 
@@ -92,9 +105,11 @@ Parameter supports the following:
 
 * `type` - (Optional) Component type to which the set of parameters applies. Defaults to `db`
 
-* `db_demo` - (Optional) Indicates whether to include the Demos PDB. Valid values are `yes` or `no`.
+* `db_demo` - (Optional) Indicates whether to include the Demos PDB.
 
-IBKUP supports the following:
+Instantiate from Backup supports the following:
+
+* `cloud_storage_container` - (Required) Name of the Oracle Storage Cloud Service container where the existing cloud backup is stored.
 
 * `cloud_storage_username` - (Required) Username of the Oracle Cloud user.
 
@@ -104,34 +119,37 @@ IBKUP supports the following:
 
 * `decryption_key` - (Optional) Password used to create the existing, password-encrypted cloud backup. This password is used to decrypt the backup. Specify either `ibkup_decryption_key` or `ibkup_wallet_file_content` for decrypting the backup.
 
+* `on_premise` - (Optional) Specify if the existing cloud backup being used to replace the database is from an on-premises database or another Database Cloud Service instance.
+The default value is false.
+
+* `service_id` - (Optional) Oracle Database Cloud Service instance name from which the database of new Oracle Database Cloud Service instance should be created. This value is required if 
+`on_premise` is set to true.
+
 * `wallet_file_content` - (Optional) String containing the xsd:base64Binary representation of the cloud backup's wallet file. This wallet is used to decrypt the backup. Specify either `ibkup_decryption_key` or `ibkup_wallet_file_content` for decrypting the backup.
 
-Cloud Storage supports the following:
+Backups support the following:
 
-* `container` - (Required) Name of the Oracle Storage Cloud Service container used to provide storage for your service instance backups. Use the following format to specify the container name: `<storageservicename>-<storageidentitydomain>/<containername>`
+* `cloud_storage_container` - (Required) Name of the Oracle Storage Cloud Service container used to provide storage for your service instance backups.
+Use the following format to specify the container name: `<storageservicename>-<storageidentitydomain>/<containername>`
 
-* `username` - (Required) Username for the Oracle Storage Cloud Service administrator.
+* `cloud_storage_username` - (Required) Username for the Oracle Storage Cloud Service administrator.
 
-* `password` - (Required) Password for the Oracle Storage Cloud Service administrator.
+* `cloud_storage_password` - (Required) Password for the Oracle Storage Cloud Service administrator.
 
 * `create_if_missing` - (Optional) Specify if the given cloud_storage_container is to be created if it does not already exist. Default value is `false`.
 
+Hybrid Disaster Recovery supports the following:
+
+* `cloud_storage_container` - (Required) Name of the Oracle Storage Cloud Service container where the backup from on-premise instance is stored. 
+Use the following format to specify the container name: `<storageservicename>-<storageidentitydomain>/<containername>`
+
+* `cloud_storage_username` - (Required) Username for the Oracle Storage Cloud Service administrator.
+
+* `cloud_storage_password` - (Required) Password for the Oracle Storage Cloud Service administrator.
 
 In addition to the above, the following values are exported:
 
-* `apex_url` - The URL to use to connect to Oracle Application Express on the service instance.
-
-* `backup_supported_version` - The version of cloud tooling for backup and recovery supported by the service instance.
-
 * `compute_site_name` - The Oracle Cloud location housing the service instance.
-
-* `connect_descriptor_with_public_ip` - The connection descriptor for Oracle Net Services (SQL*Net) with IP addresses instead of host names.
-
-* `created_by` - The user name of the Oracle Cloud user who created the service instance.
-
-* `creation_time` - The date-and-time stamp when the service instance was created.
-
-* `current_version` - The Oracle Database version on the service instance, including the patch level.
 
 * `dbaasmonitor_url`- The URL to use to connect to Oracle DBaaS Monitor on the service instance.
 
@@ -139,30 +157,6 @@ In addition to the above, the following values are exported:
 
 * `glassfish_url` - The URL to use to connect to the Oracle GlassFish Server Administration Console on the service instance.
 
-* `hdg_prem_ip` - Data Guard Role of the on-premise instance in Oracle Hybrid Disaster Recovery configuration.
-
-* `hybrid_dg` - Indicates whether the service instance hosts an Oracle Hybrid Disaster Recovery configuration.
-
 * `identity_domain` - The identity domain housing the service instance.
-
-* `ip_network` - This attribute is only applicable to accounts where regions are supported. The three-part name of an IP network to which the service instance is added. For example: /Compute-identity_domain/user/object
-
-* `ip_reservations` - Groups one or more IP reservations in use on this service instance. This attribute is only applicable to accounts where regions are supported.
-
-* `jaas_instances_using_service` - The Oracle Java Cloud Service instances using this Database Cloud Service instance.
-
-* `listener_port` - The listener port for Oracle Net Services (SQL*Net) connections.
-
-* `num_ip_reservations` - The number of Oracle Compute Service IP reservations assigned to the service instance.
-
-* `num_nodes` - The number of compute nodes in the service instance.
-
-* `rac_database` - Indicates whether the service instance hosts an Oracle RAC database.
-
-* `region` - This attribute is only applicable to accounts where regions are supported. Location where the service instance is provisioned (only for accounts where regions are supported).
-
-* `sm_plugin_version` - The version of the cloud tooling service manager plugin supported by the service instance.
-
-* `total_shared_storage` - For service instances hosting an Oracle RAC database, the size in GB of the storage shared and accessed by the nodes of the RAC database.
 
 * `uri` - The Uniform Resource Identifier for the Service Instance
