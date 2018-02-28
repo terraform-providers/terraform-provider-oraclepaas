@@ -324,15 +324,15 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				ForceNew: true,
 			},
 			"ip_network": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"ip_reservations": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"ip_reservations": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
 			},
 			"notification_email": {
 				Type:     schema.TypeString,
@@ -430,6 +430,11 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		input.IPNetwork = v.(string)
 	}
 
+	if _, ok := d.GetOk("ip_reservations"); ok {
+		input.IPReservations = getStringList(d, "ip_reservations")
+	}
+
+
 	if v, ok := d.GetOk("availability_domain"); ok {
 		input.AvailabilityDomain = v.(string)
 	}
@@ -511,12 +516,6 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("subscription_type", result.SubscriptionType)
 	d.Set("timezone", result.Timezone)
 	d.Set("version", result.Version)
-
-	// TODO change IPReservations to an []string in the sdk
-	/*
-		if err := setStringList(d, "ip_reservations", result.IPReservations); err != nil {
-			return err
-		} */
 
 	setAttributesFromConfig(d)
 
