@@ -24,10 +24,13 @@ resource "oraclepaas_database_service_instance" "default" {
   subscription_type = "HOURLY"
   version = "12.2.0.1"
   vm_public_key = "An ssh public key"
-  admin_password = "Test_String7"
-  backup_destination = "NONE"
-  sid = "ORCL"
-  usable_storage = 15
+  
+  database_configuration {
+      admin_password = "Test_String7"
+      backup_destination = "NONE"
+      sid = "ORCL"
+      usable_storage = 15
+  }
 }
 ```
 
@@ -49,17 +52,10 @@ The following arguments are supported:
 
 * `vm_public_key` - (Required) Public key for the secure shell (SSH). This key will be used for authentication when connecting to the Database Cloud Service instance using an SSH client.
 
-* `admin_password` - (Required) Password for Oracle Database administrator users sys and system. The password must meet the following requirements: Starts with a letter. Is between 8 and 30 characters long. Contains letters, at least one number, and optionally, any number of these special characters: dollar sign `$`, pound sign `#`, and underscore `_`.
+* `database_configuration` - (Required) Specifies the details on how to configure the database. Database configuration is documented below.
 
-* `backup_destination` - (Required) Backup Destination. Possible values are `BOTH`, `OSS`, `NONE`.
-
-* `char_set` - (Required) Character Set for the Database Cloud Service Instance. All possible values are listed under the [parameters section documentation](http://docs.oracle.com/en/cloud/paas/database-dbaas-cloud/csdbr/op-paas-service-dbcs-api-v1.1-instances-%7BidentityDomainId%7D-post.html). Default value is `AL32UTF8`.
-
-* `usable_storage` - (Required) Storage size for data (in GB). Minimum value is `15`. Maximum value depends on the backup destination: if `BOTH` is specified, the maximum value is `1200`; if `OSS` or `NONE` is specified, the maximum value is `2048`.
-
-* `availability_domain` - (Optional) Name of the availability domain within the region where the Oracle Database Cloud Service instance is to be provisioned.
-
-* `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database stored in an existing cloud backup that was created using Oracle Database Backup Cloud Service. Instantiate from Backup is documented below.
+* `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database 
+stored in an existing cloud backup that was created using Oracle Database Backup Cloud Service. Instantiate from Backup is documented below.
 
 * `ip_network` - (Optional) This attribute is only applicable to accounts where regions are supported. The three-part name of an IP network to which the service instance is added. For example: /Compute-identity_domain/user/object
 
@@ -72,38 +68,50 @@ Default value is `false`.
 
 * `description` - (Optional) A description of the Service Instance.
 
+* `high_performance_storage` - (Optional) Specifies whether the service instance will be provisioned with high performance storage.
+Default value is `false`.
+
+* `hybrid_disastery_recovery` - (Optional) Provides information about an Oracle Hybrid Disaster Recovery configuration. Hybrid Disaster Recovery is documented below.
+
+* `notification_email` - (Optional)  The email address to send notifications around successful or unsuccessful completions of the instance-creation operation.
+
+* `region` - (Optional) Specifies the location where the service instance is provisioned (only for accounts where regions are supported).
+
+* `subnet` - (Optional) Name of the subnet within the region where the Oracle Database Cloud Service instance is to be provisioned.
+
+Database Configuration supports the following:
+
+* `admin_password` - (Required) Password for Oracle Database administrator users sys and system. The password must meet the following requirements: Starts with a letter. Is between 8 and 30 characters long. Contains letters, at least one number, and optionally, any number of these special characters: dollar sign `$`, pound sign `#`, and underscore `_`.
+
+* `backup_destination` - (Optional) Backup Destination. Possible values are `BOTH`, `OSS`, `NONE`.This defaults to `NONE`.
+
+* `char_set` - (Required) Character Set for the Database Cloud Service Instance. All possible values are listed under the [parameters section documentation](http://docs.oracle.com/en/cloud/paas/database-dbaas-cloud/csdbr/op-paas-service-dbcs-api-v1.1-instances-%7BidentityDomainId%7D-post.html). Default value is `AL32UTF8`.
+
+* `usable_storage` - (Required) Storage size for data (in GB). Minimum value is `15`. Maximum value depends on the backup destination: if `BOTH` is specified, the maximum value is `1200`; if `OSS` or `NONE` is specified, the maximum value is `2048`.
+
+* `availability_domain` - (Optional) Name of the availability domain within the region where the Oracle Database Cloud Service instance is to be provisioned.
+
 * `disaster_recovery` - (Optional) Specify if an Oracle Data Guard configuration is created using the Disaster Recovery option or the High Availability option.
 Default value is `false`.
 
 * `failover_database` - (Optional) Specify if an Oracle Data Guard configuration comprising a primary database and a standby database is created. 
 Default value is `false`.
 
-* `high_performance_storage` - (Optional) Specifies whether the service instance will be provisioned with high performance storage.
-Default value is `false`.
-
 * `golden_gate` - (Optional) Specify if the database should be configured for use as the replication database of an Oracle GoldenGate Cloud Service instance. 
 You cannot set `goldenGate` to `true` if either `is_rac` or `failoverDatabase` is set to `true`. Default value is `false`.
-
-* `hybrid_disastery_recovery` - (Optional) Provides information about an Oracle Hybrid Disaster Recovery configuration. Hybrid Disaster Recovery is documented below.
 
 * `is_rac` - (Optional) Specify if a cluster database using Oracle Real Application Clusters should be configured. 
 Default value is `false`.
 
-* `n_char_set` - (Optional) National Character Set for the Database Cloud Service instance. Valid values are `AL16UTF16` and `UTF8`. Default value is `AL16UTF16`.
-
-* `notification_email` - (Optional)  The email address to send notifications around successful or unsuccessful completions of the instance-creation operation.
+* `national_character_set` - (Optional) National Character Set for the Database Cloud Service instance. Valid values are `AL16UTF16` and `UTF8`. Default value is `AL16UTF16`.
 
 * `pdb_name` - (Optional) This attribute is valid when Database Cloud Service instance is configured with version 12c. Pluggable Database Name for the Database Cloud Service instance. Default value is `pdb1`.
-
-* `region` - (Optional) Specifies the location where the service instance is provisioned (only for accounts where regions are supported).
 
 * `sid` - (Optional) Database Name for the Database Cloud Service instance. Default value is `ORCL`.
 
 * `source_service_name` - (Optional) Indicates that the service instance should be created as a "snapshot clone" of another service instance. Provide the name of the existing service instance whose snapshot is to be used.
 
 * `snapshot_name` - (Optional) The name of the snapshot of the service instance specified by sourceServiceName that is to be used to create a "snapshot clone". This parameter is valid only if source_service_name is specified.
-
-* `subnet` - (Optional) Name of the subnet within the region where the Oracle Database Cloud Service instance is to be provisioned.
 
 * `timezone` - (Optional) Time Zone for the Database Cloud Service instance. Default value is `UTC`.
 

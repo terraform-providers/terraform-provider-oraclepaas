@@ -82,110 +82,120 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"db_demo": {
-				Type:     schema.TypeString,
-				Optional: true,
+			"database_configuration": {
+				Type:     schema.TypeList,
+				Required: true,
 				ForceNew: true,
-			},
-			"admin_password": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				Sensitive: true,
-			},
-			"backup_destination": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  string(database.ServiceInstanceBackupDestinationNone),
-				ValidateFunc: validation.StringInSlice([]string{
-					string(database.ServiceInstanceBackupDestinationBoth),
-					string(database.ServiceInstanceBackupDestinationOSS),
-					string(database.ServiceInstanceBackupDestinationNone),
-				}, true),
-			},
-			"character_set": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "AL32UTF8",
-			},
-			"disaster_recovery": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-				Default:  false,
-			},
-			"golden_gate": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-				Default:  false,
-			},
-			"is_rac": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-				Default:  false,
-			},
-			"national_character_set": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  database.ServiceInstanceNCharSetUTF16,
-				ValidateFunc: validation.StringInSlice([]string{
-					string(database.ServiceInstanceNCharSetUTF16),
-					string(database.ServiceInstanceNCharSetUTF8),
-				}, true),
-			},
-			"pdb_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "pdb1",
-			},
-			"sid": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "ORCL",
-			},
-			"snapshot_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			"source_service_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			"timezone": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "UTC",
-			},
-			"type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  database.ServiceInstanceTypeDB,
-				ValidateFunc: validation.StringInSlice([]string{
-					string(database.ServiceInstanceTypeDB),
-				}, true),
-			},
-			"failover_database": {
-				Type:     schema.TypeBool,
-				ForceNew: true,
-				Optional: true,
-				Default:  false,
-			},
-			"usable_storage": {
-				Type:         schema.TypeInt,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validation.IntBetween(15, 2048),
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"admin_password": {
+							Type:      schema.TypeString,
+							Required:  true,
+							ForceNew:  true,
+							Sensitive: true,
+						},
+						"backup_destination": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  string(database.ServiceInstanceBackupDestinationNone),
+							ValidateFunc: validation.StringInSlice([]string{
+								string(database.ServiceInstanceBackupDestinationBoth),
+								string(database.ServiceInstanceBackupDestinationOSS),
+								string(database.ServiceInstanceBackupDestinationNone),
+							}, true),
+						},
+						"character_set": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  "AL32UTF8",
+						},
+						"db_demo": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"disaster_recovery": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default:  false,
+						},
+						"failover_database": {
+							Type:     schema.TypeBool,
+							ForceNew: true,
+							Optional: true,
+							Default:  false,
+						},
+						"golden_gate": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default:  false,
+						},
+						"is_rac": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default:  false,
+						},
+						"national_character_set": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  database.ServiceInstanceNCharSetUTF16,
+							ValidateFunc: validation.StringInSlice([]string{
+								string(database.ServiceInstanceNCharSetUTF16),
+								string(database.ServiceInstanceNCharSetUTF8),
+							}, true),
+						},
+						"pdb_name": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  "pdb1",
+						},
+						"sid": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  "ORCL",
+						},
+						"timezone": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  "UTC",
+						},
+						"type": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  database.ServiceInstanceTypeDB,
+							ValidateFunc: validation.StringInSlice([]string{
+								string(database.ServiceInstanceTypeDB),
+							}, true),
+						},
+						"usable_storage": {
+							Type:         schema.TypeInt,
+							Required:     true,
+							ForceNew:     true,
+							ValidateFunc: validation.IntBetween(15, 2048),
+						},
+						"snapshot_name": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"source_service_name": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
 			},
 			"instantiate_from_backup": {
 				Type:     schema.TypeList,
@@ -430,7 +440,7 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 
 	// Only the PaaS level can have a parameter.
 	if input.Level == database.ServiceInstanceLevelPAAS {
-		input.Parameter, err = expandParameter(client, d)
+		input.Parameter, err = expandParameter(d)
 		if err != nil {
 			return err
 		}
@@ -539,30 +549,32 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 	return nil
 }
 
-func expandParameter(client *database.ServiceInstanceClient, d *schema.ResourceData) (database.ParameterInput, error) {
+func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
+	databaseConfigInfo := d.Get("database_configuration").([]interface{})
+	attrs := databaseConfigInfo[0].(map[string]interface{})
 	parameter := database.ParameterInput{
-		AdminPassword:     d.Get("admin_password").(string),
-		BackupDestination: database.ServiceInstanceBackupDestination(d.Get("backup_destination").(string)),
-		CharSet:           d.Get("character_set").(string),
-		DisasterRecovery:  d.Get("disaster_recovery").(bool),
-		FailoverDatabase:  d.Get("failover_database").(bool),
-		GoldenGate:        d.Get("golden_gate").(bool),
-		IsRAC:             d.Get("is_rac").(bool),
-		NCharSet:          database.ServiceInstanceNCharSet(d.Get("national_character_set").(string)),
-		PDBName:           d.Get("pdb_name").(string),
-		SID:               d.Get("sid").(string),
-		Timezone:          d.Get("timezone").(string),
-		Type:              database.ServiceInstanceType(d.Get("type").(string)),
-		UsableStorage:     strconv.Itoa(d.Get("usable_storage").(int)),
+		AdminPassword:     attrs["admin_password"].(string),
+		BackupDestination: database.ServiceInstanceBackupDestination(attrs["backup_destination"].(string)),
+		CharSet:           attrs["character_set"].(string),
+		DisasterRecovery:  attrs["disaster_recovery"].(bool),
+		FailoverDatabase:  attrs["failover_database"].(bool),
+		GoldenGate:        attrs["golden_gate"].(bool),
+		IsRAC:             attrs["is_rac"].(bool),
+		NCharSet:          database.ServiceInstanceNCharSet(attrs["national_character_set"].(string)),
+		PDBName:           attrs["pdb_name"].(string),
+		SID:               attrs["sid"].(string),
+		Timezone:          attrs["timezone"].(string),
+		Type:              database.ServiceInstanceType(attrs["type"].(string)),
+		UsableStorage:     strconv.Itoa(attrs["usable_storage"].(int)),
 	}
 
-	if val, ok := d.Get("snapshot_name").(string); ok && val != "" {
+	if val, ok := attrs["snapshot_name"].(string); ok && val != "" {
 		parameter.SnapshotName = val
 	}
-	if val, ok := d.Get("source_service_name").(string); ok && val != "" {
+	if val, ok := attrs["source_service_name"].(string); ok && val != "" {
 		parameter.SourceServiceName = val
 	}
-	if val, ok := d.Get("db_demo").(string); ok {
+	if val, ok := attrs["db_demo"].(string); ok {
 		addParam := database.AdditionalParameters{
 			DBDemo: val,
 		}
