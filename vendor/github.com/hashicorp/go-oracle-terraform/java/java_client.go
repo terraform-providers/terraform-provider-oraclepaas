@@ -44,11 +44,12 @@ func (c *JavaClient) executeRequest(method, path string, body interface{}) (*htt
 
 	debugReqString := fmt.Sprintf("HTTP %s Path (%s)", method, path)
 	if body != nil {
-		req.Header.Set("Content-Type", "application/vnd.com.oracle.oracloud.provisioning.Service+json")
+		req.Header.Set("Content-Type", "application/json")
+		// Output the request body json
+		debugReqString = fmt.Sprintf("%s:\nBody: %+v", debugReqString, string(reqBody))
 	}
 	// Log the request before the authentication header, so as not to leak credentials
 	c.client.DebugLogString(debugReqString)
-	c.client.DebugLogString(fmt.Sprintf("Req (%+v)", req))
 
 	// Set the authentiation headers
 	req.Header.Add(AUTH_HEADER, *c.authHeader)

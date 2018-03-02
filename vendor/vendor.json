@@ -254,36 +254,36 @@
 			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
 		},
 		{
-			"checksumSHA1": "hjQfXn32Tvuu6IJACOTsMzm+AbA=",
+			"checksumSHA1": "4E4c/V4yGYpy8/0VQqJzf3jsxjE=",
 			"path": "github.com/hashicorp/go-oracle-terraform/client",
-			"revision": "772ca39e775081a9570bb178330786289051dd81",
-			"revisionTime": "2018-02-16T01:17:25Z",
-			"version": "v0.7.0",
-			"versionExact": "v0.7.0"
+			"revision": "dc2ebd412a6bb6385031f76264ab3eef404bf251",
+			"revisionTime": "2018-03-01T23:08:39Z",
+			"version": "v0.8.0",
+			"versionExact": "v0.8.0"
 		},
 		{
-			"checksumSHA1": "nxAAhWuZ6SazNDavle32J6krJIg=",
+			"checksumSHA1": "DVln/N1nxS+6SDiFRgFcLPXyJgM=",
 			"path": "github.com/hashicorp/go-oracle-terraform/database",
-			"revision": "772ca39e775081a9570bb178330786289051dd81",
-			"revisionTime": "2018-02-16T01:17:25Z",
-			"version": "v0.7.0",
-			"versionExact": "v0.7.0"
+			"revision": "dc2ebd412a6bb6385031f76264ab3eef404bf251",
+			"revisionTime": "2018-03-01T23:08:39Z",
+			"version": "v0.8.0",
+			"versionExact": "v0.8.0"
 		},
 		{
-			"checksumSHA1": "whtyVmJojm51l8auI9YUFsZ0SNY=",
+			"checksumSHA1": "cFo4Po/Np3B1yub42Mb56KxmaTE=",
 			"path": "github.com/hashicorp/go-oracle-terraform/java",
-			"revision": "772ca39e775081a9570bb178330786289051dd81",
-			"revisionTime": "2018-02-16T01:17:25Z",
-			"version": "v0.7.0",
-			"versionExact": "v0.7.0"
+			"revision": "dc2ebd412a6bb6385031f76264ab3eef404bf251",
+			"revisionTime": "2018-03-01T23:08:39Z",
+			"version": "v0.8.0",
+			"versionExact": "v0.8.0"
 		},
 		{
 			"checksumSHA1": "NuObCk0/ybL3w++EnltgrB1GQRc=",
 			"path": "github.com/hashicorp/go-oracle-terraform/opc",
-			"revision": "772ca39e775081a9570bb178330786289051dd81",
-			"revisionTime": "2018-02-16T01:17:25Z",
-			"version": "v0.7.0",
-			"versionExact": "v0.7.0"
+			"revision": "dc2ebd412a6bb6385031f76264ab3eef404bf251",
+			"revisionTime": "2018-03-01T23:08:39Z",
+			"version": "v0.8.0",
+			"versionExact": "v0.8.0"
 		},
 		{
 			"checksumSHA1": "b0nQutPMJHeUmz4SjpreotAo6Yk=",

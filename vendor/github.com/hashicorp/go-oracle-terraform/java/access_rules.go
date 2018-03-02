@@ -1,4 +1,4 @@
-// Manages Access Rules for a DBaaS Service Instance.
+// Manages Access Rules for a JaaS Service Instance.
 // The only fields that can be Updated for an Access Rule is the desired state
 // of the access rule. From Enabled -> Disabled.
 // Deleting an Access Rule also requires an Update call, instead of a Delete API request,
@@ -10,14 +10,14 @@
 // data source to match on a supplied AccessRule name.
 // Timeout only supported for the CREATE method
 
-package database
+package java
 
 import "time"
 
 // API URI Paths for Container and Root objects
 const (
-	DBAccessContainerPath = "/paas/api/v1.1/instancemgmt/%s/services/dbaas/instances/%s/accessrules"
-	DBAccessRootPath      = "/paas/api/v1.1/instancemgmt/%s/services/dbaas/instances/%s/accessrules/%s"
+	JAccessContainerPath = "/paas/api/v1.1/instancemgmt/%s/services/jaas/instances/%s/accessrules"
+	JAccessRootPath      = "/paas/api/v1.1/instancemgmt/%s/services/jaas/instances/%s/accessrules/%s"
 )
 
 // Default Timeout value for Create
@@ -26,13 +26,13 @@ const WaitForAccessRuleTimeout = time.Duration(10 * time.Second)
 // Default Poll Interval value for Create
 const WaitForAccessRulePollInterval = time.Duration(1 * time.Second)
 
-// AccessRules returns a UtilityClient for managing SSH Keys and Access Rules for a DBaaS Service Instance
-func (c *DatabaseClient) AccessRules() *UtilityClient {
+// AccessRules returns a UtilityClient for managing SSH Keys and Access Rules for a JaaS Service Instance
+func (c *JavaClient) AccessRules() *UtilityClient {
 	return &UtilityClient{
 		UtilityResourceClient: UtilityResourceClient{
-			DatabaseClient:   c,
-			ContainerPath:    DBAccessContainerPath,
-			ResourceRootPath: DBAccessRootPath,
+			JavaClient:       c,
+			ContainerPath:    JAccessContainerPath,
+			ResourceRootPath: JAccessRootPath,
 		},
 	}
 }
@@ -57,7 +57,10 @@ const (
 type AccessRuleDestination string
 
 const (
-	AccessRuleDefaultDestination AccessRuleDestination = "DB_1"
+	AccessRuleDestinationWLSAdmin       AccessRuleDestination = "WLS_ADMIN"
+	AccessRuleDestinationWLSAdminServer AccessRuleDestination = "WLS_ADMIN_SERVER"
+	AccessRuleDestinationOTD            AccessRuleDestination = "OTD"
+	AccessRuleDestinationOTDAdminHost   AccessRuleDestination = "OTD_ADMIN_HOST"
 )
 
 // Used for the GET request, as there's no direct GET request for a single Access Rule
@@ -73,14 +76,23 @@ const (
 	AccessRuleTypeUser    AccessRuleType = "USER"
 )
 
+type AccessRuleProtocol string
+
+const (
+	AccessRuleProtocolTCP AccessRuleProtocol = "tcp"
+	AccessRuleProtocolUDP AccessRuleProtocol = "udp"
+)
+
 // AccessRuleInfo holds all of the known information for a single AccessRule
 type AccessRuleInfo struct {
 	// The Description of the Access Rule
 	Description string `json:"description"`
-	// The destination of the Access Rule. Should always be "DB".
+	// The destination of the Access Rule
 	Destination AccessRuleDestination `json:"destination"`
 	// The ports for the rule.
 	Ports string `json:"ports"`
+	// Protocol for the rule. One of: "tcp" or "udp"
+	Protocol AccessRuleProtocol `json:"protocol"`
 	// The name of the Access Rule
 	Name string `json:"ruleName"`
 	// The Type of the rule. One of: "DEFAULT", "SYSTEM", or "USER".
@@ -92,26 +104,30 @@ type AccessRuleInfo struct {
 	Status AccessRuleStatus `json:"status"`
 }
 
-// CreateAccessRuleInput defines the input parameters needed to create an Access Rule for a DBaaS Service Instance.
+// CreateAccessRuleInput defines the input parameters needed to create an Access Rule for a JaaS Service Instance.
 type CreateAccessRuleInput struct {
-	// Name of the DBaaS service instance.
+	// Name of the JaaS service instance.
 	// Required
 	ServiceInstanceID string `json:"-"`
 	// Description of the Access Rule.
 	// Required
 	Description string `json:"description"`
-	// Destination to which traffic is allowed. Specify the value "DB".
+	// Destination to which traffic is allowed.
 	// Required
 	Destination AccessRuleDestination `json:"destination"`
 	// The network port or ports to allow traffic on. Specified as a single port or a range.
 	// Required
 	Ports string `json:"ports"`
+	// Communication protocol. Valid values are: tcp or udp.
+	// Default is tcp.
+	// Optional
+	Protocol AccessRuleProtocol `json:"protocol"`
 	// The name of the Access Rule
 	// Required
 	Name string `json:"ruleName"`
 	// The IP addresses and subnets from which traffic is allowed.
 	// Valid values are:
-	//   - "DB" for any other cloud service instance in the service instances `ora_db` security list
+	//   - A service component name. Valid values include WLS_ADMIN or WLS_ADMIN_SERVER, WLS_MS or WLS_MANAGED_SERVER, OTD_ADMIN_HOST or OTD, DBaaS:Your_DBCS_Name:DB or DB
 	//   - "PUBLIC-INTERNET" for any host on the internet.
 	//   - A single IP address or comma-separated list of subnets (in CIDR format) or IPv4 addresses.
 	// Required
@@ -162,9 +178,9 @@ func (c *UtilityClient) CreateAccessRule(input *CreateAccessRuleInput) (*AccessR
 }
 
 // GetAccessRuleInput defines the input parameters needed to retrieve information
-// on an AccessRule for a DBaas Service Instance.
+// on an AccessRule for a Jaas Service Instance.
 type GetAccessRuleInput struct {
-	// Name of the DBaaS service instance.
+	// Name of the JaaS service instance.
 	// Required
 	ServiceInstanceID string `json:"-"`
 	// Name of the Access Rule.
@@ -204,9 +220,9 @@ func (c *UtilityClient) GetAccessRule(input *GetAccessRuleInput) (*AccessRuleInf
 }
 
 // UpdateAccessRuleInput defines the Update parameters needed to update an AccessRule
-// for a DBaaS Service Instance.
+// for a JaaS Service Instance.
 type UpdateAccessRuleInput struct {
-	// Name of the DBaaS Service Instance.
+	// Name of the JaaS Service Instance.
 	// Required
 	ServiceInstanceID string `json:"-"`
 	// Name of the Access Rule. Used in the request's URI, not as a body parameter.
@@ -242,11 +258,11 @@ func (c *UtilityClient) UpdateAccessRule(input *UpdateAccessRuleInput,
 }
 
 // DeleteAccessRuleInput defines the Delete parameters needed to delete an AccessRule
-// for a DBaaS Service Instance. There's no dedicated DELETE method on the API, so this
+// for a JaaS Service Instance. There's no dedicated DELETE method on the API, so this
 // mimics the same behavior of the Update method, but using the Delete operational constant.
 // Instead of implementing, choosing to be verbose here for ease of use in the Provider, and clarity.
 type DeleteAccessRuleInput struct {
-	// Name of the DBaaS Service Instance.
+	// Name of the JaaS Service Instance.
 	// Required
 	ServiceInstanceID string `json:"-"`
 	// Name of the Access Rule. Used in the request's URI, not as a body parameter.
@@ -261,7 +277,7 @@ type DeleteAccessRuleInput struct {
 	// modified on an access rule.
 	// Required
 	Status AccessRuleStatus `json:"status"`
-	// Time to wait between checking access rule state
+	// Time to wait between polling for access rule to be ready
 	PollInterval time.Duration `json:"-"`
 	// Time to wait for an access rule to be ready
 	Timeout time.Duration `json:"-"`
@@ -324,10 +340,10 @@ func (c *UtilityClient) WaitForAccessRuleReady(input *GetAccessRuleInput, pollIn
 	return info, err
 }
 
-func (c *UtilityClient) WaitForAccessRuleDeleted(input *GetAccessRuleInput, pollInternval, timeout time.Duration) (*AccessRuleInfo, error) {
+func (c *UtilityClient) WaitForAccessRuleDeleted(input *GetAccessRuleInput, pollInterval, timeout time.Duration) (*AccessRuleInfo, error) {
 	var info *AccessRuleInfo
 	var getErr error
-	err := c.client.WaitFor("access rule to be deleted", pollInternval, timeout, func() (bool, error) {
+	err := c.client.WaitFor("access rule to be deleted", pollInterval, timeout, func() (bool, error) {
 		info, getErr = c.GetAccessRule(input)
 		if getErr != nil {
 			return true, nil

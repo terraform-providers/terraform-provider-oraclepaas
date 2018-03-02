@@ -29,6 +29,9 @@ const (
 	DBSSHKeyName          = "vmspublickey"
 )
 
+// Default poll interval value for Create
+const WaitForSSHKeyPollInterval = time.Duration(5 * time.Second)
+
 // Default timeout value for Create
 // In testing this is anywhere between 10-20s depending on if it's a new SSH Key
 // or if it's an "updated" ssh key.
@@ -91,6 +94,8 @@ type CreateSSHKeyInput struct {
 	// backslashes, as in \/.
 	// Required
 	PublicKey string `json:"public-key"`
+	// Time to wait between polling for ssh key to be ready
+	PollInterval time.Duration `json:"-"`
 	// Time to wait for an ssh key to be ready
 	Timeout time.Duration `json:"-"`
 }
@@ -106,13 +111,18 @@ func (c *UtilityClient) CreateSSHKey(input *CreateSSHKeyInput) (*SSHKeyInfo, err
 		return nil, err
 	}
 
+	pollInterval := input.PollInterval
+	if pollInterval == 0 {
+		pollInterval = WaitForSSHKeyPollInterval
+	}
+
 	timeout := input.Timeout
 	if timeout == 0 {
 		timeout = WaitForSSHKeyTimeout
 	}
 
 	// Can leave ServiceInstanceID nil here, it will be the same as the current client's
-	result, err := c.WaitForSSHKeyReady(&GetSSHKeyInput{}, timeout)
+	result, err := c.WaitForSSHKeyReady(&GetSSHKeyInput{}, pollInterval, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -149,10 +159,10 @@ func (c *UtilityClient) GetSSHKey(input *GetSSHKeyInput) (*SSHKeyInfo, error) {
 // No Delete, or Update currently.
 // TODO: Add Delete and Update for SSH Keys when they are available in the API.
 
-func (c *UtilityClient) WaitForSSHKeyReady(input *GetSSHKeyInput, timeout time.Duration) (*SSHKeyInfo, error) {
+func (c *UtilityClient) WaitForSSHKeyReady(input *GetSSHKeyInput, pollInterval, timeout time.Duration) (*SSHKeyInfo, error) {
 	var info *SSHKeyInfo
 	var getErr error
-	err := c.client.WaitFor("sshkey to be ready", timeout, func() (bool, error) {
+	err := c.client.WaitFor("sshkey to be ready", pollInterval, timeout, func() (bool, error) {
 		info, getErr = c.GetSSHKey(input)
 		if getErr != nil {
 			return false, getErr
