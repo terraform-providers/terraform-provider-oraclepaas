@@ -60,6 +60,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"oraclepaas_database_service_instance": resourceOPAASDatabaseServiceInstance(),
+			"oraclepaas_database_access_rule":      resourceOraclePAASDatabaseAccessRule(),
 		},
 
 		ConfigureFunc: providerConfigure,
