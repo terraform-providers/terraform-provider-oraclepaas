@@ -5,9 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-oracle-terraform/opc"
@@ -139,6 +143,59 @@ func (c *Client) BuildNonJSONRequest(method, path string, body io.ReadSeeker) (*
 	return req, nil
 }
 
+// Builds a new HTTP Request for a multipart form request
+func (c *Client) BuildMultipartFormRequest(method, path string, files map[string]string, parameters map[string]interface{}) (*http.Request, error) {
+	urlPath, err := url.Parse(path)
+	if err != nil {
+		return nil, err
+	}
+
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+
+	for fileName, filePath := range files {
+		// Open the file
+		file, err := os.Open(filePath)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+
+		// Read the file contents
+		fileContents, err := ioutil.ReadAll(file)
+		if err != nil {
+			return nil, err
+		}
+
+		// Write out the file information and contents
+		fi, err := file.Stat()
+		if err != nil {
+			return nil, err
+		}
+		part, err := writer.CreateFormFile(fileName, fi.Name())
+		if err != nil {
+			return nil, err
+		}
+		part.Write(fileContents)
+	}
+
+	// Add additional parameters to the writer
+	for key, val := range parameters {
+		if val.(string) != "" {
+			_ = writer.WriteField(strings.ToLower(key), val.(string))
+		}
+	}
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", c.formatURL(urlPath), body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	return req, err
+}
+
 // This method executes the http.Request from the BuildRequest method.
 // It is split up to add additional authentication that is Oracle API dependent.
 func (c *Client) ExecuteRequest(req *http.Request) (*http.Response, error) {
@@ -217,22 +274,24 @@ func (c *Client) formatURL(path *url.URL) string {
 }
 
 // Retry function
-func (c *Client) WaitFor(description string, timeout time.Duration, test func() (bool, error)) error {
+func (c *Client) WaitFor(description string, pollInterval, timeout time.Duration, test func() (bool, error)) error {
 	tick := time.Tick(1 * time.Second)
 
 	timeoutSeconds := int(timeout.Seconds())
+	pollIntervalSeconds := int(pollInterval.Seconds())
 
-	for i := 0; i < timeoutSeconds; i++ {
+	for i := 0; i < timeoutSeconds; i += pollIntervalSeconds {
 		select {
 		case <-tick:
 			completed, err := test()
-			c.DebugLogString(fmt.Sprintf("Waiting for %s (%d/%ds)", description, i, timeoutSeconds))
 			if err != nil || completed {
 				return err
 			}
+			c.DebugLogString(fmt.Sprintf("Waiting %d seconds for %s (%d/%ds)", pollIntervalSeconds, description, i, timeoutSeconds))
+			time.Sleep(pollInterval)
 		}
 	}
-	return fmt.Errorf("Timeout waiting for %s", description)
+	return fmt.Errorf("Timeout after %d seconds waiting for %s", timeoutSeconds, description)
 }
 
 // Used to determine if the checked resource was found or not.

@@ -49,7 +49,7 @@ func (c *DatabaseClient) executeRequest(method, path string, body interface{}) (
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 		// Debug the body for database services
-		debugReqString = fmt.Sprintf("%s:\n %+v", debugReqString, string(reqBody))
+		debugReqString = fmt.Sprintf("%s:\nBody: %+v", debugReqString, string(reqBody))
 	}
 	// Log the request before the authentication header, so as not to leak credentials
 	c.client.DebugLogString(debugReqString)

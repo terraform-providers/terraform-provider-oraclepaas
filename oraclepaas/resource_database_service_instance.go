@@ -434,7 +434,6 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		input.IPReservations = getStringList(d, "ip_reservations")
 	}
 
-
 	if v, ok := d.GetOk("availability_domain"); ok {
 		input.AvailabilityDomain = v.(string)
 	}
