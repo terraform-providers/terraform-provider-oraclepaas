@@ -434,6 +434,10 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		input.IPReservations = getStringList(d, "ip_reservations")
 	}
 
+	if v, ok := d.GetOk("region"); ok {
+		input.Region = v.(string)
+	}
+
 	if v, ok := d.GetOk("availability_domain"); ok {
 		input.AvailabilityDomain = v.(string)
 	}
@@ -489,6 +493,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 
 	log.Printf("[DEBUG] Read state of database service instance %s: %#v", d.Id(), result)
 	d.Set("name", result.Name)
+	d.Set("region", result.Region)
 	d.Set("availability_domain", result.AvailabilityDomain)
 	d.Set("description", result.Description)
 	d.Set("backup_destination", result.BackupDestination)
