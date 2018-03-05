@@ -115,6 +115,8 @@ const (
 type ServiceInstanceVersion string
 
 const (
+	// 18.0.0.0
+	ServiceInstanceVersion18000 ServiceInstanceVersion = "18.0.0.0"
 	// 12.2.0.1
 	ServiceInstanceVersion12201 ServiceInstanceVersion = "12.2.0.1"
 	// 12.1.0.2
@@ -145,7 +147,7 @@ type ServiceInstance struct {
 	ApexURL string `json:"apex_url"`
 	// Applicable only in Oracle Cloud Infrastructure regions.
 	// Name of the availability domain within the region where the Oracle Database Cloud Service instance is provisioned.
-	AvailabilityDomain string `json:"availabilityDomain"`
+	AvailabilityDomain string `json:"availability_domain"`
 	// The backup configuration of the service instance.
 	BackupDestination string `json:"backup_destination"`
 	// The version of cloud tooling for backup and recovery supported by the service instance.
