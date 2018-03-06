@@ -547,9 +547,29 @@ func (c *ServiceInstanceClient) CreateServiceInstance(input *CreateServiceInstan
 	}
 	// Since these CloudStorageUsername and CloudStoragePassword are sensitive we'll read them
 	// from the client if they haven't specified in the config.
-	if input.Parameter.CloudStorageContainer != "" && input.Parameter.CloudStorageUsername == "" && input.Parameter.CloudStoragePassword == "" {
-		input.Parameter.CloudStorageUsername = *c.ResourceClient.DatabaseClient.client.UserName
-		input.Parameter.CloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
+	if input.Parameter.CloudStorageContainer != "" {
+		if input.Parameter.CloudStorageUsername == "" {
+			input.Parameter.CloudStorageUsername = *c.ResourceClient.DatabaseClient.client.UserName
+		}
+		if input.Parameter.CloudStoragePassword == "" {
+			input.Parameter.CloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
+		}
+	}
+	if input.Parameter.IBKUPCloudStorageContainer != "" {
+		if input.Parameter.IBKUPCloudStorageUser == "" {
+			input.Parameter.IBKUPCloudStorageUser = *c.ResourceClient.DatabaseClient.client.UserName
+		}
+		if input.Parameter.IBKUPCloudStoragePassword == "" {
+			input.Parameter.IBKUPCloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
+		}
+	}
+	if input.Parameter.HDGCloudStorageContainer != "" {
+		if input.Parameter.HDGCloudStorageUser == "" {
+			input.Parameter.HDGCloudStorageUser = *c.ResourceClient.DatabaseClient.client.UserName
+		}
+		if input.Parameter.HDGCloudStoragePassword == "" {
+			input.Parameter.HDGCloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
+		}
 	}
 
 	// Create request where bools(true/false) are switched to strings(yes/no).
