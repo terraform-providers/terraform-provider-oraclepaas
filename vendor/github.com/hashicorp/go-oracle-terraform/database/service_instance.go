@@ -459,7 +459,7 @@ type ParameterInput struct {
 	// Oracle Databsae Cloud Service instance name from which the database of new Oracle Database Cloud Service instance should be created.
 	// This parameter is required if ibkup is set to yes and ibkupOnPremise is set to no.
 	// Optional
-	IBKUPServiceID string `json:"ibkupServiceID"`
+	IBKUPServiceID string `json:"ibkupServiceID,omitempty"`
 	// String containing the xsd:base64Binary representation of the cloud backup's wallet archive file.
 	// Optional
 	IBKUPWalletFileContent string `json:"ibkupWalletFileContent,omitempty"`
@@ -624,9 +624,6 @@ func (c *ServiceInstanceClient) startServiceInstance(name string, input *CreateS
 		}
 		return nil, serviceInstanceError
 	}
-	// Jobs are still running on  the instance after it's configured and we need to sleep until they are done.
-	//It doesn't take more than ten minutes however there isn't a way to check for completion
-	time.Sleep(10 * time.Minute)
 	return serviceInstance, nil
 }
 
@@ -643,10 +640,10 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceRunning(input *GetServiceI
 		switch s := info.Status; s {
 		case ServiceInstanceRunning: // Target State
 			c.client.DebugLogString("Service Instance Running")
-			return false, nil
+			return true, nil
 		case ServiceInstanceConfigured:
 			c.client.DebugLogString("Service Instance Configured")
-			return true, nil
+			return false, nil
 		case ServiceInstanceInProgress:
 			c.client.DebugLogString("Service Instance is being created")
 			return false, nil
@@ -745,5 +742,6 @@ func convertOracleBool(val bool) string {
 	if val {
 		return "yes"
 	}
-	return "no"
+	// set false as blank rather than "no" so omitempty is honored
+	return ""
 }

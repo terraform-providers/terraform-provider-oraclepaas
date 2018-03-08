@@ -22,8 +22,8 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 		},
 
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(60 * time.Minute),
-			Delete: schema.DefaultTimeout(60 * time.Minute),
+			Create: schema.DefaultTimeout(120 * time.Minute),
+			Delete: schema.DefaultTimeout(120 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -52,7 +52,7 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				Default:  string(database.ServiceInstanceLevelBasic),
+				Default:  string(database.ServiceInstanceLevelPAAS),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(database.ServiceInstanceLevelPAAS),
 					string(database.ServiceInstanceLevelBasic),
@@ -107,10 +107,11 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 							}, true),
 						},
 						"character_set": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  "AL32UTF8",
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							Computed:      true,
+							ConflictsWith: []string{"instantiate_from_backup", "hybrid_disaster_recovery"},
 						},
 						"db_demo": {
 							Type:     schema.TypeString,
@@ -142,20 +143,22 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 							Default:  false,
 						},
 						"national_character_set": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  database.ServiceInstanceNCharSetUTF16,
+							Type:          schema.TypeString,
+							Optional:      true,
+							Computed:      true,
+							ForceNew:      true,
+							ConflictsWith: []string{"instantiate_from_backup", "hybrid_disaster_recovery"},
 							ValidateFunc: validation.StringInSlice([]string{
 								string(database.ServiceInstanceNCharSetUTF16),
 								string(database.ServiceInstanceNCharSetUTF8),
 							}, true),
 						},
 						"pdb_name": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  "pdb1",
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							Computed:      true,
+							ConflictsWith: []string{"instantiate_from_backup", "hybrid_disaster_recovery"},
 						},
 						"sid": {
 							Type:     schema.TypeString,
@@ -185,9 +188,10 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 							ValidateFunc: validation.IntBetween(15, 2048),
 						},
 						"snapshot_name": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							ConflictsWith: []string{"instantiate_from_backup", "hybrid_disaster_recovery"},
 						},
 						"source_service_name": {
 							Type:     schema.TypeString,
@@ -202,6 +206,12 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				MaxItems: 1,
+				ConflictsWith: []string{
+					"database_configuration.0.national_character_set",
+					"database_configuration.0.character_set",
+					"database_configuration.0.pdb_name",
+					"database_configuration.0.snapshot_name",
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cloud_storage_container": {
@@ -292,6 +302,12 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				MaxItems: 1,
+				ConflictsWith: []string{
+					"database_configuration.0.national_character_set",
+					"database_configuration.0.character_set",
+					"database_configuration.0.pdb_name",
+					"database_configuration.0.snapshot_name",
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cloud_storage_container": {
@@ -558,13 +574,10 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	parameter := database.ParameterInput{
 		AdminPassword:     attrs["admin_password"].(string),
 		BackupDestination: database.ServiceInstanceBackupDestination(attrs["backup_destination"].(string)),
-		CharSet:           attrs["character_set"].(string),
 		DisasterRecovery:  attrs["disaster_recovery"].(bool),
 		FailoverDatabase:  attrs["failover_database"].(bool),
 		GoldenGate:        attrs["golden_gate"].(bool),
 		IsRAC:             attrs["is_rac"].(bool),
-		NCharSet:          database.ServiceInstanceNCharSet(attrs["national_character_set"].(string)),
-		PDBName:           attrs["pdb_name"].(string),
 		SID:               attrs["sid"].(string),
 		Timezone:          attrs["timezone"].(string),
 		Type:              database.ServiceInstanceType(attrs["type"].(string)),
@@ -576,6 +589,15 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	}
 	if val, ok := attrs["source_service_name"].(string); ok && val != "" {
 		parameter.SourceServiceName = val
+	}
+	if val, ok := attrs["character_set"].(string); ok && val != "" {
+		parameter.CharSet = val
+	}
+	if val, ok := attrs["national_character_set"].(string); ok && val != "" {
+		parameter.NCharSet = database.ServiceInstanceNCharSet(val)
+	}
+	if val, ok := attrs["pdb_name"].(string); ok && val != "" {
+		parameter.PDBName = val
 	}
 	if val, ok := attrs["db_demo"].(string); ok {
 		addParam := database.AdditionalParameters{
@@ -597,8 +619,9 @@ func expandIbkup(d *schema.ResourceData, parameter *database.ParameterInput) {
 	ibkupInfo := d.Get("instantiate_from_backup").([]interface{})
 	if len(ibkupInfo) > 0 {
 		attrs := ibkupInfo[0].(map[string]interface{})
+
 		parameter.IBKUP = true
-		parameter.IBKUPDatabaseID = attrs["cloud_storage_container"].(string)
+		parameter.IBKUPCloudStorageContainer = attrs["cloud_storage_container"].(string)
 		parameter.IBKUPOnPremise = attrs["on_premise"].(bool)
 		if val, ok := attrs["cloud_storage_username"]; ok {
 			parameter.IBKUPCloudStorageUser = val.(string)
@@ -611,6 +634,9 @@ func expandIbkup(d *schema.ResourceData, parameter *database.ParameterInput) {
 		}
 		if val, ok := attrs["service_id"]; ok {
 			parameter.IBKUPServiceID = val.(string)
+		}
+		if val, ok := attrs["database_id"]; ok {
+			parameter.IBKUPDatabaseID = val.(string)
 		}
 		if val, ok := attrs["wallet_file_content"]; ok {
 			parameter.IBKUPWalletFileContent = val.(string)
@@ -649,6 +675,7 @@ func expandHDG(d *schema.ResourceData, parameter *database.ParameterInput) error
 			return fmt.Errorf("`hybrid_disaster_recovery` cannot be set if `is_rac` or `failover_database` is set to true")
 		}
 		attrs := hdgInfo[0].(map[string]interface{})
+
 		parameter.HDG = true
 		parameter.HDGCloudStorageContainer = attrs["cloud_storage_container"].(string)
 		// TODO read these values in the sdk like we do with cloud storage
