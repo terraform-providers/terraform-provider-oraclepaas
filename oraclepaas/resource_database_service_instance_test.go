@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccOPAASDatabaseServiceInstance_Basic(t *testing.T) {
+func TestAccOraclePAASDatabaseServiceInstance_Basic(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccDatabaseServiceInstanceBasic(ri)
 	resourceName := "oraclepaas_database_service_instance.test"

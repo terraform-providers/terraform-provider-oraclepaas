@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-oracle-terraform/database"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -32,7 +31,7 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	required := []string{"OPC_USERNAME", "OPC_PASSWORD", "OPC_IDENTITY_DOMAIN", "ORACLEPAAS_DATABASE_ENDPOINT"}
+	required := []string{"OPC_USERNAME", "OPC_PASSWORD", "OPC_IDENTITY_DOMAIN", "ORACLEPAAS_DATABASE_ENDPOINT", "ORACLEPAAS_JAVA_ENDPOINT"}
 	for _, prop := range required {
 		if os.Getenv(prop) == "" {
 			t.Fatalf("%s must be set for acceptance test", prop)
@@ -45,6 +44,7 @@ func testAccPreCheck(t *testing.T) {
 		MaxRetries:       1,
 		Insecure:         false,
 		DatabaseEndpoint: os.Getenv("ORACLEPAAS_DATABASE_ENDPOINT"),
+		JavaEndpoint:     os.Getenv("ORACLEPAAS_JAVA_ENDPOINT"),
 	}
 	client, err := config.Client()
 	if err != nil {
@@ -53,25 +53,12 @@ func testAccPreCheck(t *testing.T) {
 	if client.databaseClient == nil {
 		t.Fatalf("Database Client is nil. Make sure your Oracle Cloud Account has access to the Database Cloud")
 	}
+	if client.javaClient == nil {
+		t.Fatalf("Java Client is nil. Make sure your Oracle Cloud Account has access to the Java Cloud")
+	}
 }
 
 type OPAASResourceState struct {
 	*database.DatabaseClient
 	*terraform.InstanceState
-}
-
-func oraclepaasResourceCheck(resourceName string, f func(checker *OPAASResourceState) error) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return fmt.Errorf("Resource not found: %s", resourceName)
-		}
-
-		state := &OPAASResourceState{
-			DatabaseClient: testAccProvider.Meta().(*OPAASClient).databaseClient,
-			InstanceState:  rs.Primary,
-		}
-
-		return f(state)
-	}
 }

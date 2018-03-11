@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 )
 
-func resourceOPAASDatabaseServiceInstance() *schema.Resource {
+func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceOPAASDatabaseServiceInstanceCreate,
 		Read:   resourceOPAASDatabaseServiceInstanceRead,
@@ -355,7 +355,7 @@ func resourceOPAASDatabaseServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"byol": {
+			"bring_your_own_license": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -425,7 +425,7 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		Name:                      d.Get("name").(string),
 		Edition:                   database.ServiceInstanceEdition(d.Get("edition").(string)),
 		IPReservations:            getStringList(d, "ip_reservations"),
-		IsBYOL:                    d.Get("byol").(bool),
+		IsBYOL:                    d.Get("bring_your_own_license").(bool),
 		Level:                     database.ServiceInstanceLevel(d.Get("level").(string)),
 		Shape:                     database.ServiceInstanceShape(d.Get("shape").(string)),
 		SubscriptionType:          database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
@@ -525,7 +525,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("glassfish_url", result.GlassFishURL)
 	d.Set("identity_domain", result.IdentityDomain)
 	d.Set("ip_network", result.IPNetwork)
-	d.Set("byol", result.IsBYOL)
+	d.Set("bring_your_own_license", result.IsBYOL)
 	d.Set("level", result.Level)
 	d.Set("national_character_set", result.NCharSet)
 	d.Set("pdb_name", result.PDBName)
