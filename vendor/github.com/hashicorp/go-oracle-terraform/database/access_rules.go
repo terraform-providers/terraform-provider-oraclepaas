@@ -12,7 +12,11 @@
 
 package database
 
-import "time"
+import (
+	"time"
+
+	"github.com/hashicorp/go-oracle-terraform/helper"
+)
 
 // API URI Paths for Container and Root objects
 const (
@@ -340,4 +344,200 @@ func (c *UtilityClient) WaitForAccessRuleDeleted(input *GetAccessRuleInput, poll
 		return true, nil
 	})
 	return info, err
+}
+
+type DefaultAccessRuleInfo struct {
+	// Name of the DBaaS service instance.
+	ServiceInstanceID string `json:"-"`
+	// Enabled for every DB Service Instance
+	EnableSSH *bool
+	// Single Instance Rules
+	EnableHTTP       *bool
+	EnableHTTPSSL    *bool
+	EnableDBConsole  *bool
+	EnableDBExpress  *bool
+	EnableDBListener *bool
+	// RAC Rules
+	EnableEMConsole     *bool
+	EnableRACDBListener *bool
+	EnableScanListener  *bool
+	EnableRACOns        *bool
+}
+
+// Default Access Rule prefixes
+var DefaultAccessRuleNames = map[string]string{
+	"EnableSSH":           "ora_p2_ssh",
+	"EnableHTTP":          "ora_p2_http",
+	"EnableHTTPSSL":       "ora_p2_httpssl",
+	"EnableDBConsole":     "ora_p2_dbconsole",
+	"EnableDBExpress":     "ora_p2_dbexpress",
+	"EnableDBListener":    "ora_p2_dblistener",
+	"EnableEMConsole":     "ora_p2_emconsole",
+	"EnableRACDBListener": "ora_p2_db_listener",
+	"EnableScanListener":  "ora_p2_scan_listener",
+	"EnableRACOns":        "ora_p2_ons",
+}
+
+// GetDefaultAccessRuleInput defines the input parameters needed to retrieve information
+// on an all the DefaultAccessRule for a DBaas Service Instance.
+type GetDefaultAccessRuleInput struct {
+	// Name of the DBaaS service instance.
+	// Required
+	ServiceInstanceID string `json:"-"`
+}
+
+// GetDefaultAccessRules retrieves all the default access rules pertaining to Database Service Instance
+func (c *UtilityClient) GetDefaultAccessRules(input *GetDefaultAccessRuleInput) (*DefaultAccessRuleInfo, error) {
+	defaultAccessRules := &DefaultAccessRuleInfo{}
+
+	for key, ruleName := range DefaultAccessRuleNames {
+		getRuleInput := &GetAccessRuleInput{
+			ServiceInstanceID: input.ServiceInstanceID,
+			Name:              ruleName,
+		}
+		rule, err := c.GetAccessRule(getRuleInput)
+		if err != nil {
+			return nil, err
+		}
+		if rule != nil {
+			if key == "EnableSSH" {
+				defaultAccessRules.EnableSSH = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+			if key == "EnableHTTP" {
+				defaultAccessRules.EnableHTTP = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+			if key == "EnableHTTPSSL" {
+				defaultAccessRules.EnableHTTPSSL = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+			if key == "EnableDBConsole" {
+				defaultAccessRules.EnableDBConsole = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+			if key == "EnableDBExpress" {
+				defaultAccessRules.EnableDBExpress = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+			if key == "EnableDBListener" {
+				defaultAccessRules.EnableDBListener = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+			if key == "EnableEMConsole" {
+				defaultAccessRules.EnableEMConsole = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+			if key == "EnableRACDBListener" {
+				defaultAccessRules.EnableRACDBListener = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+			if key == "EnableScanListener" {
+				defaultAccessRules.EnableScanListener = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+			if key == "EnableRACOns" {
+				defaultAccessRules.EnableRACOns = helper.Bool(rule.Status == AccessRuleEnabled)
+			}
+		}
+	}
+	return defaultAccessRules, nil
+}
+
+// UpdateDefaultAccessRules Updates all the specified/relevant default access rules for a database service instance
+func (c *UtilityClient) UpdateDefaultAccessRules(input *DefaultAccessRuleInfo) (*DefaultAccessRuleInfo, error) {
+	for key, ruleName := range DefaultAccessRuleNames {
+		if key == "EnableSSH" && input.EnableSSH != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableSSH)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if key == "EnableHTTP" && input.EnableHTTP != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableHTTP)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if key == "EnableHTTPSSL" && input.EnableHTTPSSL != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableHTTPSSL)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if key == "EnableDBConsole" && input.EnableDBConsole != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableDBConsole)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if key == "EnableDBExpress" && input.EnableDBExpress != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableDBExpress)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if key == "EnableDBListener" && input.EnableDBListener != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableDBListener)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if key == "EnableEMConsole" && input.EnableEMConsole != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableEMConsole)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if key == "EnableRACDBListener" && input.EnableRACDBListener != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableRACDBListener)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if key == "EnableScanListener" && input.EnableScanListener != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableScanListener)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if key == "EnableRACOns" && input.EnableRACOns != nil {
+			err := updateDefaultAccessRule(c, ruleName, input.ServiceInstanceID, *input.EnableRACOns)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	getInput := &GetDefaultAccessRuleInput{
+		ServiceInstanceID: input.ServiceInstanceID,
+	}
+	defaultAccessRules, err := c.GetDefaultAccessRules(getInput)
+	if err != nil {
+		return nil, err
+	}
+	defaultAccessRules.ServiceInstanceID = input.ServiceInstanceID
+	return defaultAccessRules, nil
+}
+
+// Updates a specific Default Access Rule if it's status differs from the requested status
+func updateDefaultAccessRule(c *UtilityClient, ruleName, serviceInstanceID string, enabled bool) error {
+	getRuleInput := &GetAccessRuleInput{
+		ServiceInstanceID: serviceInstanceID,
+		Name:              ruleName,
+	}
+	rule, err := c.GetAccessRule(getRuleInput)
+	if err != nil {
+		return err
+	}
+	if rule != nil {
+		var status AccessRuleStatus
+		if enabled {
+			status = AccessRuleEnabled
+		} else {
+			status = AccessRuleDisabled
+		}
+		if rule.Status != status {
+			updateRuleInput := &UpdateAccessRuleInput{
+				ServiceInstanceID: serviceInstanceID,
+				Name:              rule.Name,
+				Status:            status,
+			}
+			_, err := c.UpdateAccessRule(updateRuleInput)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

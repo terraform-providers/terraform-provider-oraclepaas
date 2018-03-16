@@ -87,14 +87,17 @@ const (
 type ServiceInstanceShape string
 
 const (
+	// Suportted OCI Classic Shapes
 	// oc3: 1 OCPU, 7.5 GB memory
 	ServiceInstanceShapeOC3 ServiceInstanceShape = "oc3"
 	// oc4: 2 OCPUs, 15 GB memory
 	ServiceInstanceShapeOC4 ServiceInstanceShape = "oc4"
 	// oc5: 4 OCPUs, 30 GB memory
 	ServiceInstanceShapeOC5 ServiceInstanceShape = "oc5"
-	// oc6: 8 OCPUs, 15 GB memory
+	// oc6: 8 OCPUs, 60 GB memory
 	ServiceInstanceShapeOC6 ServiceInstanceShape = "oc6"
+	// oc7: 16 OCPUS, 120 GB memory
+	ServiceInstanceShapeOC7 ServiceInstanceShape = "oc7"
 	// oc1m: 1 OCPU, 15 GB memory
 	ServiceInstanceShapeOC1M ServiceInstanceShape = "oc1m"
 	// oc2m: 2 OCPUs, 30 GB memory
@@ -103,6 +106,38 @@ const (
 	ServiceInstanceShapeOC3M ServiceInstanceShape = "oc3m"
 	// oc4m: 8 OCPUs, 120 GB memory
 	ServiceInstanceShapeOC4M ServiceInstanceShape = "oc4m"
+	// oc5m: 16 OCPUS, 240 GB memory
+	ServiceInstanceShapeOC5M ServiceInstanceShape = "oc5m"
+
+	// Supported OCI VM shapes
+	// VM.Standard1.1: 1 OCPU, 7 GB memory
+	ServiceInstanceShapeVMStandard1_1 ServiceInstanceShape = "VM.Standard1.1"
+	// VM.Standard1.2: 2 OCPU, 14 GB memory
+	ServiceInstanceShapeVMStandard1_2 ServiceInstanceShape = "VM.Standard1.2"
+	// VM.Standard1.4: 4 OCPU, 28 GB memory
+	ServiceInstanceShapeVMStandard1_4 ServiceInstanceShape = "VM.Standard1.4"
+	// VM.Standard1.8: 8 OCPU, 56 GB memory
+	ServiceInstanceShapeVMStandard1_8 ServiceInstanceShape = "VM.Standard1.8"
+	// VM.Standard1.16: 16 OCPU, 112 GB memory
+	ServiceInstanceShapeVMStandard1_16 ServiceInstanceShape = "VM.Standard1.16"
+	// VM.Standard2.1: 1 OCPU, 15 GB memory
+	ServiceInstanceShapeVMStandard2_1 ServiceInstanceShape = "VM.Standard2.1"
+	// VM.Standard2.2: 2 OCPU, 30 GB memory
+	ServiceInstanceShapeVMStandard2_2 ServiceInstanceShape = "VM.Standard2.2"
+	// VM.Standard2.4: 4 OCPU, 60 GB memory
+	ServiceInstanceShapeVMStandard2_4 ServiceInstanceShape = "VM.Standard2.4"
+	// VM.Standard2.8: 8 OCPU, 120 GB memory
+	ServiceInstanceShapeVMStandard2_8 ServiceInstanceShape = "VM.Standard2.8"
+	// VM.Standard2.16: 16 OCPU, 240 GB memory
+	ServiceInstanceShapeVMStandard2_16 ServiceInstanceShape = "VM.Standard2.16"
+	// VM.Standard2.24: 24 OCPU, 320 GB memory
+	ServiceInstanceShapeVMStandard2_24 ServiceInstanceShape = "VM.Standard2.24"
+
+	// Supported OCI Bare Metal shapes
+	// BM.Standard1.36: 36 OCPU, 256 GB memory
+	ServiceInstanceShapeBMStandard1_36 ServiceInstanceShape = "BM.Standard1.36"
+	// BM.Standard2.52: 52 OCPU, 768 GB memory
+	ServiceInstanceShapeBMStandard2_52 ServiceInstanceShape = "BM.Standard2.52"
 )
 
 type ServiceInstanceSubscriptionType string
