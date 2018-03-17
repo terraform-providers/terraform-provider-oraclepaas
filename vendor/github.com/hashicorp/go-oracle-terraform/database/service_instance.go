@@ -459,7 +459,7 @@ type ParameterInput struct {
 	// Oracle Databsae Cloud Service instance name from which the database of new Oracle Database Cloud Service instance should be created.
 	// This parameter is required if ibkup is set to yes and ibkupOnPremise is set to no.
 	// Optional
-	IBKUPServiceID string `json:"ibkupServiceID"`
+	IBKUPServiceID string `json:"ibkupServiceID,omitempty"`
 	// String containing the xsd:base64Binary representation of the cloud backup's wallet archive file.
 	// Optional
 	IBKUPWalletFileContent string `json:"ibkupWalletFileContent,omitempty"`
@@ -547,9 +547,29 @@ func (c *ServiceInstanceClient) CreateServiceInstance(input *CreateServiceInstan
 	}
 	// Since these CloudStorageUsername and CloudStoragePassword are sensitive we'll read them
 	// from the client if they haven't specified in the config.
-	if input.Parameter.CloudStorageContainer != "" && input.Parameter.CloudStorageUsername == "" && input.Parameter.CloudStoragePassword == "" {
-		input.Parameter.CloudStorageUsername = *c.ResourceClient.DatabaseClient.client.UserName
-		input.Parameter.CloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
+	if input.Parameter.CloudStorageContainer != "" {
+		if input.Parameter.CloudStorageUsername == "" {
+			input.Parameter.CloudStorageUsername = *c.ResourceClient.DatabaseClient.client.UserName
+		}
+		if input.Parameter.CloudStoragePassword == "" {
+			input.Parameter.CloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
+		}
+	}
+	if input.Parameter.IBKUPCloudStorageContainer != "" {
+		if input.Parameter.IBKUPCloudStorageUser == "" {
+			input.Parameter.IBKUPCloudStorageUser = *c.ResourceClient.DatabaseClient.client.UserName
+		}
+		if input.Parameter.IBKUPCloudStoragePassword == "" {
+			input.Parameter.IBKUPCloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
+		}
+	}
+	if input.Parameter.HDGCloudStorageContainer != "" {
+		if input.Parameter.HDGCloudStorageUser == "" {
+			input.Parameter.HDGCloudStorageUser = *c.ResourceClient.DatabaseClient.client.UserName
+		}
+		if input.Parameter.HDGCloudStoragePassword == "" {
+			input.Parameter.HDGCloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
+		}
 	}
 
 	// Create request where bools(true/false) are switched to strings(yes/no).
@@ -604,9 +624,6 @@ func (c *ServiceInstanceClient) startServiceInstance(name string, input *CreateS
 		}
 		return nil, serviceInstanceError
 	}
-	// Jobs are still running on  the instance after it's configured and we need to sleep until they are done.
-	//It doesn't take more than ten minutes however there isn't a way to check for completion
-	time.Sleep(10 * time.Minute)
 	return serviceInstance, nil
 }
 
@@ -623,10 +640,10 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceRunning(input *GetServiceI
 		switch s := info.Status; s {
 		case ServiceInstanceRunning: // Target State
 			c.client.DebugLogString("Service Instance Running")
-			return false, nil
+			return true, nil
 		case ServiceInstanceConfigured:
 			c.client.DebugLogString("Service Instance Configured")
-			return true, nil
+			return false, nil
 		case ServiceInstanceInProgress:
 			c.client.DebugLogString("Service Instance is being created")
 			return false, nil
@@ -725,5 +742,6 @@ func convertOracleBool(val bool) string {
 	if val {
 		return "yes"
 	}
-	return "no"
+	// set false as blank rather than "no" so omitempty is honored
+	return ""
 }

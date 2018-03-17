@@ -710,6 +710,12 @@ type CreateServiceInstanceInput struct {
 	// To receive notifications, enableNotification must be set to true.
 	// Optional
 	NotificationEmail string `json:"notificationEmail,omitempty"`
+	// This attribute is not applicable to creating service instances on Oracle Cloud at Customer.
+	// This attribute is applicable only when provisioning an Oracle Java Cloud Service instance that uses Oracle Identity Cloud Service to configure user authentication and administer users, groups, and roles. Use it when you want to include additional URL patterns to use to protect JavaEE applications.
+	// A comma separated list of context roots that you want protected by Oracle Identity Cloud Service.
+	// Each context root must begin with the / character. For example:
+	// /store/departments/.*,/store/cart/.*,/marketplace/.*,/application1/.*
+	ProtectedRootContext string `json:"protectedRootContext,omitempty"`
 	// Flag that specifies whether to enable the load balancer.
 	// The default value is true when you configure more than one Managed Server for the Oracle
 	// Java Cloud Service instance. Otherwise, the default value is false
@@ -1166,12 +1172,6 @@ type CreateWLS struct {
 	// The default value is 443.
 	// Optional
 	PrivilegedSecuredContentPort int `json:"privilegedSecuredContentPort,omitempty"`
-	// This attribute is not applicable to creating service instances on Oracle Cloud at Customer.
-	// This attribute is applicable only when provisioning an Oracle Java Cloud Service instance that uses Oracle Identity Cloud Service to configure user authentication and administer users, groups, and roles. Use it when you want to include additional URL patterns to use to protect JavaEE applications.
-	// A comma separated list of context roots that you want protected by Oracle Identity Cloud Service.
-	// Each context root must begin with the / character. For example:
-	// /store/departments/.*,/store/cart/.*,/marketplace/.*,/application1/.*
-	ProtectedRootContext string `json:"protectedRootContext,omitempty"`
 	// Flag that specifies whether to automatically deploy and start the sample application, sample-app.war,
 	// to the default Managed Server in your service instance.
 	// The default value is false

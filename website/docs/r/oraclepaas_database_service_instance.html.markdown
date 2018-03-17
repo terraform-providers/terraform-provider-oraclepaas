@@ -63,7 +63,7 @@ stored in an existing cloud backup that was created using Oracle Database Backup
 
 * `backups` - (Optional) Provides Cloud Storage information for how to implement service instance backups. Backups is documented below
 
-* `byol` - (Optional) Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
+* `bring_you_own_license` - (Optional) Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
 Default value is `false`.
 
 * `description` - (Optional) A description of the Service Instance.
@@ -103,7 +103,7 @@ You cannot set `goldenGate` to `true` if either `is_rac` or `failoverDatabase` i
 * `is_rac` - (Optional) Specify if a cluster database using Oracle Real Application Clusters should be configured. 
 Default value is `false`.
 
-* `national_character_set` - (Optional) National Character Set for the Database Cloud Service instance. Valid values are `AL16UTF16` and `UTF8`. Default value is `AL16UTF16`.
+* `national_character_set` - (Optional) National Character Set for the Database Cloud Service instance. Valid values are `AL16UTF16` and `UTF8`.
 
 * `pdb_name` - (Optional) This attribute is valid when Database Cloud Service instance is configured with version 12c. Pluggable Database Name for the Database Cloud Service instance. Default value is `pdb1`.
 

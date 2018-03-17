@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccOPAASDatabaseServiceInstance_Basic(t *testing.T) {
+func TestAccOraclePAASDatabaseServiceInstance_Basic(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccDatabaseServiceInstanceBasic(ri)
 	resourceName := "oraclepaas_database_service_instance.test"
@@ -56,6 +56,51 @@ func TestAccOPAASDatabaseServiceInstance_CloudStorage(t *testing.T) {
 		},
 	})
 }
+
+func TestAccOPAASDatabaseServiceInstance_FromBackup(t *testing.T) {
+	ri := acctest.RandInt()
+	config := testAccDatabaseServiceInstanceFromBackup(ri)
+	resourceName := "oraclepaas_database_service_instance.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatabaseServiceInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDatabaseServiceInstanceExists,
+					resource.TestCheckResourceAttr(
+						// resourceName, "instantiate_from_backup.0.cloud_storage_container", fmt.Sprintf("Storage-%s/acctest-%d", os.Getenv("OPC_IDENTITY_DOMAIN"), ri)),
+						resourceName, "instantiate_from_backup.0.cloud_storage_container", fmt.Sprintf("Storage-%s/test-db-java-instance", os.Getenv("OPC_IDENTITY_DOMAIN"))),
+				),
+			},
+		},
+	})
+}
+
+// An OCI account is need to test this
+/*
+func TestAccOPAASDatabaseServiceInstance_HDG(t *testing.T) {
+	ri := acctest.RandInt()
+	config := testAccDatabaseServiceInstanceHDG(ri)
+	resourceName := "oraclepaas_database_service_instance.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatabaseServiceInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDatabaseServiceInstanceExists,
+					resource.TestCheckResourceAttr(
+						resourceName, "hybrid_disaster_recovery.0.cloud_storage_container", fmt.Sprintf("Storage-%s/test-db-java-instance", os.Getenv("OPC_IDENTITY_DOMAIN"))),
+				),
+			},
+		},
+	})
+} */
 
 func testAccCheckDatabaseServiceInstanceExists(s *terraform.State) error {
 	client := testAccProvider.Meta().(*OPAASClient).databaseClient.ServiceInstanceClient()
@@ -108,7 +153,7 @@ func testAccDatabaseServiceInstanceBasic(rInt int) string {
     subscription_type = "HOURLY"
     version = "12.2.0.1"
     ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3QxPp0BFK+ligB9m1FBcFELyvN5EdNUoSwTCe4Zv2b51OIO6wGM/dvTr/yj2ltNA/Vzl9tqf9AUBL8tKjAOk8uukip6G7rfigby+MvoJ9A8N0AC2te3TI+XCfB5Ty2M2OmKJjPOPCd6+OdzhT4cWnPOM+OAiX0DP7WCkO4Kx2kntf8YeTEurTCspOrRjGdo+zZkJxEydMt31asu9zYOTLmZPwLCkhel8vY6SnZhDTNSNkRzxZFv+Mh2VGmqu4SSxfVXr4tcFM6/MbAXlkA8jo+vHpy5sC79T4uNaPu2D8Ed7uC3yDdO3KRVdzZCfWHj4NjixdMs2CtK6EmyeVOPuiYb8/mcTybrb4F/CqA4jydAU6Ok0j0bIqftLyxNgfS31hR1Y3/GNPzly4+uUIgZqmsuVFh5h0L7qc1jMv7wRHphogo5snIp45t9jWNj8uDGzQgWvgbFP5wR7Nt6eS0kaCeGQbxWBDYfjQE801IrwhgMfmdmGw7FFveCH0tFcPm6td/8kMSyg/OewczZN3T62ETQYVsExOxEQl2t4SZ/yqklg+D9oGM+ILTmBRzIQ2m/xMmsbowiTXymjgVmvrWuc638X6dU2fKJ7As4hxs3rA1BA5sOt0XyqfHQhtYrL/Ovb1iV+C7MRhKicTyoNTc7oVcDDG0VW785d8CPqttDi50w=="
-    
+
 	database_configuration {
 		admin_password = "Test_String7"
 		backup_destination = "NONE"
@@ -129,7 +174,7 @@ resource "oraclepaas_database_service_instance" "test" {
     subscription_type = "HOURLY"
     version = "12.2.0.1"
     ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3QxPp0BFK+ligB9m1FBcFELyvN5EdNUoSwTCe4Zv2b51OIO6wGM/dvTr/yj2ltNA/Vzl9tqf9AUBL8tKjAOk8uukip6G7rfigby+MvoJ9A8N0AC2te3TI+XCfB5Ty2M2OmKJjPOPCd6+OdzhT4cWnPOM+OAiX0DP7WCkO4Kx2kntf8YeTEurTCspOrRjGdo+zZkJxEydMt31asu9zYOTLmZPwLCkhel8vY6SnZhDTNSNkRzxZFv+Mh2VGmqu4SSxfVXr4tcFM6/MbAXlkA8jo+vHpy5sC79T4uNaPu2D8Ed7uC3yDdO3KRVdzZCfWHj4NjixdMs2CtK6EmyeVOPuiYb8/mcTybrb4F/CqA4jydAU6Ok0j0bIqftLyxNgfS31hR1Y3/GNPzly4+uUIgZqmsuVFh5h0L7qc1jMv7wRHphogo5snIp45t9jWNj8uDGzQgWvgbFP5wR7Nt6eS0kaCeGQbxWBDYfjQE801IrwhgMfmdmGw7FFveCH0tFcPm6td/8kMSyg/OewczZN3T62ETQYVsExOxEQl2t4SZ/yqklg+D9oGM+ILTmBRzIQ2m/xMmsbowiTXymjgVmvrWuc638X6dU2fKJ7As4hxs3rA1BA5sOt0XyqfHQhtYrL/Ovb1iV+C7MRhKicTyoNTc7oVcDDG0VW785d8CPqttDi50w=="
-	
+
 	database_configuration {
 		admin_password = "Test_String7"
 		backup_destination = "OSS"
@@ -144,3 +189,63 @@ resource "oraclepaas_database_service_instance" "test" {
     }
 }`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt)
 }
+
+func testAccDatabaseServiceInstanceFromBackup(rInt int) string {
+	return fmt.Sprintf(`
+resource "oraclepaas_database_service_instance" "test" {
+    name        = "test-service-instance-%d"
+    description = "test service instance"
+    edition = "EE"
+    level = "PAAS"
+    shape = "oc3"
+    subscription_type = "HOURLY"
+    version = "12.2.0.1"
+    ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3QxPp0BFK+ligB9m1FBcFELyvN5EdNUoSwTCe4Zv2b51OIO6wGM/dvTr/yj2ltNA/Vzl9tqf9AUBL8tKjAOk8uukip6G7rfigby+MvoJ9A8N0AC2te3TI+XCfB5Ty2M2OmKJjPOPCd6+OdzhT4cWnPOM+OAiX0DP7WCkO4Kx2kntf8YeTEurTCspOrRjGdo+zZkJxEydMt31asu9zYOTLmZPwLCkhel8vY6SnZhDTNSNkRzxZFv+Mh2VGmqu4SSxfVXr4tcFM6/MbAXlkA8jo+vHpy5sC79T4uNaPu2D8Ed7uC3yDdO3KRVdzZCfWHj4NjixdMs2CtK6EmyeVOPuiYb8/mcTybrb4F/CqA4jydAU6Ok0j0bIqftLyxNgfS31hR1Y3/GNPzly4+uUIgZqmsuVFh5h0L7qc1jMv7wRHphogo5snIp45t9jWNj8uDGzQgWvgbFP5wR7Nt6eS0kaCeGQbxWBDYfjQE801IrwhgMfmdmGw7FFveCH0tFcPm6td/8kMSyg/OewczZN3T62ETQYVsExOxEQl2t4SZ/yqklg+D9oGM+ILTmBRzIQ2m/xMmsbowiTXymjgVmvrWuc638X6dU2fKJ7As4hxs3rA1BA5sOt0XyqfHQhtYrL/Ovb1iV+C7MRhKicTyoNTc7oVcDDG0VW785d8CPqttDi50w=="
+
+	database_configuration {
+		admin_password = "Test_String7"
+		backup_destination = "OSS"
+		failover_database = false
+		sid = "ORCL"
+		usable_storage = 15
+		backup_destination = "NONE"
+	}
+
+	instantiate_from_backup {
+		cloud_storage_container = "Storage-%s/test-db-java-instance"
+		on_premise     = false
+		database_id    = "test-service-instance"
+		service_id     = "ORCL"
+		decryption_key = "Test_String7"
+  	}
+}`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"))
+}
+
+// An OCI account is need to test this
+/*
+func testAccDatabaseServiceInstanceHDG(rInt int) string {
+	return fmt.Sprintf(`
+resource "oraclepaas_database_service_instance" "test" {
+    name        = "test-service-instance-%d"
+    description = "test service instance"
+    edition = "EE"
+    level = "PAAS"
+    shape = "oc3"
+    subscription_type = "HOURLY"
+    version = "12.2.0.1"
+    ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3QxPp0BFK+ligB9m1FBcFELyvN5EdNUoSwTCe4Zv2b51OIO6wGM/dvTr/yj2ltNA/Vzl9tqf9AUBL8tKjAOk8uukip6G7rfigby+MvoJ9A8N0AC2te3TI+XCfB5Ty2M2OmKJjPOPCd6+OdzhT4cWnPOM+OAiX0DP7WCkO4Kx2kntf8YeTEurTCspOrRjGdo+zZkJxEydMt31asu9zYOTLmZPwLCkhel8vY6SnZhDTNSNkRzxZFv+Mh2VGmqu4SSxfVXr4tcFM6/MbAXlkA8jo+vHpy5sC79T4uNaPu2D8Ed7uC3yDdO3KRVdzZCfWHj4NjixdMs2CtK6EmyeVOPuiYb8/mcTybrb4F/CqA4jydAU6Ok0j0bIqftLyxNgfS31hR1Y3/GNPzly4+uUIgZqmsuVFh5h0L7qc1jMv7wRHphogo5snIp45t9jWNj8uDGzQgWvgbFP5wR7Nt6eS0kaCeGQbxWBDYfjQE801IrwhgMfmdmGw7FFveCH0tFcPm6td/8kMSyg/OewczZN3T62ETQYVsExOxEQl2t4SZ/yqklg+D9oGM+ILTmBRzIQ2m/xMmsbowiTXymjgVmvrWuc638X6dU2fKJ7As4hxs3rA1BA5sOt0XyqfHQhtYrL/Ovb1iV+C7MRhKicTyoNTc7oVcDDG0VW785d8CPqttDi50w=="
+
+	database_configuration {
+		admin_password = "Test_String7"
+		backup_destination = "OSS"
+		failover_database = false
+		sid = "ORCL"
+		usable_storage = 15
+		backup_destination = "NONE"
+	}
+
+	hybrid_disaster_recovery {
+		cloud_storage_container = "Storage-%s/test-db-java-instance"
+  	}
+}`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"))
+} */
