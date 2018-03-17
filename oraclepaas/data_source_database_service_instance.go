@@ -1,9 +1,9 @@
 package oraclepaas
 
 import (
+	"fmt"
 	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/terraform/helper/schema"
-	"fmt"
 )
 
 func dataSourceOraclePAASDatabaseServiceInstance() *schema.Resource {
@@ -16,107 +16,107 @@ func dataSourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Required: true,
 			},
 			"apex_url": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"availability_domain": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"backup_destination": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"character_set": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"cloud_storage_container": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"compute_site_name": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"description": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"edition": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"enterprise_manager_url": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"failover_database": {
-				Type: schema.TypeBool,
+				Type:     schema.TypeBool,
 				Computed: true,
 			},
 			"glassfish_url": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"hybrid_disaster_recovery_ip": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"identity_domain": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"ip_network": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"ip_reservations": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"bring_your_own_license": {
-				Type: schema.TypeBool,
+				Type:     schema.TypeBool,
 				Computed: true,
 			},
 			"level": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"listener_port": {
-				Type: schema.TypeInt,
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 			"monitor_url": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"national_character_set": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"pluggable_database_name": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"region": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"shape": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"high_performance_storage": {
-				Type: schema.TypeBool,
+				Type:     schema.TypeBool,
 				Computed: true,
 			},
 			"uri": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"version": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
@@ -134,7 +134,7 @@ func dataSourceOraclePAASDatabaseServiceInstanceRead(d *schema.ResourceData, met
 	name := d.Get("name").(string)
 
 	input := database.GetServiceInstanceInput{
-		Name:    name,
+		Name: name,
 	}
 
 	result, err := client.GetServiceInstance(&input)

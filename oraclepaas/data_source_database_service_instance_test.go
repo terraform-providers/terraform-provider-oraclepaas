@@ -13,9 +13,8 @@ func TestAccOPAASDataSourceDatabaseServiceInstance_Basic(t *testing.T) {
 	config := testAccDataSourceDatabaseServiceInstanceBasic(ri)
 	resourceName := "data.oraclepaas_database_service_instance.test"
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDatabaseServiceInstanceDestroy,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -54,6 +53,6 @@ resource "oraclepaas_database_service_instance" "test" {
 }
 
 data "oraclepaas_database_service_instance" "test" {
-	name        = "test-service-instance-%d"
-}`, rInt, rInt)
+	name = "${oraclepaas_database_service_instance.test.name}"
+}`, rInt)
 }
