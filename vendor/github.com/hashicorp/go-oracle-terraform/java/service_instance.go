@@ -101,14 +101,15 @@ const (
 type ServiceInstanceLoadBalancingPolicy string
 
 const (
-	ServiceInstanceLoadBalancingPolicyLCC ServiceInstanceLoadBalancingPolicy = "least_connection_count"
-	ServiceInstanceLoadBalancingPolicyLRT ServiceInstanceLoadBalancingPolicy = "least_response_time"
-	ServiceInstanceLoadBalancingPolicyRR  ServiceInstanceLoadBalancingPolicy = "round_robin"
+	ServiceInstanceLoadBalancingPolicyLCC ServiceInstanceLoadBalancingPolicy = "LEAST_CONNECTION_COUNT"
+	ServiceInstanceLoadBalancingPolicyLRT ServiceInstanceLoadBalancingPolicy = "LEAST_RESPONSE_TIME"
+	ServiceInstanceLoadBalancingPolicyRR  ServiceInstanceLoadBalancingPolicy = "ROUND_ROBIN"
 )
 
 type ServiceInstanceShape string
 
 const (
+	// Suportted OCI Classic Shapes
 	// oc3: 1 OCPU, 7.5 GB memory
 	ServiceInstanceShapeOC3 ServiceInstanceShape = "oc3"
 	// oc4: 2 OCPUs, 15 GB memory
@@ -129,6 +130,36 @@ const (
 	ServiceInstanceShapeOC4M ServiceInstanceShape = "oc4m"
 	// oc5m: 16 OCPUS, 240 GB memory
 	ServiceInstanceShapeOC5M ServiceInstanceShape = "oc5m"
+
+	// Supported OCI VM shapes
+	// VM.Standard1.1: 1 OCPU, 7 GB memory
+	ServiceInstanceShapeVMStandard1_1 ServiceInstanceShape = "VM.Standard1.1"
+	// VM.Standard1.2: 2 OCPU, 14 GB memory
+	ServiceInstanceShapeVMStandard1_2 ServiceInstanceShape = "VM.Standard1.2"
+	// VM.Standard1.4: 4 OCPU, 28 GB memory
+	ServiceInstanceShapeVMStandard1_4 ServiceInstanceShape = "VM.Standard1.4"
+	// VM.Standard1.8: 8 OCPU, 56 GB memory
+	ServiceInstanceShapeVMStandard1_8 ServiceInstanceShape = "VM.Standard1.8"
+	// VM.Standard1.16: 16 OCPU, 112 GB memory
+	ServiceInstanceShapeVMStandard1_16 ServiceInstanceShape = "VM.Standard1.16"
+	// VM.Standard2.1: 1 OCPU, 15 GB memory
+	ServiceInstanceShapeVMStandard2_1 ServiceInstanceShape = "VM.Standard2.1"
+	// VM.Standard2.2: 2 OCPU, 30 GB memory
+	ServiceInstanceShapeVMStandard2_2 ServiceInstanceShape = "VM.Standard2.2"
+	// VM.Standard2.4: 4 OCPU, 60 GB memory
+	ServiceInstanceShapeVMStandard2_4 ServiceInstanceShape = "VM.Standard2.4"
+	// VM.Standard2.8: 8 OCPU, 120 GB memory
+	ServiceInstanceShapeVMStandard2_8 ServiceInstanceShape = "VM.Standard2.8"
+	// VM.Standard2.16: 16 OCPU, 240 GB memory
+	ServiceInstanceShapeVMStandard2_16 ServiceInstanceShape = "VM.Standard2.16"
+	// VM.Standard2.24: 24 OCPU, 320 GB memory
+	ServiceInstanceShapeVMStandard2_24 ServiceInstanceShape = "VM.Standard2.24"
+
+	// Supported OCI Bare Metal shapes
+	// BM.Standard1.36: 36 OCPU, 256 GB memory
+	ServiceInstanceShapeBMStandard1_36 ServiceInstanceShape = "BM.Standard1.36"
+	// BM.Standard2.52: 52 OCPU, 768 GB memory
+	ServiceInstanceShapeBMStandard2_52 ServiceInstanceShape = "BM.Standard2.52"
 )
 
 type ServiceInstanceType string
@@ -960,7 +991,7 @@ type CreateWLS struct {
 	// Groups details of Database Cloud Service database deployments that host application schemas, if used.
 	// You can specify up to four application schema database deployments.
 	// Optional.
-	AppDBs []AppDB `json:"addDbs,omitempty"`
+	AppDBs []AppDB `json:"appDBs,omitempty"`
 	// Size of the backup volume for the service. The value must be a multiple of GBs. You can specify this
 	// value in bytes or GBs. If specified in GBs, use the following format: nG, where n specifies the number of GBs.
 	// For example, you can express 10 GBs as bytes or GBs. For example: 100000000000 or 10G.
@@ -1122,7 +1153,7 @@ type CreateWLS struct {
 	// msMaxHeapMB, and msMaxPermMB. In addition, msInitialHeapMB must be less than msMaxHeapMB, and msPermMB must be less
 	// than msMaxPermMB.
 	// Optional
-	MSPermMB int `json:"mxPermMB,omitempty"`
+	MSPermMB int `json:"msPermMB,omitempty"`
 	// Size of the MW_HOME disk volume for the service (/u01/app/oracle/middleware). The value must be a multiple
 	// of GBs. You can specify this value in bytes or GBs. If specified in GBs, use the following format: nG, where n
 	//specifies the number of GBs. For example, you can express 10 GBs as bytes or GBs. For example: 100000000000 or 10G.
@@ -1315,17 +1346,10 @@ func (c *ServiceInstanceClient) startServiceInstance(name string, input *CreateS
 
 	// Wait for the service instance to be running and return the result
 	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that
-	serviceInstance, serviceInstanceError := c.WaitForServiceInstanceRunning(getInput, c.PollInterval, c.Timeout)
-	// If the service instance enters an error state we need to delete the instance and retry
-	if serviceInstanceError != nil {
-		deleteInput := &DeleteServiceInstanceInput{
-			Name: name,
-		}
-		err := c.DeleteServiceInstance(deleteInput)
-		if err != nil {
-			return nil, fmt.Errorf("Error creating service instance %s: %s\n Error deleting service instance %s: %s", name, serviceInstanceError, name, err)
-		}
-		return nil, serviceInstanceError
+	serviceInstance, err := c.WaitForServiceInstanceRunning(getInput, c.PollInterval, c.Timeout)
+	// If the service instance is returned as nil if it enters a terminating state.
+	if err != nil || serviceInstance == nil {
+		return nil, fmt.Errorf("error creating service instance %q: %+v", name, err)
 	}
 	return serviceInstance, nil
 }
@@ -1350,6 +1374,10 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceRunning(input *GetServiceI
 		case ServiceInstanceStatusInitializing:
 			c.client.DebugLogString("Service Instance is being initialized")
 			return false, nil
+		case ServiceInstanceStatusTerminating:
+			c.client.DebugLogString("Service Instance creation failed, terminating")
+			// The Service Instance creation failed. Wait for the instance to be deleted.
+			return false, c.WaitForServiceInstanceDeleted(input, pollInterval, timeoutSeconds)
 		default:
 			c.client.DebugLogString(fmt.Sprintf("Unknown instance state: %s, waiting", s))
 			return false, nil

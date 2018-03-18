@@ -54,6 +54,9 @@ The following arguments are supported:
 
 * `database_configuration` - (Required) Specifies the details on how to configure the database. Database configuration is documented below.
 
+* `default_access_rules` - (Optional) Specifies the details on which default access rules are enable or disabled. Default Access Rules
+are configured below.
+
 * `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database 
 stored in an existing cloud backup that was created using Oracle Database Backup Cloud Service. Instantiate from Backup is documented below.
 
@@ -118,6 +121,28 @@ Default value is `false`.
 * `type` - (Optional) Component type to which the set of parameters applies. Defaults to `db`
 
 * `db_demo` - (Optional) Indicates whether to include the Demos PDB.
+
+Default Access Rules supports the following:
+
+* `enable_ssh` - (Optional) Indicates whether to enable the ssh access rule.
+
+* `enable_http` - (Optional) Indicates whether to enable the http access rule. This is only configurable with a single instance.
+
+* `enable_https` - (Optional) Indiciates whether to enable the http with ssl access rule. This is only configurable with a single instance.
+
+* `enable_db_console` - (Optional) Indicates whether to enable the db console access rule. This is only configurable with a single instance.
+
+* `enable_db_express` - (Optional) Indicates whether to enable the db express access rule. This is only configurable with a single instance.
+
+* `enable_db_listener` - (Optional) Indicates whether to enable the db listener access rule. This is only configurable with a single instance
+
+* `enable_em_console` - (Optional) Indicates whether to enable the em console access rule. This is only configurable with a RAC instance.
+
+* `enable_rac_db_listener` - (Optional) Indicates whether to enable the rac db listene access rule. This is only configurable with a RAC instance
+
+* `enable_scan_listener` - (Optional) Indicates whether to enable the scan listener access rule. This is only configurable with a RAC instance
+
+* `enable_rac_ons` - (Optional) Indicates whether to enable the rac ons access rule. This is only configurable with a RAC instance.
 
 Instantiate from Backup supports the following:
 

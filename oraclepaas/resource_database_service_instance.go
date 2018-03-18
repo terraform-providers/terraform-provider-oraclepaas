@@ -8,6 +8,7 @@ import (
 
 	opcClient "github.com/hashicorp/go-oracle-terraform/client"
 	"github.com/hashicorp/go-oracle-terraform/database"
+	"github.com/hashicorp/go-oracle-terraform/helper"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 )
@@ -17,6 +18,7 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 		Create: resourceOPAASDatabaseServiceInstanceCreate,
 		Read:   resourceOPAASDatabaseServiceInstanceRead,
 		Delete: resourceOPAASDatabaseServiceInstanceDelete,
+		Update: resourceOPAASDatabaseServiceInstanceUpdate,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -329,6 +331,69 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 					},
 				},
 			},
+			"default_access_rules": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// All Instances share this
+						"enable_ssh": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						// Single Instance rules
+						"enable_http": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						"enable_http_ssl": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						"enable_db_console": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						"enable_db_express": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						"enable_db_listener": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						// RAC Rules
+						"enable_em_console": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						"enable_rac_db_listener": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						"enable_scan_listener": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+						"enable_rac_ons": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -476,7 +541,7 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	}
 
 	d.SetId(info.Name)
-	return resourceOPAASDatabaseServiceInstanceRead(d, meta)
+	return resourceOPAASDatabaseServiceInstanceUpdate(d, meta)
 }
 
 func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta interface{}) error {
@@ -539,6 +604,18 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 
 	setAttributesFromConfig(d)
 
+	// Obtain and set the default Access Rules
+	getDefaultAccessRulesInput := &database.GetDefaultAccessRuleInput{
+		ServiceInstanceID: d.Id(),
+	}
+	defaultAccessRules, err := dbClient.AccessRules().GetDefaultAccessRules(getDefaultAccessRulesInput)
+	if err != nil {
+		return err
+	}
+	if err = d.Set("default_access_rules", flattenDefaultAccessRules(defaultAccessRules)); err != nil {
+		return fmt.Errorf("Error setting Database Default Access Rules: %+v", err)
+	}
+
 	return nil
 }
 
@@ -565,6 +642,69 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 	if err := client.DeleteServiceInstance(&input); err != nil {
 		return fmt.Errorf("Error deleting DatabaseServiceInstance: %+v", err)
 	}
+	return nil
+}
+
+func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := updateDefaultAccessRules(d, meta)
+	if err != nil {
+		return fmt.Errorf("Unable to update Default Access Rules: %+v", err)
+	}
+	return resourceOPAASDatabaseServiceInstanceRead(d, meta)
+}
+
+func updateDefaultAccessRules(d *schema.ResourceData, meta interface{}) error {
+	dbClient, err := getDatabaseClient(meta)
+	if err != nil {
+		return err
+	}
+	client := dbClient.AccessRules()
+
+	defaultAccessRuleConfig := d.Get("default_access_rules").([]interface{})
+	if len(defaultAccessRuleConfig) == 0 {
+		return nil
+	}
+	updateDefaultAccessRuleInput := &database.DefaultAccessRuleInfo{
+		ServiceInstanceID: d.Id(),
+	}
+
+	defaultAccessRuleInfo := defaultAccessRuleConfig[0].(map[string]interface{})
+	if val, ok := defaultAccessRuleInfo["enable_ssh"]; ok {
+		updateDefaultAccessRuleInput.EnableSSH = helper.Bool(val.(bool))
+	}
+	if val, ok := defaultAccessRuleInfo["enable_http"]; ok {
+		updateDefaultAccessRuleInput.EnableHTTP = helper.Bool(val.(bool))
+	}
+	if val, ok := defaultAccessRuleInfo["enable_http_ssl"]; ok {
+		updateDefaultAccessRuleInput.EnableHTTPSSL = helper.Bool(val.(bool))
+	}
+	if val, ok := defaultAccessRuleInfo["enable_db_console"]; ok {
+		updateDefaultAccessRuleInput.EnableDBConsole = helper.Bool(val.(bool))
+	}
+	if val, ok := defaultAccessRuleInfo["enable_db_express"]; ok {
+		updateDefaultAccessRuleInput.EnableDBExpress = helper.Bool(val.(bool))
+	}
+	if val, ok := defaultAccessRuleInfo["enable_db_listener"]; ok {
+		updateDefaultAccessRuleInput.EnableDBListener = helper.Bool(val.(bool))
+	}
+	if val, ok := defaultAccessRuleInfo["enable_em_console"]; ok {
+		updateDefaultAccessRuleInput.EnableEMConsole = helper.Bool(val.(bool))
+	}
+	if val, ok := defaultAccessRuleInfo["enable_rac_db_listener"]; ok {
+		updateDefaultAccessRuleInput.EnableRACDBListener = helper.Bool(val.(bool))
+	}
+	if val, ok := defaultAccessRuleInfo["enable_scan_listener"]; ok {
+		updateDefaultAccessRuleInput.EnableScanListener = helper.Bool(val.(bool))
+	}
+	if val, ok := defaultAccessRuleInfo["enable_rac_ons"]; ok {
+		updateDefaultAccessRuleInput.EnableRACOns = helper.Bool(val.(bool))
+	}
+
+	_, err = client.UpdateDefaultAccessRules(updateDefaultAccessRuleInput)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -688,4 +828,40 @@ func expandHDG(d *schema.ResourceData, parameter *database.ParameterInput) error
 	}
 
 	return nil
+}
+
+func flattenDefaultAccessRules(defaultAccessRules *database.DefaultAccessRuleInfo) []interface{} {
+	result := make(map[string]interface{})
+
+	if defaultAccessRules.EnableSSH != nil {
+		result["enable_ssh"] = *defaultAccessRules.EnableSSH
+	}
+	if defaultAccessRules.EnableHTTP != nil {
+		result["enable_http"] = *defaultAccessRules.EnableHTTP
+	}
+	if defaultAccessRules.EnableHTTPSSL != nil {
+		result["enable_http_ssl"] = *defaultAccessRules.EnableHTTPSSL
+	}
+	if defaultAccessRules.EnableDBConsole != nil {
+		result["enable_db_console"] = *defaultAccessRules.EnableDBConsole
+	}
+	if defaultAccessRules.EnableDBExpress != nil {
+		result["enable_db_express"] = *defaultAccessRules.EnableDBExpress
+	}
+	if defaultAccessRules.EnableDBListener != nil {
+		result["enable_db_listener"] = *defaultAccessRules.EnableDBListener
+	}
+	if defaultAccessRules.EnableEMConsole != nil {
+		result["enable_em_console"] = *defaultAccessRules.EnableEMConsole
+	}
+	if defaultAccessRules.EnableRACDBListener != nil {
+		result["enable_rac_db_listener"] = *defaultAccessRules.EnableRACDBListener
+	}
+	if defaultAccessRules.EnableScanListener != nil {
+		result["enable_scan_listener"] = *defaultAccessRules.EnableScanListener
+	}
+	if defaultAccessRules.EnableRACOns != nil {
+		result["enable_rac_ons"] = *defaultAccessRules.EnableRACOns
+	}
+	return []interface{}{result}
 }
