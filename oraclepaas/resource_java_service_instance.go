@@ -162,7 +162,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 								},
 							},
 						},
-						"app_db": {
+						"application_database": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: true,
@@ -198,10 +198,61 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 							ForceNew: true,
 						},
 						"cluster_name": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Computed: true,
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							Computed:      true,
+							ConflictsWith: []string{"weblogic_server.0.cluster"},
+						},
+						"cluster": {
+							Type:          schema.TypeList,
+							Optional:      true,
+							ForceNew:      true,
+							ConflictsWith: []string{"weblogic_server.0.cluster_name"},
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": {
+										Type:     schema.TypeString,
+										Required: true,
+										ForceNew: true,
+									},
+									"type": {
+										Type:     schema.TypeString,
+										Required: true,
+										ForceNew: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											string(java.ServiceInstanceClusterTypeApplication),
+											string(java.ServiceInstanceClusterTypeCaching),
+										}, false),
+									},
+									"server_count": {
+										Type:     schema.TypeInt,
+										Optional: true,
+										ForceNew: true,
+										Default:  1,
+									},
+									"servers_per_node": {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										ForceNew:     true,
+										Default:      1,
+										ValidateFunc: validation.IntBetween(1, 8),
+									},
+									"path_prefixes": {
+										Type:     schema.TypeSet,
+										Optional: true,
+										ForceNew: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"shape": {
+										Type:         schema.TypeString,
+										Optional:     true,
+										ForceNew:     true,
+										Computed:     true,
+										ValidateFunc: validation.StringInSlice(javaServiceInstanceShapes(), false),
+									},
+								},
+							},
 						},
 						"connect_string": {
 							Type:     schema.TypeString,
@@ -234,6 +285,11 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 									"hostname": {
 										Type:     schema.TypeString,
 										Computed: true,
+									},
+									"pdb_name": {
+										Type:     schema.TypeString,
+										Optional: true,
+										ForceNew: true,
 									},
 								},
 							},
@@ -330,7 +386,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 								},
 							},
 						},
-						"mw_volume_size": {
+						"middleware_volume_size": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -365,12 +421,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 									},
 								},
 							},
-						},
-						"pdb_service_name": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-							ForceNew: true,
 						},
 						"ports": {
 							Type:     schema.TypeList,
@@ -407,9 +457,10 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 							},
 						},
 						"shape": {
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ForceNew:     true,
+							ValidateFunc: validation.StringInSlice(javaServiceInstanceShapes(), false),
 						},
 						"upper_stack_product_name": {
 							Type:     schema.TypeString,
@@ -481,6 +532,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 							Type:     schema.TypeList,
 							Optional: true,
 							ForceNew: true,
+							Computed: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -488,25 +540,24 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 										Type:     schema.TypeInt,
 										Optional: true,
 										ForceNew: true,
-										Default:  8080,
 									},
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										ForceNew: true,
-										Default:  true,
-									},
-									"privileged_listener_port": {
+									"secured_port": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										ForceNew: true,
-										Default:  80,
+										Computed: true,
 									},
-									"privileged_secured_listener_port": {
+									"privileged_port": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										ForceNew: true,
-										Default:  443,
+										Computed: true,
+									},
+									"privileged_secured_port": {
+										Type:     schema.TypeInt,
+										Optional: true,
+										ForceNew: true,
+										Computed: true,
 									},
 								},
 							},
@@ -765,6 +816,7 @@ func expandWebLogicConfig(d *schema.ResourceData, input *java.CreateServiceInsta
 	webLogicServer.Shape = java.ServiceInstanceShape(attrs["shape"].(string))
 	expandWLSAdmin(webLogicServer, attrs)
 	expandAppDBs(webLogicServer, attrs)
+	expandClusters(d, webLogicServer, attrs)
 	expandDB(webLogicServer, attrs)
 	expandDomain(webLogicServer, attrs)
 	expandManagedServers(webLogicServer, attrs)
@@ -780,11 +832,8 @@ func expandWebLogicConfig(d *schema.ResourceData, input *java.CreateServiceInsta
 	if v := attrs["ip_reservations"]; v != nil {
 		webLogicServer.IPReservations = getStringList(d, "weblogic_server.0.ip_reservations")
 	}
-	if v := attrs["mw_volume_size"]; v != nil {
+	if v := attrs["middleware_volume_size"]; v != nil {
 		webLogicServer.MWVolumeSize = v.(string)
-	}
-	if v := attrs["pdb_service_name"]; v != nil {
-		webLogicServer.PDBServiceName = v.(string)
 	}
 	if v := attrs["upper_stack_product_name"]; v != nil {
 		webLogicServer.UpperStackProductName = java.ServiceInstanceUpperStackProductName(v.(string))
@@ -833,6 +882,25 @@ func expandWLSAdmin(webLogicServer *java.CreateWLS, config map[string]interface{
 	}
 }
 
+func expandClusters(d *schema.ResourceData, weblogicServer *java.CreateWLS, config map[string]interface{}) {
+	clusterInfo := config["cluster"].([]interface{})
+	for i, clusterConfig := range clusterInfo {
+		cluster := java.CreateCluster{}
+		attrs := clusterConfig.(map[string]interface{})
+
+		cluster.ClusterName = attrs["name"].(string)
+		cluster.Type = java.ServiceInstanceClusterType(attrs["type"].(string))
+		cluster.ServerCount = attrs["server_count"].(int)
+		cluster.ServerPerNode = attrs["servers_per_node"].(int)
+		if v := attrs["shape"]; v != nil {
+			cluster.Shape = java.ServiceInstanceShape(v.(string))
+		}
+		if v := attrs["path_prefixes"]; v != nil {
+			cluster.PathPrefixes = getStringList(d, fmt.Sprintf("weblogic_server.0.clusters.%d.path_prefixes", i))
+		}
+	}
+}
+
 func expandDB(webLogicServer *java.CreateWLS, config map[string]interface{}) {
 	dbaInfo := config["database"].([]interface{})
 	if len(dbaInfo) == 0 {
@@ -874,7 +942,7 @@ func expandJavaCloudStorage(d *schema.ResourceData, input *java.CreateServiceIns
 }
 
 func expandAppDBs(webLogicServer *java.CreateWLS, config map[string]interface{}) {
-	appDBInfo := config["app_db"].(*schema.Set)
+	appDBInfo := config["application_database"].(*schema.Set)
 	appDBs := make([]java.AppDB, appDBInfo.Len())
 	for i, val := range appDBInfo.List() {
 		attrs := val.(map[string]interface{})
@@ -882,6 +950,9 @@ func expandAppDBs(webLogicServer *java.CreateWLS, config map[string]interface{})
 			DBAName:       attrs["username"].(string),
 			DBAPassword:   attrs["password"].(string),
 			DBServiceName: attrs["name"].(string),
+		}
+		if v := attrs["pdb_name"]; v != nil {
+			appDB.PDBServiceName = v.(string)
 		}
 		appDBs[i] = appDB
 	}
@@ -920,14 +991,19 @@ func expandListener(otdInfo *java.CreateOTD, config map[string]interface{}) {
 	if v := attrs["port"]; v != nil {
 		otdInfo.ListenerPort = v.(int)
 	}
-	if v := attrs["enabled"]; v != nil {
-		otdInfo.ListenerPortEnabled = v.(bool)
+	if v := attrs["secured_port"]; v != nil {
+		otdInfo.SecuredListenerPort = v.(int)
 	}
-	if v := attrs["privileged_listener_port"]; v != nil {
+	if v := attrs["privileged_port"]; v != nil {
 		otdInfo.PrivilegedListenerPort = v.(int)
 	}
-	if v := attrs["privileged_secured_listener_port"]; v != nil {
+	if v := attrs["privileged_secured_port"]; v != nil {
 		otdInfo.PrivilegedSecuredListenerPort = v.(int)
+	}
+	if otdInfo.ListenerPort != 0 || otdInfo.PrivilegedListenerPort != 0 {
+		otdInfo.ListenerPortEnabled = true
+	} else {
+		otdInfo.ListenerPortEnabled = false
 	}
 }
 
@@ -1015,10 +1091,13 @@ func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, root
 
 	v := flattenAppDB(d)
 	if v != nil {
-		result["app_db"] = v
+		result["application_database"] = v
 	}
 	if v, ok := d.GetOk("weblogic_server.0.cluster_name"); ok {
 		result["cluster_name"] = webLogicConfig.Clusters[v.(string)].ClusterName
+	}
+	if _, ok := d.GetOk("weblogic_server.0.cluster"); ok {
+		result["cluster"] = flattenClusters(d, webLogicConfig.Clusters)
 	}
 	if v, ok := d.GetOk("weblogic_server.0.backup_volume_size"); ok {
 		result["backup_volume_size"] = v
@@ -1032,11 +1111,8 @@ func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, root
 	if _, ok := d.GetOk("weblogic_server.0.ip_reservations"); ok {
 		result["ip_reservations"] = getStringList(d, "weblogic_server.0.ip_reservations")
 	}
-	if v, ok := d.GetOk("mw_volume_size"); ok {
-		result["mw_volume_size"] = v
-	}
-	if v, ok := d.GetOk("weblogic_server.0.pdb_service_name"); ok {
-		result["pdb_service_name"] = v
+	if v, ok := d.GetOk("middleware_volume_size"); ok {
+		result["middleware_volume_size"] = v
 	}
 	if v, ok := d.GetOk("weblogic_server.0.upper_stack_product_name"); ok {
 		result["upper_stack_product_name"] = v
@@ -1108,7 +1184,7 @@ func flattenOTDAdmin(d *schema.ResourceData, adminHostname string) []interface{}
 func flattenAppDB(d *schema.ResourceData) []interface{} {
 	appDBInfo := make([]map[string]interface{}, 0)
 
-	appDBs := d.Get("weblogic_server.0.app_db").(*schema.Set)
+	appDBs := d.Get("weblogic_server.0.application_database").(*schema.Set)
 
 	if len(appDBs.List()) == 0 {
 		return nil
@@ -1120,11 +1196,41 @@ func flattenAppDB(d *schema.ResourceData) []interface{} {
 	return []interface{}{appDBInfo}
 }
 
+func flattenClusters(d *schema.ResourceData, clusters map[string]java.Clusters) []interface{} {
+	flattenedClusters := make([]interface{}, 0)
+
+	clustersInfo := d.Get("weblogic_server.0.cluster").([]interface{})
+	for i, clusterConfig := range clustersInfo {
+		attrs := clusterConfig.(map[string]interface{})
+		clusterInfo := clusters[attrs["name"].(string)]
+		if clusterInfo.ClusterName != "" {
+			cluster := make(map[string]interface{})
+			cluster["name"] = clusterInfo.ClusterName
+			cluster["type"] = string(clusterInfo.ClusterType)
+			cluster["server_count"] = d.Get(fmt.Sprintf("weblogic_server.0.cluster.%d.server_count", i))
+			cluster["servers_per_node"] = d.Get(fmt.Sprintf("weblogic_server.0.cluster.%d.servers_per_node", i))
+
+			if v, ok := d.GetOk(fmt.Sprintf("weblogic_server.0.cluster.%d.shape", i)); ok {
+				cluster["shape"] = v.(string)
+			}
+			if _, ok := d.GetOk(fmt.Sprintf("weblogic_server.0.cluster.%d.path_prefixes", i)); ok {
+				cluster["path_prefixes"] = getStringList(d, fmt.Sprintf("weblogic_server.0.cluster.%d.path_prefixes", i))
+			}
+		}
+	}
+
+	return flattenedClusters
+}
+
 func flattenDatabase(d *schema.ResourceData) []interface{} {
 	db := make(map[string]interface{})
 	db["username"] = d.Get("weblogic_server.0.database.0.username")
 	db["password"] = d.Get("weblogic_server.0.database.0.password")
 	db["name"] = d.Get("weblogic_server.0.database.0.name")
+
+	if v, ok := d.GetOk("weblogic_server.0.pdb_name"); ok {
+		db["pdb_name"] = v
+	}
 
 	return []interface{}{db}
 }
@@ -1227,25 +1333,12 @@ func flattenWLSPorts(d *schema.ResourceData) []interface{} {
 	return []interface{}{ports}
 }
 
-func flattenListener(d *schema.ResourceData) []interface{} {
+func flattenListener(otdAttributes java.OTDAttributes) []interface{} {
 	listener := make(map[string]interface{})
-	listenerConfig := d.Get("otd.0.listener").([]interface{})
 
-	if len(listenerConfig) == 0 {
-		return nil
-	}
-	if listenerConfig[0] != nil {
-		attrs := listenerConfig[0].(map[string]interface{})
-		if v := attrs["port"]; v != nil {
-			listener["port"] = v.(int)
-		}
-		if v := attrs["enabled"]; v != nil {
-			listener["enabled"] = v.(bool)
-		}
-		listener["privileged_listener_port"] = attrs["privileged_content_port"]
-		listener["privileged_secured_listener_port"] = attrs["privileged_secured_content_port"]
-
-	}
+	listener["port"] = otdAttributes.ListenerPort
+	listener["privileged_port"] = otdAttributes.PrivilgedListenerPort
+	listener["privileged_secured_port"] = otdAttributes.PrivilegedSecureListenerPort
 
 	return []interface{}{listener}
 }

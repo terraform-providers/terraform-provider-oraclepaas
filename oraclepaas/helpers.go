@@ -9,6 +9,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+func javaServiceInstanceShapes() []string {
+	return []string{"VM.Standard1.1", "VM.Standard1.2", "VM.Standard1.4", "VM.Standard1.8", "VM.Standard1.16", "VM.Standard2.1", "VM.Standard2.2", "VM.Standard2.4", "VM.Standard2.8", "VM.Standard2.16", "VM.Standard2.24", "BM.Standard1.36", "BM.Standard2.52", "oc3", "oc4", "oc5", "oc6", "oc7", "oc1m", "oc2m", "oc3m", "oc4m", "oc5m"}
+}
+
 // Helper function to get a string list from the schema, and alpha-sort it
 func getStringList(d *schema.ResourceData, key string) []string {
 	if _, ok := d.GetOk(key); !ok {
