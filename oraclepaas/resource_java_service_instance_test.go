@@ -75,7 +75,7 @@ func TestAccOraclePAASJavaServiceInstance_Clusters(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckJavaServiceInstanceExists,
 					resource.TestCheckResourceAttr(
-						resourceName, "weblogic_config.0.cluster.#", "2"),
+						resourceName, "weblogic_server.0.cluster.#", "2"),
 				),
 			},
 		},

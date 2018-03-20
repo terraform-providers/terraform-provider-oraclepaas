@@ -3,6 +3,7 @@ package oraclepaas
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	opcClient "github.com/hashicorp/go-oracle-terraform/client"
@@ -744,7 +745,7 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 	result, err := client.GetServiceInstance(&getInput)
 	if err != nil {
 		// Java Service Instance does not exist
-		if opcClient.WasNotFoundError(err) {
+		if opcClient.WasNotFoundError(err) || strings.Contains(err.Error(), "No such service") {
 			d.SetId("")
 			return nil
 		}
@@ -765,7 +766,11 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 	d.Set("metering_frequency", result.MeteringFrequency)
 	d.Set("force_delete", d.Get("force_delete"))
 
-	if err := d.Set("weblogic_server", flattenWebLogicConfig(d, result.Components.WLS, result.WLSRoot)); err != nil {
+	wlsConfig, err := flattenWebLogicConfig(d, result.Components.WLS, result.WLSRoot)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("weblogic_server", wlsConfig); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Java Service instance WebLogic Server: %+v", err)
 	}
 	/* if err := d.Set("oracle_traffic_director", flattenOTDConfig(d, result.Components.OTD, result.OTDRoot)); err != nil {
@@ -1078,7 +1083,7 @@ func expandWLSPorts(webLogicServer *java.CreateWLS, config map[string]interface{
 	}
 }
 
-func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, rootURL string) []interface{} {
+func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, rootURL string) ([]interface{}, error) {
 	result := make(map[string]interface{})
 
 	result["shape"] = d.Get("weblogic_server.0.shape")
@@ -1098,7 +1103,11 @@ func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, root
 		result["cluster_name"] = webLogicConfig.Clusters[v.(string)].ClusterName
 	}
 	if _, ok := d.GetOk("weblogic_server.0.cluster"); ok {
-		result["cluster"] = flattenClusters(d, webLogicConfig.Clusters)
+		clusters, err := flattenClusters(d, webLogicConfig.Clusters)
+		if err != nil {
+			return nil, err
+		}
+		result["cluster"] = clusters
 	}
 	if v, ok := d.GetOk("weblogic_server.0.backup_volume_size"); ok {
 		result["backup_volume_size"] = v
@@ -1119,7 +1128,7 @@ func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, root
 		result["upper_stack_product_name"] = v
 	}
 
-	return []interface{}{result}
+	return []interface{}{result}, nil
 }
 
 /*
@@ -1197,7 +1206,7 @@ func flattenAppDB(d *schema.ResourceData) []interface{} {
 	return []interface{}{appDBInfo}
 }
 
-func flattenClusters(d *schema.ResourceData, clusters map[string]java.Clusters) []interface{} {
+func flattenClusters(d *schema.ResourceData, clusters map[string]java.Clusters) ([]interface{}, error) {
 	flattenedClusters := make([]interface{}, 0)
 
 	clustersInfo := d.Get("weblogic_server.0.cluster").([]interface{})
@@ -1207,7 +1216,7 @@ func flattenClusters(d *schema.ResourceData, clusters map[string]java.Clusters) 
 		if clusterInfo.ClusterName != "" {
 			cluster := make(map[string]interface{})
 			cluster["name"] = clusterInfo.ClusterName
-			cluster["type"] = string(clusterInfo.ClusterType)
+			cluster["type"] = d.Get(fmt.Sprintf("weblogic_server.0.cluster.%d.type", i))
 			cluster["server_count"] = d.Get(fmt.Sprintf("weblogic_server.0.cluster.%d.server_count", i))
 			cluster["servers_per_node"] = d.Get(fmt.Sprintf("weblogic_server.0.cluster.%d.servers_per_node", i))
 
@@ -1217,10 +1226,11 @@ func flattenClusters(d *schema.ResourceData, clusters map[string]java.Clusters) 
 			if _, ok := d.GetOk(fmt.Sprintf("weblogic_server.0.cluster.%d.path_prefixes", i)); ok {
 				cluster["path_prefixes"] = getStringList(d, fmt.Sprintf("weblogic_server.0.cluster.%d.path_prefixes", i))
 			}
+			flattenedClusters = append(flattenedClusters, cluster)
 		}
 	}
 
-	return flattenedClusters
+	return flattenedClusters, nil
 }
 
 func flattenDatabase(d *schema.ResourceData) []interface{} {
