@@ -2,6 +2,7 @@ package java
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-oracle-terraform/client"
@@ -1014,7 +1015,7 @@ type CreateWLS struct {
 	// You must, however, use the clusters array if you want to define a caching (data grid) cluster for
 	// the service instance.
 	// Optional.
-	Clusters []CreateCluster `json:"cluster,omitempty"`
+	Clusters []CreateCluster `json:"clusters,omitempty"`
 	// Connection string for the database. The connection string must be entered using one of the following formats:
 	// host:port:SID
 	// host:port/serviceName
@@ -1325,6 +1326,12 @@ func (c *ServiceInstanceClient) CreateServiceInstance(input *CreateServiceInstan
 	if input.CloudStorageContainer != "" && input.CloudStorageUsername == "" && input.CloudStoragePassword == "" {
 		input.CloudStorageUsername = *c.ResourceClient.JavaClient.client.UserName
 		input.CloudStoragePassword = *c.ResourceClient.JavaClient.client.Password
+	}
+
+	// The JCS API errors if an ssh key has trailing content; we'll trim that here.
+	parts := strings.Split(input.VMPublicKeyText, " ")
+	if len(parts) > 2 {
+		input.VMPublicKeyText = strings.Join(parts[0:2], " ")
 	}
 
 	serviceInstance, err := c.startServiceInstance(input.ServiceName, input)

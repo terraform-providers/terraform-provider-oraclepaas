@@ -898,6 +898,7 @@ func expandClusters(d *schema.ResourceData, weblogicServer *java.CreateWLS, conf
 		if v := attrs["path_prefixes"]; v != nil {
 			cluster.PathPrefixes = getStringList(d, fmt.Sprintf("weblogic_server.0.clusters.%d.path_prefixes", i))
 		}
+		weblogicServer.Clusters = append(weblogicServer.Clusters, cluster)
 	}
 }
 
