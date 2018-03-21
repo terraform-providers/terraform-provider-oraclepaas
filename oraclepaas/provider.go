@@ -58,6 +58,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"oraclepaas_database_service_instance": dataSourceOraclePAASDatabaseServiceInstance(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"oraclepaas_java_access_rule":          resourceOraclePAASJavaAccessRule(),
 			"oraclepaas_database_service_instance": resourceOraclePAASDatabaseServiceInstance(),
