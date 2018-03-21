@@ -138,7 +138,7 @@ want to use ipReservations or ipNetwork.
 Oracle Java Cloud Service instance you are provisioning. The default value is `false`.
 
 * `force_delete` - (Optional) Flag that specifies whether you want to force the removal of the service instance even if the database
-instance cannot be reached to delete the database schemas. Default value is `false`
+instance cannot be reached to delete the database schemas. Default value is `true`
 
 Backups supports the following:
 
