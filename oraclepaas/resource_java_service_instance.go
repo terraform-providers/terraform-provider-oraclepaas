@@ -648,7 +648,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 			"force_delete": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true,
 				ForceNew: true,
 			},
 		},
