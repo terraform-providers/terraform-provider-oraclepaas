@@ -1281,7 +1281,7 @@ type CreateCluster struct {
 	// Cloud Infrastructure Services.
 	// Note: This shape attribute is optional. If no shape value is specified here, the shape is inherited from
 	// the WLS component level shape.
-	Shape ServiceInstanceShape `json:"shape"`
+	Shape ServiceInstanceShape `json:"shape,omitempty"`
 	// Type of cluster to create.
 	// Optional
 	Type ServiceInstanceClusterType `json:"type,omitempty"`
