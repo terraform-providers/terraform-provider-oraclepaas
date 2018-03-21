@@ -80,6 +80,9 @@ Default value is `false`.
 
 * `region` - (Optional) Specifies the location where the service instance is provisioned (only for accounts where regions are supported).
 
+* `standby` - (Optional) Specifies the configuration details of the standby database. This is only applicable in Oracle Cloud Infrastructure Regions. `failover_database` and 
+`disaster_recovery` inside the `database_configuration` block must be set to `true`. Standby is documented below.
+
 * `subnet` - (Optional) Name of the subnet within the region where the Oracle Database Cloud Service instance is to be provisioned.
 
 Database Configuration supports the following:
@@ -143,6 +146,12 @@ Default Access Rules supports the following:
 * `enable_scan_listener` - (Optional) Indicates whether to enable the scan listener access rule. This is only configurable with a RAC instance
 
 * `enable_rac_ons` - (Optional) Indicates whether to enable the rac ons access rule. This is only configurable with a RAC instance.
+
+Standby supports the following:
+
+* `availability_domain` - (Required) Name of the availability domain within the region where the standby database of the Oracle Database Cloud Service instance is to be provisioned.
+
+* `subnet` - (Required) Name of the subnet within the region where the standby database of the Oracle Database Cloud Service instance is to be provisioned.
 
 Instantiate from Backup supports the following:
 

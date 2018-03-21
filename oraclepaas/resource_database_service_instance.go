@@ -394,6 +394,26 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 					},
 				},
 			},
+			"standby": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"availability_domain": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"subnet": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+			},
 			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -530,6 +550,16 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	// Only the PaaS level can have a parameter.
 	if input.Level == database.ServiceInstanceLevelPAAS {
 		input.Parameter, err = expandParameter(d)
+		if err != nil {
+			return err
+		}
+	}
+
+	if _, ok := d.GetOk("standby"); ok {
+		if input.Parameter.FailoverDatabase != true || input.Parameter.DisasterRecovery != true {
+			return fmt.Errorf("Error creating Database Service Instance: `failover_database` and `disaster_recovery` must be set to true inside the `database_configuration` block to use `standby`")
+		}
+		input.Standbys = expandStandby(d)
 		if err != nil {
 			return err
 		}
@@ -706,6 +736,17 @@ func updateDefaultAccessRules(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
+}
+
+func expandStandby(d *schema.ResourceData) []database.StandBy {
+	standbyConfig := d.Get("standby").([]interface{})
+	attrs := standbyConfig[0].(map[string]interface{})
+	standby := database.StandBy{
+		AvailabilityDomain: attrs["availability_domain"].(string),
+		Subnet:             attrs["subnet"].(string),
+	}
+
+	return []database.StandBy{standby}
 }
 
 func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {

@@ -354,6 +354,9 @@ type CreateServiceInstanceInput struct {
 	// MONTHLY: Pay one price for the full month irrespective of the number of hours used.
 	// Required.
 	SubscriptionType ServiceInstanceSubscriptionType `json:"subscriptionType"`
+	// Applicable only in Oracle Cloud Infrastructure regions.
+	// Array of one JSON object that specifies configuration details of the standby database when failoverDatabase is set to true. disasterRecovery must be set to true.
+	Standbys []StandBy `json:"standbys`
 	// Specify if high performance storage should be used for the Database Cloud Service instance. Default data storage will allocate your database
 	// block storage on spinning devices. By checking this box, your block storage will be allocated on solid state devices. Valid values are true and false.
 	// Default value is false.
@@ -368,6 +371,17 @@ type CreateServiceInstanceInput struct {
 	// a Compute Node Through Secure Shell (SSH) in Using Oracle Database Cloud Service.
 	// Required.
 	VMPublicKey string `json:"vmPublicKeyText"`
+}
+
+type StandBy struct {
+	// Name of the availability domain within the region where the standby database of the Oracle Database
+	// Cloud Service instance is to be provisioned.
+	// Required.
+	AvailabilityDomain string `json:"availabilityDomain"`
+	// Name of the subnet within the region where the standby database of the Oracle Database Cloud Service
+	// instance is to be provisioned.
+	// Required.
+	Subnet string `json:"subnet"`
 }
 
 type CreateServiceInstanceRequest struct {
