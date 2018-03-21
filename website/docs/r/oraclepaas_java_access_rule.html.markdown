@@ -26,7 +26,6 @@ resource "oraclepaas_java_access_rule" "default" {
 	description = "default-access-rule"
 	ports = "8000"
 	source = "PUBLIC-INTERNET"
-	status = "disabled"
 }
 ```
 
@@ -48,7 +47,7 @@ The following arguments are supported:
 * `source` - (Required) The IP addresses and subnets from which traffic is allowed. Valid values include `WLS_ADMIN`, `WLS_ADMIN_SERVER`,
 `WLS_MANAGED_SERVER`, `OTD_ADMIN_HOST`, `OTD`, or a single IP address or comma-separated list of subnets (in CIDR format) or IPv4 addresses.
 
-* `status` - (Required) Desired Status of the rule. Either "disabled" or "enabled".
+* `enabled` - (Optional) Determines whether the access rule is enabled. Default is `true`.
 
 * `protocol` - (Optional) Specifies the communication protocol. Valid values are `tcp` or `udp`.
 Default is `tcp`.

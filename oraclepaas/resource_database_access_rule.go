@@ -1,13 +1,15 @@
 package oraclepaas
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/schema"
+
 	"fmt"
+	"log"
+
 	opcClient "github.com/hashicorp/go-oracle-terraform/client"
 	"github.com/hashicorp/go-oracle-terraform/database"
-	"log"
 )
 
 func resourceOraclePAASDatabaseAccessRule() *schema.Resource {
@@ -54,9 +56,10 @@ func resourceOraclePAASDatabaseAccessRule() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"status": {
-				Type:     schema.TypeString,
-				Required: true,
+			"enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
 			},
 		},
 	}
@@ -73,6 +76,15 @@ func resourceOraclePAASDatabaseAccessRuleCreate(d *schema.ResourceData, meta int
 	}
 	client := dbClient.AccessRules()
 
+	// Status can be enabled or disabled. We'll use `enabled` to determine status which to set
+	enabled := d.Get("enabled").(bool)
+	var status database.AccessRuleStatus
+	if enabled == true {
+		status = database.AccessRuleEnabled
+	} else {
+		status = database.AccessRuleDisabled
+	}
+
 	input := database.CreateAccessRuleInput{
 		Name:              d.Get("name").(string),
 		ServiceInstanceID: d.Get("service_instance_id").(string),
@@ -80,7 +92,7 @@ func resourceOraclePAASDatabaseAccessRuleCreate(d *schema.ResourceData, meta int
 		Destination:       database.AccessRuleDestination(d.Get("destination").(string)),
 		Ports:             d.Get("ports").(string),
 		Source:            d.Get("source").(string),
-		Status:            database.AccessRuleStatus(d.Get("status").(string)),
+		Status:            status,
 	}
 
 	info, err := client.CreateAccessRule(&input)
@@ -129,7 +141,7 @@ func resourceOraclePAASDatabaseAccessRuleRead(d *schema.ResourceData, meta inter
 	d.Set("destination", result.Destination)
 	d.Set("ports", result.Ports)
 	d.Set("source", result.Source)
-	d.Set("status", result.Status)
+	d.Set("enabled", result.Status == database.AccessRuleEnabled)
 
 	return nil
 }
@@ -145,10 +157,19 @@ func resourceOraclePAASDatabaseAccessRuleUpdate(d *schema.ResourceData, meta int
 	}
 	client := dbClient.AccessRules()
 
+	// Status can be enabled or disabled. We'll use `enabled` to determine status which to set
+	enabled := d.Get("enabled").(bool)
+	var status database.AccessRuleStatus
+	if enabled == true {
+		status = database.AccessRuleEnabled
+	} else {
+		status = database.AccessRuleDisabled
+	}
+
 	input := database.UpdateAccessRuleInput{
 		ServiceInstanceID: d.Get("service_instance_id").(string),
 		Name:              d.Get("name").(string),
-		Status:            database.AccessRuleStatus(d.Get("status").(string)),
+		Status:            status,
 	}
 
 	info, err := client.UpdateAccessRule(&input)
@@ -172,10 +193,18 @@ func resourceOraclePAASDatabaseAccessRuleDelete(d *schema.ResourceData, meta int
 	}
 	client := dbClient.AccessRules()
 
+	// Status can be enabled or disabled. We'll use `enabled` to determine status which to set
+	enabled := d.Get("enabled").(bool)
+	var status database.AccessRuleStatus
+	if enabled == true {
+		status = database.AccessRuleEnabled
+	} else {
+		status = database.AccessRuleDisabled
+	}
 	input := database.DeleteAccessRuleInput{
 		ServiceInstanceID: d.Get("service_instance_id").(string),
 		Name:              d.Get("name").(string),
-		Status:            database.AccessRuleStatus(d.Get("status").(string)),
+		Status:            status,
 	}
 
 	err = client.DeleteAccessRule(&input)
