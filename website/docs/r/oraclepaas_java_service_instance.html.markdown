@@ -22,7 +22,7 @@ resource "oraclepaas_java_service_instance" "default" {
     name = "test-java-service-instance-%d"
     edition = "SUITE"
     service_version = "12cRelease212"
-    ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3QxPp0BFK+ligB9m1FBcFELyvN5EdNUoSwTCe4Zv2b51OIO6wGM/dvTr/yj2ltNA/Vzl9tqf9AUBL8tKjAOk8uukip6G7rfigby+MvoJ9A8N0AC2te3TI+XCfB5Ty2M2OmKJjPOPCd6+OdzhT4cWnPOM+OAiX0DP7WCkO4Kx2kntf8YeTEurTCspOrRjGdo+zZkJxEydMt31asu9zYOTLmZPwLCkhel8vY6SnZhDTNSNkRzxZFv+Mh2VGmqu4SSxfVXr4tcFM6/MbAXlkA8jo+vHpy5sC79T4uNaPu2D8Ed7uC3yDdO3KRVdzZCfWHj4NjixdMs2CtK6EmyeVOPuiYb8/mcTybrb4F/CqA4jydAU6Ok0j0bIqftLyxNgfS31hR1Y3/GNPzly4+uUIgZqmsuVFh5h0L7qc1jMv7wRHphogo5snIp45t9jWNj8uDGzQgWvgbFP5wR7Nt6eS0kaCeGQbxWBDYfjQE801IrwhgMfmdmGw7FFveCH0tFcPm6td/8kMSyg/OewczZN3T62ETQYVsExOxEQl2t4SZ/yqklg+D9oGM+ILTmBRzIQ2m/xMmsbowiTXymjgVmvrWuc638X6dU2fKJ7As4hxs3rA1BA5sOt0XyqfHQhtYrL/Ovb1iV+C7MRhKicTyoNTc7oVcDDG0VW785d8CPqttDi50w=="
+    ssh_public_key = "ssh-rsa public_key"
     force_delete = true	
     weblogic_server {
         shape = "oc3"
@@ -161,8 +161,8 @@ is documented below.
 
 * `admin` - (Required) Admin information for the WebLogic Server. Admin is documented below.
 
-* `app_db` - (Optional) Details of Database Cloud Service database deployments that host application schemas.
-Multiple can be specified. App DB is specified below.
+* `application_database` - (Optional) Details of Database Cloud Service database deployments that host application 
+schemas. Multiple can be specified. Application Database is specified below.
 
 * `backup_volume_size` - (Optional) Size of the backup volume for the service. The value must be a multiple of GBs.
 You can specify this value in bytes or GBs. If specified in GBs, use the following format:
@@ -171,6 +171,8 @@ For example: 100000000000 or 10G. This value defaults to the system configured v
 
 * `cluster_name` - (Optional) - Specifies the name of the cluster that contains the Managed Servers
 for the service instance.
+
+* `cluster` - (Optional) Details the properties about one or more clusters. Cluster is documented below.
 
 * `connect_string` - (Optional) - Connection string for the database. The connection string must be entered using one
 of the following formats: host:port:SID, host:port/serviceName.
@@ -186,7 +188,7 @@ of the following formats: host:port:SID, host:port/serviceName.
 * `managed_servers` - (Optional) Details information about the managed servers the java service instance will
 look after. Managed Servers is documented below.
 
-* `mw_volume_size` - (Optional) Size of the MW_HOME disk volume for the service (/u01/app/oracle/middleware).
+* `middleware_volume_size` - (Optional) Size of the middleware home disk volume for the service (/u01/app/oracle/middleware).
 The value must be a multiple of GBs. You can specify this value in bytes or GBs.
 If specified in GBs, use the following format: nG, where n specifies the number of GBs.
 For example, you can express 10 GBs as bytes or GBs. For example: 100000000000 or 10G.
@@ -247,7 +249,7 @@ Admin supports the following:
 
 * `hostname` - (Computed) The hostname for the admin server on the WebLogic Server or OTD.
 
-App DB supports the following:
+Application Database supports the following:
 
 * `username` - (Required) Username for the database administrator.
 
@@ -256,6 +258,20 @@ App DB supports the following:
 * `name` - (Required) Name of the database deployment on the Database Cloud Service.
 
 * `pdb_name` - (Optional) Name of the pluggable database for Oracle Database 12c. If not specified, the pluggable database name configured when the database was created will be used.
+
+Cluster supports the following:
+
+* `name` - (Required) Name of the cluster to create.
+
+* `type` - (Required) Type of cluster to create. Valid values are `APPLICATION_CLUSTER` or `CACHING_CLUSTER`
+
+* `server_count` - (Optional) Number of servers to create in this cluster. The default value is 1.
+
+* `servers_per_node` - (Optional) Number of JVMs to start on each VM (node). The default value is 1.
+
+* `shape` - (Optional) Desired compute shape for the nodes in this cluster.
+
+* `path_prefixes` - (Optional) A single path prefix or multiple path prefixes separated by commas.
 
 Domain supports the following:
 
@@ -276,14 +292,13 @@ For example: 100000000000 or 10G.
 
 Listener supports the following:
 
-* `port` - (Optional) Listener port for the load balancer for accessing deployed applications using HTTP.
-The default value is 8080.
+* `port` - (Optional) Listener port for the load balancer for accessing deployed applications using HTTP. If left unspecified, applications on this service instance cannot be reached via http.
 
-* `enabled` - (Optional) Boolean on whether to enable the listener port. Default is true.
+* `secured_port` - (Optional) Secured listener port for the load balancer for accessing deployed applications using HTTPS.
 
-* `privileged_listener_port` - (Optional) Privileged listener port for accessing the deployed applications using HTTP. The default value is 80.
+* `privileged_port` - (Optional) Privileged listener port for accessing the deployed applications using HTTP.
 
-* `privileged_secured_listener_port` - (Optional) Privileged listener port for accessing the deployed applications using HTTPS. The default value is 443.
+* `privileged_secured_port` - (Optional) Privileged listener port for accessing the deployed applications using HTTPS.
 
 Managed Server supports the following:
 

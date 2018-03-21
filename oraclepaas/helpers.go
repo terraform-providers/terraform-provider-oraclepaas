@@ -9,6 +9,17 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+func javaServiceInstanceShapes() []string {
+	return []string{string(java.ServiceInstanceShapeOC3), string(java.ServiceInstanceShapeOC4), string(java.ServiceInstanceShapeOC5),
+		string(java.ServiceInstanceShapeOC6), string(java.ServiceInstanceShapeOC7), string(java.ServiceInstanceShapeOC1M), string(java.ServiceInstanceShapeOC2M),
+		string(java.ServiceInstanceShapeOC3M), string(java.ServiceInstanceShapeOC4M), string(java.ServiceInstanceShapeOC5M),
+		string(java.ServiceInstanceShapeVMStandard1_1), string(java.ServiceInstanceShapeVMStandard1_2), string(java.ServiceInstanceShapeVMStandard1_4),
+		string(java.ServiceInstanceShapeVMStandard1_8), string(java.ServiceInstanceShapeVMStandard1_16), string(java.ServiceInstanceShapeVMStandard2_1),
+		string(java.ServiceInstanceShapeVMStandard2_2), string(java.ServiceInstanceShapeVMStandard2_2), string(java.ServiceInstanceShapeVMStandard2_4),
+		string(java.ServiceInstanceShapeVMStandard2_8), string(java.ServiceInstanceShapeVMStandard2_16), string(java.ServiceInstanceShapeVMStandard2_24),
+		string(java.ServiceInstanceShapeBMStandard1_36), string(java.ServiceInstanceShapeBMStandard2_52)}
+}
+
 // Helper function to get a string list from the schema, and alpha-sort it
 func getStringList(d *schema.ResourceData, key string) []string {
 	if _, ok := d.GetOk(key); !ok {
