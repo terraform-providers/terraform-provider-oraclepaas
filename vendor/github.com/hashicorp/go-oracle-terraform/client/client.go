@@ -298,6 +298,9 @@ func (c *Client) WaitFor(description string, pollInterval, timeout time.Duration
 func WasNotFoundError(e error) bool {
 	err, ok := e.(*opc.OracleError)
 	if ok {
+		if strings.Contains(err.Error(), "No such service exits") {
+			return true
+		}
 		return err.StatusCode == 404
 	}
 	return false
