@@ -1,22 +1,22 @@
 ---
 layout: "oraclepaas"
-page_title: "Provider: Oracle PaaS"
+page_title: "Provider: Oracle Platform Cloud"
 sidebar_current: "docs-oraclepaas-index"
 description: |-
-  The Oracle PaaS provider is used to interact with the many resources supported by the Oracle PaaS Cloud. The provider needs to be configured with credentials for the Oracle PaaS Cloud API.
+  The Oracle Platform provider is used to interact with the many resources supported by the Oracle Platform Cloud. The provider needs to be configured with credentials for the Oracle Platform Cloud API.
 ---
 
-# Oracle PaaS Cloud Provider
+# Oracle Platform Cloud Provider
 
-The Oracle PaaS Cloud provider is used to interact with the many resources supported by the Oracle PaaS Cloud.
-The provider needs to be configured with credentials for the Oracle PaaS Cloud API.
+The Oracle Platform Cloud provider is used to interact with the many resources supported by the Oracle Platform Cloud.
+The provider needs to be configured with credentials for the Oracle Platform Cloud API.
 
 Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
 ```hcl
-# Configure the Oracle PaaS Cloud
+# Configure the Oracle Platform Cloud
 provider "oraclepaas" {
   user              = "..."
   password          = "..."
@@ -56,16 +56,16 @@ The following arguments are supported:
 
 * `identity_domain` - (Optional) The Identity Domain or Service Instance ID of the environment to use. It can also be sourced from the `OPC_IDENTITY_DOMAIN` environment variable.  
 
-* `database_endpoint` - (Optional) The database API endpoint to use, associated with your Oracle PaaS Cloud account.
+* `database_endpoint` - (Optional) The database API endpoint to use, associated with your Oracle Platform Cloud account.
 This is known as the `REST Endpoint` within the Oracle portal. It can also be sourced from the
 `ORACLEPAAS_DATABASE_ENDPOINT` environment variable.
 
-* `java_endpoint` - (Optional) The java API endpoint to use, associated with your Oracle PaaS Cloud Account.
+* `java_endpoint` - (Optional) The java API endpoint to use, associated with your Oracle Platform Cloud Account.
 This is known as the `REST Endpoint` within the Oracle portal. It can also be sourced from the
 `ORACLEPAAS_JAVA_ENDPOINT` environment variable.
 
 * `max_retries` - (Optional) The maximum number of tries to make for a successful response when operating on
-resources within Oracle PaaS Cloud. It can also be sourced from the `OPC_MAX_RETRIES` environment variable.
+resources within Oracle Platform Cloud. It can also be sourced from the `OPC_MAX_RETRIES` environment variable.
 Defaults to 1.
 
 * `insecure` - (Optional) Skips TLS Verification for using self-signed certificates. Should only be used if
