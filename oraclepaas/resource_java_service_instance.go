@@ -628,6 +628,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"snapshot_name": {
 				Type:     schema.TypeString,
@@ -789,7 +790,7 @@ func resourceOraclePAASJavaServiceInstanceDelete(d *schema.ResourceData, meta in
 	client := jClient.ServiceInstanceClient()
 	name := d.Id()
 
-	log.Printf("[DEBUG] Deleting JavaServiceInstance: %v", name)
+	log.Printf("[DEBUG] Deleting JavaServiceInstance: %q", name)
 
 	// Need to get the dba username and password to delete the service instance
 	webLogicConfig := d.Get("weblogic_server").([]interface{})
@@ -808,7 +809,7 @@ func resourceOraclePAASJavaServiceInstanceDelete(d *schema.ResourceData, meta in
 	}
 
 	if err := client.DeleteServiceInstance(&input); err != nil {
-		return fmt.Errorf("Error deleting JavaServiceInstance")
+		return fmt.Errorf("Error deleting JavaServiceInstance: %+v", err)
 	}
 	return nil
 }

@@ -1,5 +1,5 @@
 ---
-layout: "opc"
+layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_java_service_instance"
 sidebar_current: "docs-oraclepaas-resource-service-instance"
 description: |-
@@ -46,11 +46,11 @@ resource "oraclepaas_java_service_instance" "default" {
 The following is an example of how to provision a service instance with the Oracle Traffic Director:
 
 ```hcl
-resource "opc_database_service_instance" "default" {
+resource "oraclepaas_database_service_instance" "default" {
   ...
 }
 
-resource "opc_java_service_instance" "default" {
+resource "oraclepaas_java_service_instance" "default" {
     name = "java-service-instance-otd"
   	edition = "SUITE"
   	service_version = "12cRelease212"
