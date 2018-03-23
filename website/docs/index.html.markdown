@@ -33,8 +33,9 @@ resource "oraclepaas_database_service_instance" "default" {
   shape = "oc3"
   subscription_type = "HOURLY"
   version = "12.2.0.1"
-  vm_public_key = "ssh-key"
-  parameter {
+  ssh_public_key = "ssh key"
+
+  database_configuration {
     admin_password = "Test_String7"
     backup_destination = "NONE"
     sid = "ORCL"
@@ -55,9 +56,13 @@ The following arguments are supported:
 
 * `identity_domain` - (Optional) The Identity Domain or Service Instance ID of the environment to use. It can also be sourced from the `OPC_IDENTITY_DOMAIN` environment variable.  
 
-* `database_endpoint` - (Optional) The API endpoint to use, associated with your Oracle PaaS Cloud account.
+* `database_endpoint` - (Optional) The database API endpoint to use, associated with your Oracle PaaS Cloud account.
 This is known as the `REST Endpoint` within the Oracle portal. It can also be sourced from the
 `ORACLEPAAS_DATABASE_ENDPOINT` environment variable.
+
+* `java_endpoint` - (Optional) The java API endpoint to use, associated with your Oracle PaaS Cloud Account.
+This is known as the `REST Endpoint` within the Oracle portal. It can also be sourced from the
+`ORACLEPAAS_JAVA_ENDPOINT` environment variable.
 
 * `max_retries` - (Optional) The maximum number of tries to make for a successful response when operating on
 resources within Oracle PaaS Cloud. It can also be sourced from the `OPC_MAX_RETRIES` environment variable.
@@ -69,5 +74,5 @@ absolutely needed. Can also via setting the `OPC_INSECURE` environment variable 
 ## Testing
 
 Credentials must be provided via the `OPC_USERNAME`, `OPC_PASSWORD`,
-`OPC_IDENTITY_DOMAIN` and `ORACLEPAAS_DATABASE_ENDPOINT` environment variables in order to run
+`OPC_IDENTITY_DOMAIN` and `ORACLEPAAS_DATABASE_ENDPOINT` and `ORACLEPAAS_JAVA_ENDPOINT` environment variables in order to run
 acceptance tests.
