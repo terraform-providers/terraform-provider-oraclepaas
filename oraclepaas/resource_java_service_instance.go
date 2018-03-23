@@ -628,6 +628,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"snapshot_name": {
 				Type:     schema.TypeString,

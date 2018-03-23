@@ -65,7 +65,7 @@ func setIntList(d *schema.ResourceData, key string, value []int) error {
 func getDatabaseClient(meta interface{}) (*database.DatabaseClient, error) {
 	client := meta.(*OPAASClient).databaseClient
 	if client == nil {
-		return nil, fmt.Errorf("Database Client is not initialized. Make sure to use `database_endpoint` variable or `OPAAS_DATABASE_ENDPOINT` env variable")
+		return nil, fmt.Errorf("Database Client is not initialized. Make sure to use `database_endpoint` variable or `ORACLEPAAS_DATABASE_ENDPOINT` env variable")
 	}
 	return client, nil
 }
@@ -75,7 +75,7 @@ func getDatabaseClient(meta interface{}) (*database.DatabaseClient, error) {
 func getJavaClient(meta interface{}) (*java.JavaClient, error) {
 	client := meta.(*OPAASClient).javaClient
 	if client == nil {
-		return nil, fmt.Errorf("Java Client is not initialized. Make sure to use `java_endpoint` variable or `OPAAS_JAVA_ENDPOINT` env variable")
+		return nil, fmt.Errorf("Java Client is not initialized. Make sure to use `java_endpoint` variable or `ORACLEPAAS_JAVA_ENDPOINT` env variable")
 	}
 	return client, nil
 }

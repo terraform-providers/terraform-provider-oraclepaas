@@ -171,7 +171,7 @@ resource "oraclepaas_java_access_rule" "test" {
 	destination = "WLS_ADMIN"
 	enabled = false
 }
-`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt, rInt)
+`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt, rInt)
 }
 
 func testAccJavaAccessRuleUpdate(rInt int) string {
