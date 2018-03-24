@@ -3,13 +3,13 @@ layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_java_service_instance"
 sidebar_current: "docs-oraclepaas-resource-service-instance"
 description: |-
-  Creates and manages a java service instance in an Oracle PaaS identity domain.
+  Creates and manages an Oracle Java Cloud Service instance on the Oracle Cloud Platform.
 
 ---
 
 # oraclepaas_java_service_instance
 
-The ``oraclepaas_java_service_instance`` resource creates and manages a java service instance in an Oracle PaaS identity domain.
+The `oraclepaas_java_service_instance` resource creates and manages an Oracle Java Cloud Service instance on the Oracle Cloud Platform.
 
 ## Example Usage
 
@@ -19,27 +19,28 @@ resource "oraclepaas_database_service_instance" "default" {
 }
 
 resource "oraclepaas_java_service_instance" "default" {
-    name = "test-java-service-instance-%d"
-    edition = "SUITE"
-    service_version = "12cRelease212"
-    ssh_public_key = "ssh-rsa public_key"
-    force_delete = true	
-    weblogic_server {
-        shape = "oc3"
-        database {
-            name = "${oraclepaas_database_service_instance.test.name}"
-            username = "sys"
-            password = "Test_String7"
-        }
-        admin {
-            username = "terraform-user"
-            password = "Test_String7"
-        }
+  name            = "java-service-instance"
+  edition         = "EE"
+  service_version = "12cRelease212"
+  ssh_public_key  = "ssh-rsa public_key"
+
+  weblogic_server {
+    shape = "oc3"
+    database {
+      name     = "${oraclepaas_database_service_instance.test.name}"
+      username = "sys"
+      password = "Pa55_word"
     }
-    cloud_storage {
-        container = "Storage-%s/acctest-%d"
-        auto_generate = true
+    admin {
+      username = "weblogic"
+      password = "Weblogic_1"
     }
+  }
+
+  backups {
+    cloud_storage_container = "Storage-${var.domain}/java-service-instance-backup"
+    auto_generate = true
+  }
 }
 ```
 
@@ -51,33 +52,36 @@ resource "oraclepaas_database_service_instance" "default" {
 }
 
 resource "oraclepaas_java_service_instance" "default" {
-    name = "java-service-instance-otd"
-  	edition = "SUITE"
-  	service_version = "12cRelease212"
-    ssh_public_key = "ssh-key"
-  	weblogic_server {
-  		shape = "oc3"
-  		database {
-  			name = "${oraclepaas_database_service_instance.test.name}"
-  			username = "sys"
-  			password = "Test_String7"
-  		}
-  		admin {
-  			username = "terraform-user"
-  			password = "Test_String7"
-  		}
-  	}
-  	cloud_storage {
-  		container = "Storage-%s/acctest-%d"
-  		auto_generate = true
-  	}
-  	otd {
-  		admin {
-  			username = "terraform-user"
-  			password = "Test_String7"
-  		}
-  		shape = "oc1m"
-  	}
+  name            = "java-service-instance-otd"
+  edition         = "EE"
+  service_version = "12cRelease212"
+  ssh_public_key  = "ssh-rsa public_key"
+  weblogic_server {
+    shape = "oc1m"
+    managed_servers {
+      server_count = 2
+    }
+    database {
+      name     = "${oraclepaas_database_service_instance.test.name}"
+      username = "sys"
+      password = "Pa55_Word"
+    }
+    admin {
+      username = "weblogic"
+      password = "Weblogic_1"
+    }
+  }
+  oracle_traffic_director {
+    shape = "oc1m"
+    admin {
+      username = "weblogic"
+      password = "Weblogic_1"
+    }
+    backups {
+    	cloud_storage_container = "Storage-${var.domain}/java-service-instance-otd-backup"
+    	auto_generate = true
+    }
+  }
 }
 ```
 
@@ -96,14 +100,14 @@ is documented below
 
 * `metering_frequency` - (Optional) Billing unit. Possible values are `HOURLY` or `MONTHLY`. Default value is `HOURLY`.
 
-* `availability_domain` - (Optional) Name of a data center location in the Oracle Cloud Infrastructure region that is specified in region. This is 
+* `availability_domain` - (Optional) Name of a data center location in the Oracle Cloud Infrastructure region that is specified in region. This is
 only available for OCI.
 
 * `snapshot_name` - (Optional) Name of the snapshot to clone from.
 
 * `source_service_name` - (Optional) Name of the existing Oracle Java Cloud Service instance that has the snapshot from which you are creating a clone.
 
-* `subnet` - (Optional) A subdivision of a cloud network that is set up in the data center as specified in availabilityDomain. 
+* `subnet` - (Optional) A subdivision of a cloud network that is set up in the data center as specified in availabilityDomain.
 This is only available for OCI.
 
 * `use_identity_service` - (Optional) Flag that specifies whether to use Oracle Identity Cloud Service (true) or the local WebLogic identity store
@@ -161,7 +165,7 @@ is documented below.
 
 * `admin` - (Required) Admin information for the WebLogic Server. Admin is documented below.
 
-* `application_database` - (Optional) Details of Database Cloud Service database deployments that host application 
+* `application_database` - (Optional) Details of Database Cloud Service database deployments that host application
 schemas. Multiple can be specified. Application Database is specified below.
 
 * `backup_volume_size` - (Optional) Size of the backup volume for the service. The value must be a multiple of GBs.
