@@ -3,7 +3,7 @@ layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_database_service_instance"
 sidebar_current: "docs-oraclepaas-datasource-database-service-instance"
 description: |-
-  Gets information about the configuration of a Database Service Instance inside an Oracle PaaS Cloud environment.
+  Gets information about the configuration of an Oracle Database Cloud Service instance on the Oracle Cloud Platform.
 ---
 
 # oraclepaas\_database\_service\_instance
@@ -14,7 +14,7 @@ Use this data source to access the configuration of a Database Service Instance
 
 ```hcl
 data "oraclepaas_database_service_instance" "foo" {
-  name = "dbServiceInstance1"
+  name = "database-service-instance-1"
 }
 
 output "region" {
