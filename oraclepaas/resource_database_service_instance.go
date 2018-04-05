@@ -57,13 +57,31 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Default:  string(database.ServiceInstanceLevelPAAS),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(database.ServiceInstanceLevelPAAS),
+					string(database.ServiceInstanceLevelEXADATA),
 					string(database.ServiceInstanceLevelBasic),
 				}, true),
 			},
 			"shape": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+			},
+			"exadata_system_name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"shape"},
+			},
+			"cluster_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"node_list": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"subscription_type": {
 				Type:     schema.TypeString,
@@ -513,12 +531,28 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		IPReservations:            getStringList(d, "ip_reservations"),
 		IsBYOL:                    d.Get("bring_your_own_license").(bool),
 		Level:                     database.ServiceInstanceLevel(d.Get("level").(string)),
-		Shape:                     database.ServiceInstanceShape(d.Get("shape").(string)),
 		SubscriptionType:          database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
 		UseHighPerformanceStorage: d.Get("high_performance_storage").(bool),
 		Version:                   database.ServiceInstanceVersion(d.Get("version").(string)),
 		VMPublicKey:               d.Get("ssh_public_key").(string),
 	}
+
+	if v, ok := d.GetOk("shape"); ok {
+		input.Shape = database.ServiceInstanceShape(v.(string))
+	}
+
+	if v, ok := d.GetOk("exadata_system_name"); ok {
+		input.ExadataSystemName = v.(string)
+	}
+
+	if v, ok := d.GetOk("cluster_name"); ok {
+		input.ClusterName = v.(string)
+	}
+
+	if v, ok := d.GetOk("node_list"); ok {
+		input.NodeList = getStringList(d, "node_list")
+	}
+
 	if v, ok := d.GetOk("description"); ok {
 		input.Description = v.(string)
 	}
@@ -548,8 +582,8 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		input.Subnet = v.(string)
 	}
 
-	// Only the PaaS level can have a parameter.
-	if input.Level == database.ServiceInstanceLevelPAAS {
+	// Only the PaaS levels can have a parameter.
+	if input.Level != database.ServiceInstanceLevelBasic {
 		input.Parameter, err = expandParameter(d)
 		if err != nil {
 			return err
@@ -632,6 +666,9 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("subscription_type", result.SubscriptionType)
 	d.Set("timezone", result.Timezone)
 	d.Set("version", result.Version)
+	d.Set("exadata_system_name", result.SubscriptionName)
+	d.Set("cluster_name", result.ClusterNames)
+	// TODO "node_list"
 
 	setAttributesFromConfig(d)
 
