@@ -256,6 +256,8 @@ type ServiceInstance struct {
 	ListenerPort int `json:"listener_port"`
 	// The national character set of the database.
 	NCharSet string `json:"ncharset"`
+	// List of compute nodes that host database instances for the database deployment.
+	NodeList []string `json:"nodelist,omitempty"`
 	// The number of Oracle Compute Service IP reservations assigned to the service instance.
 	NumIPReservations int `json:"num_ip_reservations"`
 	// The number of compute nodes in the service instance.

@@ -549,10 +549,6 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		input.ClusterName = v.(string)
 	}
 
-	if v, ok := d.GetOk("node_list"); ok {
-		input.NodeList = getStringList(d, "node_list")
-	}
-
 	if v, ok := d.GetOk("description"); ok {
 		input.Description = v.(string)
 	}
@@ -667,8 +663,8 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("timezone", result.Timezone)
 	d.Set("version", result.Version)
 	d.Set("exadata_system_name", result.SubscriptionName)
-	d.Set("cluster_name", result.ClusterNames)
-	// TODO "node_list"
+	d.Set("cluster_name", result.ClusterName)
+	d.Set("node_list", result.NodeList)
 
 	setAttributesFromConfig(d)
 
