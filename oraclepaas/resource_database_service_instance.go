@@ -63,7 +63,6 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 			"shape": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"subscription_type": {
 				Type:     schema.TypeString,
@@ -677,7 +676,25 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 }
 
 func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := updateDefaultAccessRules(d, meta)
+	dbClient, err := getDatabaseClient(meta)
+	if err != nil {
+		return err
+	}
+	client := dbClient.ServiceInstanceClient()
+
+	if old, new := d.GetChange("shape"); old.(string) != "" && old.(string) != new.(string) {
+		updateInput := &database.UpdateServiceInstanceInput{
+			Name:  d.Id(),
+			Shape: database.ServiceInstanceShape(new.(string)),
+		}
+
+		_, err := client.UpdateServiceInstance(updateInput)
+		if err != nil {
+			return fmt.Errorf("Unable to update Service Instance %q: %+v\n%+v %+v %+v", d.Id(), err, updateInput, old, new)
+		}
+	}
+
+	err = updateDefaultAccessRules(d, meta)
 	if err != nil {
 		return fmt.Errorf("Unable to update Default Access Rules: %+v", err)
 	}
