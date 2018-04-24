@@ -690,7 +690,7 @@ func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta int
 
 		_, err := client.UpdateServiceInstance(updateInput)
 		if err != nil {
-			return fmt.Errorf("Unable to update Service Instance %q: %+v\n%+v %+v %+v", d.Id(), err, updateInput, old, new)
+			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
 		}
 	}
 
