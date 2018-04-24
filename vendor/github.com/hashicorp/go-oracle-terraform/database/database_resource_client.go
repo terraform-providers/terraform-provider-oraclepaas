@@ -26,8 +26,8 @@ func (c *ResourceClient) createResource(requestBody interface{}, responseBody in
 	return nil
 }
 
-func (c *ResourceClient) updateResource(name string, requestBody interface{}, responseBody interface{}) error {
-	_, err := c.executeRequest("PUT", c.getObjectPath(c.ResourceRootPath, name), requestBody)
+func (c *ResourceClient) updateResource(name string, requestBody interface{}, responseBody interface{}, method string) error {
+	_, err := c.executeRequest(method, c.getObjectPath(c.ResourceRootPath, name), requestBody)
 	if err != nil {
 		return err
 	}

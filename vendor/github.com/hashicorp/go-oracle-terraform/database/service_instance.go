@@ -177,6 +177,28 @@ const (
 	ServiceInstanceTerminating ServiceInstanceState = "Terminating"
 )
 
+// ServiceInstanceUsage defines the constants for a service instance usage
+type ServiceInstanceUsage string
+
+const (
+	// ServiceInstanceUsageData extends the Data Storage Volume
+	ServiceInstanceUsageData ServiceInstanceUsage = "data"
+	// ServiceInstanceUsageFra extends the Backup Storage Volume
+	ServiceInstanceUsageFra ServiceInstanceUsage = "fra"
+)
+
+// ServiceInstanceLifecycleState defines the constants for the lifecycle state
+type ServiceInstanceLifecycleState string
+
+const (
+	// ServiceInstanceLifecycleStateStop - stop: Stops the Database Cloud Service instance or compute node.
+	ServiceInstanceLifecycleStateStop ServiceInstanceLifecycleState = "stop"
+	// ServiceInstanceLifecycleStateStart - start: Starts the Database Cloud Service instance or compute node.
+	ServiceInstanceLifecycleStateStart ServiceInstanceLifecycleState = "start"
+	// ServiceInstanceLifecycleStateRestart - restart: Restarts the Database Cloud Service instance or compute node.
+	ServiceInstanceLifecycleStateRestart ServiceInstanceLifecycleState = "restart"
+)
+
 type ServiceInstance struct {
 	// The URL to use to connect to Oracle Application Express on the service instance.
 	ApexURL string `json:"apex_url"`
@@ -654,14 +676,14 @@ func (c *ServiceInstanceClient) startServiceInstance(name string, input *CreateS
 		return nil, err
 	}
 
-	// Call wait for instance ready now, as creating the instance is an eventually consistent operation
+	// Call wait for instance running now, as creating the instance is an eventually consistent operation
 	getInput := &GetServiceInstanceInput{
 		Name: name,
 	}
 
 	// Wait for the service instance to be running and return the result
 	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that
-	serviceInstance, serviceInstanceError := c.WaitForServiceInstanceRunning(getInput, c.PollInterval, c.Timeout)
+	serviceInstance, serviceInstanceError := c.WaitForServiceInstanceState(getInput, ServiceInstanceLifecycleStateStart, c.PollInterval, c.Timeout)
 	// If the service instance enters an error state we need to delete the instance and retry
 	if serviceInstanceError != nil {
 		deleteInput := &DeleteServiceInstanceInput{
@@ -676,8 +698,8 @@ func (c *ServiceInstanceClient) startServiceInstance(name string, input *CreateS
 	return serviceInstance, nil
 }
 
-// WaitForServiceInstanceRunning waits for a service instance to be completely initialized and available.
-func (c *ServiceInstanceClient) WaitForServiceInstanceRunning(input *GetServiceInstanceInput, pollInterval, timeoutSeconds time.Duration) (*ServiceInstance, error) {
+// WaitForServiceInstanceState waits for a service instance to be in the desired state
+func (c *ServiceInstanceClient) WaitForServiceInstanceState(input *GetServiceInstanceInput, desiredState ServiceInstanceLifecycleState, pollInterval, timeoutSeconds time.Duration) (*ServiceInstance, error) {
 	var info *ServiceInstance
 	var getErr error
 	err := c.client.WaitFor("service instance to be ready", pollInterval, timeoutSeconds, func() (bool, error) {
@@ -687,14 +709,26 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceRunning(input *GetServiceI
 		}
 		c.client.DebugLogString(fmt.Sprintf("Service instance name is %v, Service instance info is %+v", info.Name, info))
 		switch s := info.Status; s {
-		case ServiceInstanceRunning: // Target State
+		case ServiceInstanceRunning:
 			c.client.DebugLogString("Service Instance Running")
-			return true, nil
+			if desiredState == ServiceInstanceLifecycleStateStart || desiredState == ServiceInstanceLifecycleStateRestart {
+				return true, nil
+			}
+			return false, nil
 		case ServiceInstanceConfigured:
 			c.client.DebugLogString("Service Instance Configured")
 			return false, nil
 		case ServiceInstanceInProgress:
 			c.client.DebugLogString("Service Instance is being created")
+			return false, nil
+		case ServiceInstanceMaintenance:
+			c.client.DebugLogString("ServiceInstance is in maintenance")
+			return false, nil
+		case ServiceInstanceStopped:
+			c.client.DebugLogString("Service Instance is stopped")
+			if desiredState == ServiceInstanceLifecycleStateStop {
+				return true, nil
+			}
 			return false, nil
 		default:
 			c.client.DebugLogString(fmt.Sprintf("Unknown instance state: %s, waiting", s))
@@ -739,6 +773,34 @@ func (c *ServiceInstanceClient) DeleteServiceInstance(input *DeleteServiceInstan
 	if c.Timeout == 0 {
 		c.Timeout = WaitForServiceInstanceDeleteTimeout
 	}
+
+	// We can't delete backups if the instance is stopped so we'll start the instance if that is the case.
+	if input.DeleteBackup {
+		getInput := &GetServiceInstanceInput{
+			Name: input.Name,
+		}
+
+		info, err := c.GetServiceInstance(getInput)
+		if err != nil {
+			if client.WasNotFoundError(err) {
+				// Service Instance could not be found, thus deleted
+				return nil
+			}
+			// Some other error occurred trying to get instance, exit
+			return err
+		}
+		if info.Status == ServiceInstanceStopped {
+			updateDesiredStateInput := &DesiredStateInput{
+				Name:           input.Name,
+				LifecycleState: ServiceInstanceLifecycleStateStart,
+			}
+			_, err = c.UpdateDesiredState(updateDesiredStateInput)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Call to delete the service instance
 	// If delete fails, rerun it in case the instance still has not been setup correctly.
 	// An instance takes additional time to setup after it's configured.
@@ -785,6 +847,104 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceDeleted(input *GetServiceI
 			return false, nil
 		}
 	})
+}
+
+// UpdateServiceInstanceInput defines the attributes available to update for a service instance
+type UpdateServiceInstanceInput struct {
+	// Name of the service instance to update.
+	// Required
+	Name string `json:"-"`
+	// Specify size of additional storage in Giga Bytes. This parameter is optional. User can change shape
+	// only without adding storage. If additionalStorage is specified, minimum value is 1GB and maximum value is 1TB.
+	// Optional
+	AdditionalStorage string `json:"additionalStorage,omitempty"`
+	// (Applies only to service instances that use Oracle RAC and Oracle Data Guard together.)
+	// Specifies whether the scaling operation applies to the primary database or standby database of the
+	// Data Guard configuration. Specify the value DB_1 for the primary database or the value DB_2 for the
+	// standby database.
+	// Optional
+	ComponentInstanceName string `json:"componentInstanceName,omitempty"`
+	// Specify new shape for the Database Cloud Service instance. User can specify a higher shape (Scale Up) or
+	// a lower shape (Scale Down). Shape is optional. User can add storage only without changing shape.
+	// Optional
+	Shape ServiceInstanceShape `json:"shape,omitempty"`
+	// This parameter specifies usage of additional storage and is applicable only when additionalStorage is
+	// specified. Specify usage to extend Data or Backup storage volumes of Database Cloud Service instance.
+	// Valid values are data to extend Data Storage Volume and fra to extend Backup Storage Volume. If usage is
+	// not specified, new storage volume will be created.
+	// Optional
+	Usage ServiceInstanceUsage `json:"usage,omitempty"`
+}
+
+// UpdateServiceInstance updates the specified service instance
+func (c *ServiceInstanceClient) UpdateServiceInstance(input *UpdateServiceInstanceInput) (*ServiceInstance, error) {
+	if c.PollInterval == 0 {
+		c.PollInterval = WaitForServiceInstanceReadyPollInterval
+	}
+	if c.Timeout == 0 {
+		c.Timeout = WaitForServiceInstanceReadyTimeout
+	}
+
+	if err := c.updateResource(input.Name, *input, nil, "PUT"); err != nil {
+		return nil, err
+	}
+
+	// Call wait for instance state now, as updating the instance is an eventually consistent operation
+	getInput := &GetServiceInstanceInput{
+		Name: input.Name,
+	}
+
+	// Wait for the service instance to be running and return the result
+	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that
+	serviceInstance, err := c.WaitForServiceInstanceState(getInput, ServiceInstanceLifecycleStateStart, c.PollInterval, c.Timeout)
+	if err != nil {
+		return nil, fmt.Errorf("Error updating Service Instance %q: %+v", input.Name, err)
+	}
+	return serviceInstance, nil
+}
+
+// DesiredStateInput defines the attributes available when setting the desired state of a service instance
+type DesiredStateInput struct {
+	// Name of the service instance to update.
+	// Required
+	Name string `json:"-"`
+	// Type of the request.
+	// Required
+	LifecycleState ServiceInstanceLifecycleState `json:"lifecycleState"`
+	// Timeout (minutes) for each request. The range of valid values are 1 to 300 minutes (inclusive).
+	// This value defaults to 60 minutes.
+	// Optional
+	LifecycleTimeout string `json:"lifecycleTimeout,omitempty"`
+	// Name of compute node to stop, start, or restart.
+	// Optional
+	VMName string `json:"vmName,omitempty"`
+}
+
+// UpdateDesiredState updates the specified desired state of a service instance
+func (c *ServiceInstanceClient) UpdateDesiredState(input *DesiredStateInput) (*ServiceInstance, error) {
+	if c.PollInterval == 0 {
+		c.PollInterval = WaitForServiceInstanceReadyPollInterval
+	}
+	if c.Timeout == 0 {
+		c.Timeout = WaitForServiceInstanceReadyTimeout
+	}
+
+	if err := c.updateResource(input.Name, *input, nil, "POST"); err != nil {
+		return nil, err
+	}
+
+	// Call wait for instance running now, as updating the instance is an eventually consistent operation
+	getInput := &GetServiceInstanceInput{
+		Name: input.Name,
+	}
+
+	// Wait for the service instance to be running and return the result
+	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that
+	serviceInstance, err := c.WaitForServiceInstanceState(getInput, input.LifecycleState, c.PollInterval, c.Timeout)
+	if err != nil {
+		return nil, fmt.Errorf("Error updating Service Instance %q: %+v", input.Name, err)
+	}
+	return serviceInstance, nil
 }
 
 func convertOracleBool(val bool) string {

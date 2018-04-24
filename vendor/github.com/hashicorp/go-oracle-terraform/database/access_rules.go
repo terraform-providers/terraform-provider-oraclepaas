@@ -5,7 +5,6 @@
 // but the Operation body parameter changes from `update` to `delete`.
 // All other parameters for the resource, aside from Status should be ForceNew.
 // The READ function for the AccessRule resource is tricky, as there is
-// no exposed `GET` function on the AccessRule API.
 // There is an API endpoint to view "all" rules, however, which will be used as a
 // data source to match on a supplied AccessRule name.
 // Timeout only supported for the CREATE method

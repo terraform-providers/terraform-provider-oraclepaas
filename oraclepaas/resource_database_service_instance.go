@@ -458,6 +458,16 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"desired_state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  string(database.ServiceInstanceLifecycleStateStart),
+				ValidateFunc: validation.StringInSlice([]string{
+					string(database.ServiceInstanceLifecycleStateStop),
+					string(database.ServiceInstanceLifecycleStateRestart),
+					string(database.ServiceInstanceLifecycleStateStart),
+				}, true),
+			},
 			"cloud_storage_container": {
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -677,7 +687,25 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 }
 
 func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := updateDefaultAccessRules(d, meta)
+	dbClient, err := getDatabaseClient(meta)
+	if err != nil {
+		return err
+	}
+	client := dbClient.ServiceInstanceClient()
+
+	if old, new := d.GetChange("desired_state"); old.(string) != "" && old.(string) != new.(string) {
+		updateInput := &database.DesiredStateInput{
+			Name:           d.Id(),
+			LifecycleState: database.ServiceInstanceLifecycleState(new.(string)),
+		}
+
+		_, err := client.UpdateDesiredState(updateInput)
+		if err != nil {
+			return fmt.Errorf("Unable to update Service Instance %q: %+v\n%+v %+v %+v", d.Id(), err, updateInput, old, new)
+		}
+	}
+
+	err = updateDefaultAccessRules(d, meta)
 	if err != nil {
 		return fmt.Errorf("Unable to update Default Access Rules: %+v", err)
 	}
