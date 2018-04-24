@@ -3,33 +3,37 @@ layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_database_service_instance"
 sidebar_current: "docs-oraclepaas-resource-service-instance"
 description: |-
-  Creates and manages a service instance in an oraclepaas identity domain.
+  Creates and manages an Oracle Database Cloud Service instance on the Oracle Cloud Platform.
 
 ---
 
 # oraclepaas\_database\_service\_instance
 
-The ``oraclepaas_database_service_instance`` resource creates and manages a database service instance inside
-Oracle PaaS Cloud
+The `oraclepaas_database_service_instance` resource creates and manages a an Oracle Database Cloud Service instance on the Oracle Cloud Platform.
 
 ## Example Usage
 
 ```hcl
 resource "oraclepaas_database_service_instance" "default" {
-  name        = "service-instance-1"
+  name        = "database-service-instance"
   description = "This is a description for an service instance"
-  edition = "EE_EP"
-  level = "PAAS"
-  shape = "oc1m"
+
+  edition           = "EE"
+  shape             = "oc1m"
   subscription_type = "HOURLY"
-  version = "12.2.0.1"
-  vm_public_key = "An ssh public key"
-  
+  version           = "12.2.0.1"
+  vm_public_key     = "An ssh public key"
+
   database_configuration {
-      admin_password = "Test_String7"
+      admin_password     = "Pa55_Word"
+      sid                = "BOTH"
       backup_destination = "NONE"
-      sid = "ORCL"
-      usable_storage = 15
+      usable_storage     = 15
+  }
+
+  backups {
+      cloud_storage_container = "Storage-${var.domain}/database-service-instance-backup"
+      auto_generate = true
   }
 }
 ```
@@ -57,7 +61,7 @@ The following arguments are supported:
 * `default_access_rules` - (Optional) Specifies the details on which default access rules are enable or disabled. Default Access Rules
 are configured below.
 
-* `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database 
+* `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database
 stored in an existing cloud backup that was created using Oracle Database Backup Cloud Service. Instantiate from Backup is documented below.
 
 * `ip_network` - (Optional) This attribute is only applicable to accounts where regions are supported. The three-part name of an IP network to which the service instance is added. For example: /Compute-identity_domain/user/object
@@ -80,7 +84,7 @@ Default value is `false`.
 
 * `region` - (Optional) Specifies the location where the service instance is provisioned (only for accounts where regions are supported).
 
-* `standby` - (Optional) Specifies the configuration details of the standby database. This is only applicable in Oracle Cloud Infrastructure Regions. `failover_database` and 
+* `standby` - (Optional) Specifies the configuration details of the standby database. This is only applicable in Oracle Cloud Infrastructure Regions. `failover_database` and
 `disaster_recovery` inside the `database_configuration` block must be set to `true`. Standby is documented below.
 
 * `subnet` - (Optional) Name of the subnet within the region where the Oracle Database Cloud Service instance is to be provisioned.
@@ -100,13 +104,13 @@ Database Configuration supports the following:
 * `disaster_recovery` - (Optional) Specify if an Oracle Data Guard configuration is created using the Disaster Recovery option or the High Availability option.
 Default value is `false`.
 
-* `failover_database` - (Optional) Specify if an Oracle Data Guard configuration comprising a primary database and a standby database is created. 
+* `failover_database` - (Optional) Specify if an Oracle Data Guard configuration comprising a primary database and a standby database is created.
 Default value is `false`.
 
-* `golden_gate` - (Optional) Specify if the database should be configured for use as the replication database of an Oracle GoldenGate Cloud Service instance. 
+* `golden_gate` - (Optional) Specify if the database should be configured for use as the replication database of an Oracle GoldenGate Cloud Service instance.
 You cannot set `goldenGate` to `true` if either `is_rac` or `failoverDatabase` is set to `true`. Default value is `false`.
 
-* `is_rac` - (Optional) Specify if a cluster database using Oracle Real Application Clusters should be configured. 
+* `is_rac` - (Optional) Specify if a cluster database using Oracle Real Application Clusters should be configured.
 Default value is `false`.
 
 * `national_character_set` - (Optional) National Character Set for the Database Cloud Service instance. Valid values are `AL16UTF16` and `UTF8`.
@@ -168,7 +172,7 @@ Instantiate from Backup supports the following:
 * `on_premise` - (Optional) Specify if the existing cloud backup being used to replace the database is from an on-premises database or another Database Cloud Service instance.
 The default value is false.
 
-* `service_id` - (Optional) Oracle Database Cloud Service instance name from which the database of new Oracle Database Cloud Service instance should be created. This value is required if 
+* `service_id` - (Optional) Oracle Database Cloud Service instance name from which the database of new Oracle Database Cloud Service instance should be created. This value is required if
 `on_premise` is set to true.
 
 * `wallet_file_content` - (Optional) String containing the xsd:base64Binary representation of the cloud backup's wallet file. This wallet is used to decrypt the backup. Specify either `ibkup_decryption_key` or `ibkup_wallet_file_content` for decrypting the backup.
@@ -186,7 +190,7 @@ Use the following format to specify the container name: `<storageservicename>-<s
 
 Hybrid Disaster Recovery supports the following:
 
-* `cloud_storage_container` - (Required) Name of the Oracle Storage Cloud Service container where the backup from on-premise instance is stored. 
+* `cloud_storage_container` - (Required) Name of the Oracle Storage Cloud Service container where the backup from on-premise instance is stored.
 Use the following format to specify the container name: `<storageservicename>-<storageidentitydomain>/<containername>`
 
 * `cloud_storage_username` - (Required) Username for the Oracle Storage Cloud Service administrator.
