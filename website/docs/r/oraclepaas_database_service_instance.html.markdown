@@ -61,6 +61,9 @@ The following arguments are supported:
 * `default_access_rules` - (Optional) Specifies the details on which default access rules are enable or disabled. Default Access Rules
 are configured below.
 
+* `desired_state` - (Optional) Specifies the desired state of the servie instance. Allowed values are `start`, `stop`,
+and `restart`.
+
 * `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database
 stored in an existing cloud backup that was created using Oracle Database Backup Cloud Service. Instantiate from Backup is documented below.
 
@@ -208,5 +211,7 @@ In addition to the above, the following values are exported:
 * `glassfish_url` - The URL to use to connect to the Oracle GlassFish Server Administration Console on the service instance.
 
 * `identity_domain` - The identity domain housing the service instance.
+
+* `status` - The status of the service instance.
 
 * `uri` - The Uniform Resource Identifier for the Service Instance

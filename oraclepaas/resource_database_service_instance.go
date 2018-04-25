@@ -497,6 +497,10 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"uri": {
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -623,6 +627,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("cloud_storage_container", result.CloudStorageContainer)
 	d.Set("compute_site_name", result.ComputeSiteName)
 	d.Set("connect_descriptor", result.ConnectDescriptor)
+	d.Set("desired_state", d.Get("desired_state"))
 	d.Set("dbaas_monitor_url", result.DBAASMonitorURL)
 	d.Set("edition", result.Edition)
 	d.Set("em_url", result.EMURL)
@@ -638,6 +643,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("uri", result.URI)
 	d.Set("shape", result.Shape)
 	d.Set("sid", result.SID)
+	d.Set("status", result.Status)
 	d.Set("subnet", result.Subnet)
 	d.Set("subscription_type", result.SubscriptionType)
 	d.Set("timezone", result.Timezone)
@@ -693,15 +699,15 @@ func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta int
 	}
 	client := dbClient.ServiceInstanceClient()
 
-	if old, new := d.GetChange("desired_state"); old.(string) != "" && old.(string) != new.(string) {
+	if d.HasChange("desired_state") {
 		updateInput := &database.DesiredStateInput{
 			Name:           d.Id(),
-			LifecycleState: database.ServiceInstanceLifecycleState(new.(string)),
+			LifecycleState: database.ServiceInstanceLifecycleState(d.Get("desired_state").(string)),
 		}
 
 		_, err := client.UpdateDesiredState(updateInput)
 		if err != nil {
-			return fmt.Errorf("Unable to update Service Instance %q: %+v\n%+v %+v %+v", d.Id(), err, updateInput, old, new)
+			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
 		}
 	}
 
