@@ -177,6 +177,16 @@ const (
 	ServiceInstanceTerminating ServiceInstanceState = "Terminating"
 )
 
+// ServiceInstanceUsage defines the constants for a service instance usage
+type ServiceInstanceUsage string
+
+const (
+	// ServiceInstanceUsageData extends the Data Storage Volume
+	ServiceInstanceUsageData ServiceInstanceUsage = "data"
+	// ServiceInstanceUsageFra extends the Backup Storage Volume
+	ServiceInstanceUsageFra ServiceInstanceUsage = "fra"
+)
+
 type ServiceInstance struct {
 	// The URL to use to connect to Oracle Application Express on the service instance.
 	ApexURL string `json:"apex_url"`
@@ -654,7 +664,7 @@ func (c *ServiceInstanceClient) startServiceInstance(name string, input *CreateS
 		return nil, err
 	}
 
-	// Call wait for instance ready now, as creating the instance is an eventually consistent operation
+	// Call wait for instance running now, as creating the instance is an eventually consistent operation
 	getInput := &GetServiceInstanceInput{
 		Name: name,
 	}
@@ -785,6 +795,60 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceDeleted(input *GetServiceI
 			return false, nil
 		}
 	})
+}
+
+// UpdateServiceInstanceInput defines the attributes available to update for a service instance
+type UpdateServiceInstanceInput struct {
+	// Name of the service instance to update.
+	// Required
+	Name string `json:"-"`
+	// Specify size of additional storage in Giga Bytes. This parameter is optional. User can change shape
+	// only without adding storage. If additionalStorage is specified, minimum value is 1GB and maximum value is 1TB.
+	// Optional
+	AdditionalStorage string `json:"additionalStorage,omitempty"`
+	// (Applies only to service instances that use Oracle RAC and Oracle Data Guard together.)
+	// Specifies whether the scaling operation applies to the primary database or standby database of the
+	// Data Guard configuration. Specify the value DB_1 for the primary database or the value DB_2 for the
+	// standby database.
+	// Optional
+	ComponentInstanceName string `json:"componentInstanceName,omitempty"`
+	// Specify new shape for the Database Cloud Service instance. User can specify a higher shape (Scale Up) or
+	// a lower shape (Scale Down). Shape is optional. User can add storage only without changing shape.
+	// Optional
+	Shape ServiceInstanceShape `json:"shape,omitempty"`
+	// This parameter specifies usage of additional storage and is applicable only when additionalStorage is
+	// specified. Specify usage to extend Data or Backup storage volumes of Database Cloud Service instance.
+	// Valid values are data to extend Data Storage Volume and fra to extend Backup Storage Volume. If usage is
+	// not specified, new storage volume will be created.
+	// Optional
+	Usage ServiceInstanceUsage `json:"usage,omitempty"`
+}
+
+// UpdateServiceInstance updates the specified service instance
+func (c *ServiceInstanceClient) UpdateServiceInstance(input *UpdateServiceInstanceInput) (*ServiceInstance, error) {
+	if c.PollInterval == 0 {
+		c.PollInterval = WaitForServiceInstanceReadyPollInterval
+	}
+	if c.Timeout == 0 {
+		c.Timeout = WaitForServiceInstanceReadyTimeout
+	}
+
+	if err := c.updateResource(input.Name, *input, nil); err != nil {
+		return nil, err
+	}
+
+	// Call wait for instance running now, as updating the instance is an eventually consistent operation
+	getInput := &GetServiceInstanceInput{
+		Name: input.Name,
+	}
+
+	// Wait for the service instance to be running and return the result
+	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that
+	serviceInstance, err := c.WaitForServiceInstanceRunning(getInput, c.PollInterval, c.Timeout)
+	if err != nil {
+		return nil, fmt.Errorf("Error updating Service Instance %q: %+v", input.Name, err)
+	}
+	return serviceInstance, nil
 }
 
 func convertOracleBool(val bool) string {
