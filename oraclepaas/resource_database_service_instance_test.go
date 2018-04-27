@@ -114,6 +114,28 @@ func TestAccOraclePAASDatabaseServiceInstance_DesiredState(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatabaseServiceInstanceExists,
 					resource.TestCheckResourceAttr(
+						resourceName, "status", "Stopped"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOPAASDatabaseServiceInstance_UpdateShape(t *testing.T) {
+	ri := acctest.RandInt()
+	config := testAccDatabaseServiceInstanceBasic(ri)
+	config2 := testAccDatabaseServiceInstanceUpdateShape(ri)
+	resourceName := "oraclepaas_database_service_instance.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatabaseServiceInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDatabaseServiceInstanceExists,
+					resource.TestCheckResourceAttr(
 						resourceName, "shape", "oc3"),
 				),
 			},
@@ -128,30 +150,6 @@ func TestAccOraclePAASDatabaseServiceInstance_DesiredState(t *testing.T) {
 		},
 	})
 }
-
-func TestAccOPAASDatabaseServiceInstance_UpdateShape(t *testing.T) {
-	ri := acctest.RandInt()
-	config := testAccDatabaseServiceInstanceBasic(ri)
-	config2 := testAccDatabaseServiceInstanceUpdateShape(ri)
-  resourceName := "oraclepaas_database_service_instance.test"
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDatabaseServiceInstanceDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDatabaseServiceInstanceExists,
-					resource.TestCheckResourceAttr(
-            resourceName, "status", "Stopped"),
-        ),
-			},
-		},
-	})
-}
-
-
 
 // An OCI account is need to test this
 /*

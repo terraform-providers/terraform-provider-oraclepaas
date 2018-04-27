@@ -705,12 +705,12 @@ func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta int
 		}
 
 		_, err := client.UpdateDesiredState(updateInput)
-    if err != nil {
+		if err != nil {
 			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
 		}
 	}
 
-  if old, new := d.GetChange("shape"); old.(string) != "" && old.(string) != new.(string) {
+	if old, new := d.GetChange("shape"); old.(string) != "" && old.(string) != new.(string) {
 		updateInput := &database.UpdateServiceInstanceInput{
 			Name:  d.Id(),
 			Shape: database.ServiceInstanceShape(new.(string)),
