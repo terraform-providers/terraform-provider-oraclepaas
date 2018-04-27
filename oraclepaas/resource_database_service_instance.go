@@ -63,7 +63,6 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 			"shape": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"subscription_type": {
 				Type:     schema.TypeString,
@@ -706,6 +705,18 @@ func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta int
 		}
 
 		_, err := client.UpdateDesiredState(updateInput)
+    if err != nil {
+			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
+		}
+	}
+
+  if old, new := d.GetChange("shape"); old.(string) != "" && old.(string) != new.(string) {
+		updateInput := &database.UpdateServiceInstanceInput{
+			Name:  d.Id(),
+			Shape: database.ServiceInstanceShape(new.(string)),
+		}
+
+		_, err := client.UpdateServiceInstance(updateInput)
 		if err != nil {
 			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
 		}

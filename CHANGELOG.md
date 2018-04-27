@@ -1,4 +1,9 @@
 ## 1.0.1 (Unreleased)
+
+FEATURES:
+
+* oraclepaas_database_service_instance - Can now scale up and down [GH-19]
+
 ## 1.0.0 (March 23, 2018)
 
 FEATURES:
