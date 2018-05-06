@@ -75,6 +75,7 @@ func Provider() terraform.ResourceProvider {
 			"oraclepaas_java_service_instance":     resourceOraclePAASJavaServiceInstance(),
 			"oraclepaas_database_access_rule":      resourceOraclePAASDatabaseAccessRule(),
 			"oraclepaas_mysql_service_instance":    resourceOraclePAASMySQLServiceInstance(),
+			"oraclepaas_mysql_access_rule":         resourceOraclePAASMySQLAccessRule(),
 		},
 
 		ConfigureFunc: providerConfigure,
