@@ -18,9 +18,6 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 		Read:   resourceOraclePAASMySQLServiceInstanceRead,
 		Update: resourceOraclePAASMySQLServiceInstanceUpdate,
 		Delete: resourceOraclePAASMySQLServiceInstanceDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(120 * time.Minute),
@@ -38,9 +35,10 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 			"service_description": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
-			"vm_public_key": {
+			"ssh_public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -54,8 +52,9 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 
 			"backup_destination": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Default:  string(mysql.ServiceInstanceBackupDestinationNone),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(mysql.ServiceInstanceBackupDestinationBoth),
 					string(mysql.ServiceInstanceBackupDestinationOSS),
@@ -67,23 +66,24 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Default:  string(mysql.ServiceInstanceMeteringFrequencyHourly),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(mysql.ServiceInstanceMeteringFrequencyHourly),
 					string(mysql.ServiceInstanceMeteringFrequencyMonthly),
 				}, true),
 			},
 
-			"enable_notification": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-			},
+			//			"enable_notification": {
+			//				Type:     schema.TypeBool,
+			//				Optional: true,
+			//				ForceNew: true,
+			//			},
 
-			"notification_email": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
+			//			"notification_email": {
+			//				Type:     schema.TypeString,
+			//				Optional: true,
+			//				ForceNew: true,
+			//			},
 
 			// Use for OCI configuration (not OCI-Classic)
 			"ip_network": {
@@ -96,6 +96,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"vm_user": {
@@ -143,7 +144,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 			},
 
 			"mysql_configuration": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
 				MaxItems: 1,
@@ -166,6 +167,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
+							Computed: true,
 						},
 						"mysql_collation": {
 							Type:     schema.TypeString,
@@ -274,27 +276,18 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 						// this comes from the service.
 						"connect_string": {
 							Type:     schema.TypeString,
+							Optional: true,
 							Computed: true,
 						},
 						"ip_address": {
 							Type:     schema.TypeString,
+							Optional: true,
 							Computed: true,
 						},
 						"public_ip_address": {
 							Type:     schema.TypeString,
 							Computed: true,
-						},
-						"component_type": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"hostname": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"state": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Optional: true,
 						},
 					},
 				},
@@ -302,18 +295,23 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 			"service_version": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
 			},
+
 			"release_version": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
 			},
 			"base_release_version": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
 			},
-			"em_address": {
+			"em_url": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
 			},
 		}, // end declaration
 	} // end return
@@ -365,7 +363,7 @@ func getServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, erro
 	input := &mysql.ServiceParameters{
 		ServiceName:       d.Get("service_name").(string),
 		BackupDestination: d.Get("backup_destination").(string),
-		VMPublicKeyText:   d.Get("vm_public_key").(string),
+		VMPublicKeyText:   d.Get("ssh_public_key").(string),
 	}
 
 	if value, ok := d.GetOk("metering_frequency"); ok {
@@ -459,71 +457,57 @@ func expandEM(input map[string]interface{}, parameter *mysql.MySQLParameters) er
 func getComponentParameters(d *schema.ResourceData) (mysql.ComponentParameters, error) {
 
 	result := mysql.ComponentParameters{}
+	mysqlConfiguration := d.Get("mysql_configuration").([]interface{})
+	attrs := mysqlConfiguration[0].(map[string]interface{})
 
-	if v, ok := d.GetOk("mysql_configuration"); ok {
-		mysqlList := v.(*schema.Set).List()
-
-		// get the first entry.
-		mysqlItem := mysqlList[0].(map[string]interface{})
-		MysqlInput := &mysql.MySQLParameters{
-			DBName:    mysqlItem["db_name"].(string),
-			DBStorage: strconv.Itoa(mysqlItem["db_storage"].(int)),
-		}
-
-		log.Printf("[DEBUG] Enterprise Monitor : %v", mysqlItem["enterprise_monitor"])
-
-		if mysqlItem["enterprise_monitor"] != nil {
-			if mysqlItem["enterprise_monitor"] == true {
-				MysqlInput.EnterpriseMonitor = "Yes"
-			} else {
-				MysqlInput.EnterpriseMonitor = "No"
-			}
-		}
-
-		err := expandEM(mysqlItem, MysqlInput)
-		if err != nil {
-			return result, err
-		}
-
-		if mysqlItem["mysql_charset"] != nil {
-			MysqlInput.MysqlCharset = mysqlItem["mysql_charset"].(string)
-		}
-
-		if mysqlItem["mysql_collation"] != nil {
-			MysqlInput.MysqlCollation = mysqlItem["mysql_collation"].(string)
-		}
-
-		if mysqlItem["mysql_em_port"] != nil {
-			MysqlInput.MysqlEMPort = strconv.Itoa(mysqlItem["mysql_em_port"].(int))
-		}
-
-		if mysqlItem["mysql_port"] != nil {
-			MysqlInput.MysqlPort = strconv.Itoa(mysqlItem["mysql_port"].(int))
-		}
-
-		if mysqlItem["mysql_username"] != nil {
-			MysqlInput.MysqlUserName = mysqlItem["mysql_username"].(string)
-		}
-
-		if mysqlItem["mysql_password"] != nil {
-			MysqlInput.MysqlUserPassword = mysqlItem["mysql_password"].(string)
-		}
-
-		if mysqlItem["shape"] != nil {
-			MysqlInput.Shape = mysqlItem["shape"].(string)
-		}
-
-		if mysqlItem["snapshot_name"] != nil {
-			MysqlInput.SnapshotName = mysqlItem["snapshot_name"].(string)
-		}
-
-		if mysqlItem["source_service_name"] != nil {
-			MysqlInput.SourceServiceName = mysqlItem["source_service_name"].(string)
-		}
-
-		result.Mysql = *MysqlInput
+	// get the first entry.
+	MysqlInput := &mysql.MySQLParameters{
+		DBName:            attrs["db_name"].(string),
+		DBStorage:         strconv.Itoa(attrs["db_storage"].(int)),
+		MysqlUserName:     attrs["mysql_username"].(string),
+		MysqlUserPassword: attrs["mysql_password"].(string),
 	}
 
+	log.Printf("[DEBUG] Enterprise Monitor : %v", attrs["enterprise_monitor"])
+
+	if val, ok := attrs["enterprise_monitor"]; ok {
+		if val.(bool) == true {
+			MysqlInput.EnterpriseMonitor = "Yes"
+		} else {
+			MysqlInput.EnterpriseMonitor = "No"
+		}
+	}
+
+	err := expandEM(attrs, MysqlInput)
+	if err != nil {
+		return result, err
+	}
+
+	if val, ok := attrs["mysql_charset"]; ok && val != "" {
+		MysqlInput.MysqlCharset = val.(string)
+	}
+
+	if val, ok := attrs["mysql_collation"]; ok && val != "" {
+		MysqlInput.MysqlCollation = val.(string)
+	}
+
+	if val, ok := attrs["mysql_port"]; ok && val != "" {
+		MysqlInput.MysqlPort = strconv.Itoa(val.(int))
+	}
+
+	if val, ok := attrs["shape"]; ok && val != "" {
+		MysqlInput.Shape = val.(string)
+	}
+
+	if val, ok := attrs["snapshot_name"]; ok && val != "" {
+		MysqlInput.SnapshotName = val.(string)
+	}
+
+	if val, ok := attrs["source_service_name"]; ok && val != "" {
+		MysqlInput.SourceServiceName = val.(string)
+	}
+
+	result.Mysql = *MysqlInput
 	return result, nil
 }
 
@@ -558,10 +542,10 @@ func resourceOraclePAASMySQLServiceInstanceRead(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Read state of mysql service instance %s: %#v", d.Id(), result)
 
-	d.Set("backup_destination", result.BackupDestination)
-	d.Set("metering_frequency", result.MeteringFrequency)
 	d.Set("service_name", result.ServiceName)
 	d.Set("service_description", result.ServiceDescription)
+	d.Set("backup_destination", result.BackupDestination)
+	d.Set("metering_frequency", result.MeteringFrequency)
 	d.Set("service_id", result.ServiceId)
 	d.Set("service_type", result.ServiceType)
 	d.Set("release_version", result.ReleaseVersion)
@@ -569,7 +553,6 @@ func resourceOraclePAASMySQLServiceInstanceRead(d *schema.ResourceData, meta int
 	d.Set("base_release_version", result.BaseReleaseVersion)
 	d.Set("creator", result.Creator)
 	d.Set("creation_date", result.CreationDate)
-	d.Set("state", result.Status)
 
 	if err := updateMySQLAttributesFromAttachments(d, result.Components.Mysql); err != nil {
 		return err
@@ -582,46 +565,46 @@ func updateMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo m
 
 	result := make([]map[string]interface{}, 0)
 
-	if v, ok := d.GetOk("mysql_configuration"); ok {
-		mysqlList := v.(*schema.Set).List()
+	if val, ok := d.GetOk("mysql_configuration"); ok {
+		mysqlConfiguration := val.([]interface{})
+		attrs := mysqlConfiguration[0].(map[string]interface{})
 
-		if len(mysqlList) != 1 {
+		if len(mysqlConfiguration) != 1 {
 			return fmt.Errorf("Invalid mySQL Instance info")
 		}
-		newState := mysqlList[0].(map[string]interface{})
 		attributeMap := instanceInfo.Attributes
 
 		if attr, ok := attributeMap["MYSQL_CHARACTER_SET"]; ok {
-			newState["mysql_charset"] = attr.Value
+			attrs["mysql_charset"] = attr.Value
 		}
 
 		if attr, ok := attributeMap["MYSQL_COLLATION"]; ok {
-			newState["mysql_collation"] = attr.Value
+			attrs["mysql_collation"] = attr.Value
 		}
 
 		if attr, ok := attributeMap["MYSQL_DBNAME"]; ok {
-			newState["db_name"] = attr.Value
+			attrs["db_name"] = attr.Value
 		}
 
 		if attr, ok := attributeMap["shape"]; ok {
-			newState["shape"] = attr.Value
+			attrs["shape"] = attr.Value
 		}
 
 		if attr, ok := attributeMap["CONNECT_STRING"]; ok {
-			newState["connect_string"] = attr.Value
+			attrs["connect_string"] = attr.Value
 		}
 
 		if attr, ok := attributeMap["MYSQL_ENTERPRISE_MONITOR"]; ok {
 			if attr.Value == "Yes" || attr.Value == "YES" {
-				newState["enterprise_monitor"] = true
+				attrs["enterprise_monitor"] = true
 			} else {
-				newState["enterprise_monitor"] = false
+				attrs["enterprise_monitor"] = false
 			}
 		}
 
 		/* Temporarily commented out. Base service has some issues with Timezone
 		if attr, ok := attributeMap["MYSQL_TIMEZONE"]; ok {
-			newState["enterprise_monitor"] = attr.Value
+			attrs["enterprise_monitor"] = attr.Value
 		}
 		*/
 
@@ -633,14 +616,11 @@ func updateMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo m
 		}
 
 		for _, vmInstance := range vmInstancesMap {
-			newState["hostname"] = vmInstance.HostName
-			newState["ip_address"] = vmInstance.IPAddress
-			newState["public_ip_address"] = vmInstance.PublicIPAddress
-			newState["component_type"] = vmInstance.ComponentType
-			newState["state"] = vmInstance.State
+			attrs["ip_address"] = vmInstance.IPAddress
+			attrs["public_ip_address"] = vmInstance.PublicIPAddress
 		}
 
-		result = append(result, newState)
+		result = append(result, attrs)
 	}
 
 	return d.Set("mysql_configuration", result)
@@ -662,14 +642,7 @@ func resourceOraclePAASMySQLServiceInstanceDelete(d *schema.ResourceData, meta i
 	}
 
 	client := mySQLClient.ServiceInstanceClient()
-	serviceParams, err := getServiceParameters(d)
-
-	if err != nil {
-		log.Printf("Error : %s", err)
-		return err
-	}
-
-	jobID := serviceParams.ServiceName
+	jobID := d.Id()
 
 	log.Printf("[DEBUG] Deleting DatabaseServiceInstance: %v", jobID)
 
