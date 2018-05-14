@@ -43,6 +43,13 @@ func Provider() terraform.ResourceProvider {
 				Description: "The HTTP endpoint for Oracle Java operations.",
 			},
 
+			"application_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ORACLEPAAS_APPLICATION_ENDPOINT", nil),
+				Description: "The HTTP endpoint for the Oracle Application operations",
+			},
+
 			"max_retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -67,6 +74,7 @@ func Provider() terraform.ResourceProvider {
 			"oraclepaas_database_service_instance": resourceOraclePAASDatabaseServiceInstance(),
 			"oraclepaas_java_service_instance":     resourceOraclePAASJavaServiceInstance(),
 			"oraclepaas_database_access_rule":      resourceOraclePAASDatabaseAccessRule(),
+			"oraclepaas_application_container":     resourceOraclePAASApplicationContainer(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -75,13 +83,14 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		User:             d.Get("user").(string),
-		Password:         d.Get("password").(string),
-		IdentityDomain:   d.Get("identity_domain").(string),
-		DatabaseEndpoint: d.Get("database_endpoint").(string),
-		JavaEndpoint:     d.Get("java_endpoint").(string),
-		MaxRetries:       d.Get("max_retries").(int),
-		Insecure:         d.Get("insecure").(bool),
+		User:                d.Get("user").(string),
+		Password:            d.Get("password").(string),
+		IdentityDomain:      d.Get("identity_domain").(string),
+		ApplicationEndpoint: d.Get("application_endpoint").(string),
+		DatabaseEndpoint:    d.Get("database_endpoint").(string),
+		JavaEndpoint:        d.Get("java_endpoint").(string),
+		MaxRetries:          d.Get("max_retries").(int),
+		Insecure:            d.Get("insecure").(bool),
 	}
 
 	return config.Client()
