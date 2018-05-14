@@ -20,8 +20,8 @@ func resourceOraclePAASDatabaseAccessRule() *schema.Resource {
 		Delete: resourceOraclePAASDatabaseAccessRuleDelete,
 
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(60 * time.Minute),
-			Delete: schema.DefaultTimeout(60 * time.Minute),
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -205,6 +205,7 @@ func resourceOraclePAASDatabaseAccessRuleDelete(d *schema.ResourceData, meta int
 		ServiceInstanceID: d.Get("service_instance_id").(string),
 		Name:              d.Get("name").(string),
 		Status:            status,
+		Timeout:           d.Timeout("TimeoutDelete"),
 	}
 
 	err = client.DeleteAccessRule(&input)

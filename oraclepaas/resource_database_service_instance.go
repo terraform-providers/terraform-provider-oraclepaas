@@ -680,6 +680,8 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 	client := dbClient.ServiceInstanceClient()
 	name := d.Id()
 
+	client.Timeout = d.Timeout("TimeoutDelete")
+
 	log.Printf("[DEBUG] Deleting DatabaseServiceInstance: %v", name)
 
 	input := database.DeleteServiceInstanceInput{

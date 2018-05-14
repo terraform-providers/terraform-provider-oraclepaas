@@ -21,8 +21,8 @@ func resourceOraclePAASJavaAccessRule() *schema.Resource {
 		Delete: resourceOraclePAASJavaAccessRuleDelete,
 
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(60 * time.Minute),
-			Delete: schema.DefaultTimeout(60 * time.Minute),
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -223,6 +223,7 @@ func resourceOraclePAASJavaAccessRuleDelete(d *schema.ResourceData, meta interfa
 		ServiceInstanceID: d.Get("service_instance_id").(string),
 		Name:              d.Get("name").(string),
 		Status:            status,
+		Timeout:           d.Timeout("TimeoutDelete"),
 	}
 
 	err = client.DeleteAccessRule(&input)

@@ -50,7 +50,7 @@ func TestAccOPAASDatabaseServiceInstance_CloudStorage(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatabaseServiceInstanceExists,
 					resource.TestCheckResourceAttr(
-						resourceName, "cloud_storage_container", fmt.Sprintf("Storage-%s/acctest-%d", os.Getenv("OPC_IDENTITY_DOMAIN"), ri)),
+						resourceName, "cloud_storage_container", fmt.Sprintf("%sacctest-%d", os.Getenv("OPC_STORAGE_URL"), ri)),
 				),
 			},
 		},
@@ -71,8 +71,7 @@ func TestAccOPAASDatabaseServiceInstance_FromBackup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatabaseServiceInstanceExists,
 					resource.TestCheckResourceAttr(
-						// resourceName, "instantiate_from_backup.0.cloud_storage_container", fmt.Sprintf("Storage-%s/acctest-%d", os.Getenv("OPC_IDENTITY_DOMAIN"), ri)),
-						resourceName, "instantiate_from_backup.0.cloud_storage_container", fmt.Sprintf("Storage-%s/test-db-java-instance", os.Getenv("OPC_IDENTITY_DOMAIN"))),
+						resourceName, "instantiate_from_backup.0.cloud_storage_container", fmt.Sprintf("%stest-db-java-instance", os.Getenv("OPC_STORAGE_URL"))),
 				),
 			},
 		},
@@ -281,10 +280,10 @@ resource "oraclepaas_database_service_instance" "test" {
 	}
 
 	backups {
-		cloud_storage_container = "Storage-%s/acctest-%d"
+		cloud_storage_container = "%sacctest-%d"
 		create_if_missing = true
 	}
-}`, rInt, os.Getenv("OPC_STORAGE_IDENTITY_DOMAIN"), rInt)
+}`, rInt, os.Getenv("OPC_STORAGE_URL"), rInt)
 }
 
 func testAccDatabaseServiceInstanceFromBackup(rInt int) string {
@@ -310,13 +309,13 @@ resource "oraclepaas_database_service_instance" "test" {
 	}
 
 	instantiate_from_backup {
-		cloud_storage_container = "Storage-%s/test-db-java-instance"
+		cloud_storage_container = "%stest-db-java-instance"
 		on_premise     = false
-		database_id    = "test-service-instance"
+		database_id    = "1"
 		service_id     = "ORCL"
 		decryption_key = "Test_String7"
 	}
-}`, rInt, os.Getenv("OPC_STORAGE_IDENTITY_DOMAIN"))
+}`, rInt, os.Getenv("OPC_STORAGE_URL"))
 }
 
 func testAccDatabaseServiceInstanceDefaultAccessRule(rInt int) string {
