@@ -73,7 +73,7 @@ stored in an existing cloud backup that was created using Oracle Database Backup
 
 * `backups` - (Optional) Provides Cloud Storage information for how to implement service instance backups. Backups is documented below
 
-* `bring_you_own_license` - (Optional) Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
+* `bring_your_own_license` - (Optional) Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
 Default value is `false`.
 
 * `description` - (Optional) A description of the Service Instance.
