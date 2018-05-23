@@ -58,11 +58,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					string(java.ServiceInstanceMiddlewareVersion12c212),
-					string(java.ServiceInstanceMiddlewareVersion12cR3),
-					string(java.ServiceInstanceMiddlewareVersion11gR1),
-				}, false),
 			},
 			"backups": {
 				Type:     schema.TypeList,
@@ -678,7 +673,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	}
 
 	if val, ok := d.GetOk("service_version"); ok {
-		input.ServiceVersion = java.ServiceInstanceMiddlewareVersion(val.(string))
+		input.ServiceVersion = val.(string)
 	}
 
 	if val, ok := d.GetOk("metering_frequency"); ok {

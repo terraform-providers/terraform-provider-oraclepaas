@@ -9,15 +9,15 @@ import (
 	"github.com/hashicorp/go-oracle-terraform/client"
 )
 
-const WaitForServiceInstanceReadyPollInterval = time.Duration(60 * time.Second)
-const WaitForServiceInstanceReadyTimeout = time.Duration(3600 * time.Second)
-const WaitForServiceInstanceDeletePollInterval = time.Duration(60 * time.Second)
-const WaitForServiceInstanceDeleteTimeout = time.Duration(3600 * time.Second)
-const ServiceInstanceDeleteRetry = 30
+const waitForServiceInstanceReadyPollInterval = 60 * time.Second
+const waitForServiceInstanceReadyTimeout = 3600 * time.Second
+const waitForServiceInstanceDeletePollInterval = 60 * time.Second
+const waitForServiceInstanceDeleteTimeout = 3600 * time.Second
+const serviceInstanceDeleteRetry = 30
 
 var (
-	ServiceInstanceContainerPath = "/paas/service/dbcs/api/v1.1/instances/%s"
-	ServiceInstanceResourcePath  = "/paas/service/dbcs/api/v1.1/instances/%s/%s"
+	serviceInstanceContainerPath = "/paas/service/dbcs/api/v1.1/instances/%s"
+	serviceInstanceResourcePath  = "/paas/service/dbcs/api/v1.1/instances/%s/%s"
 )
 
 // ServiceInstanceClient is a client for the Service functions of the Database API.
@@ -29,151 +29,168 @@ type ServiceInstanceClient struct {
 
 // ServiceInstanceClient obtains an ServiceInstanceClient which can be used to access to the
 // Service Instance functions of the Database Cloud API
-func (c *DatabaseClient) ServiceInstanceClient() *ServiceInstanceClient {
+func (c *Client) ServiceInstanceClient() *ServiceInstanceClient {
 	return &ServiceInstanceClient{
 		ResourceClient: ResourceClient{
-			DatabaseClient:   c,
-			ContainerPath:    ServiceInstanceContainerPath,
-			ResourceRootPath: ServiceInstanceResourcePath,
+			Client:           c,
+			ContainerPath:    serviceInstanceContainerPath,
+			ResourceRootPath: serviceInstanceResourcePath,
 		}}
 }
 
+// ServiceInstanceEdition is the allowable edition a service instance can be
 type ServiceInstanceEdition string
 
 const (
-	// SE: Standard Edition
+	// ServiceInstanceStandardEdition - SE: Standard Edition
 	ServiceInstanceStandardEdition ServiceInstanceEdition = "SE"
-	// EE: Enterprise Edition
+	// ServiceInstanceEnterpriseEdition - EE: Enterprise Edition
 	ServiceInstanceEnterpriseEdition ServiceInstanceEdition = "EE"
-	// EE_HP: Enterprise Edition - High Performance
+	// ServiceInstanceEnterpriseEditionHighPerformance  - EE_HP: Enterprise Edition - High Performance
 	ServiceInstanceEnterpriseEditionHighPerformance ServiceInstanceEdition = "EE_HP"
-	// EE_EP: Enterprise Edition - Extreme Performance
+	// ServiceInstanceEnterpriseEditionExtremePerformance - EE_EP: Enterprise Edition - Extreme Performance
 	ServiceInstanceEnterpriseEditionExtremePerformance ServiceInstanceEdition = "EE_EP"
 )
 
+// ServiceInstanceLevel is the allowable levels a service instance can be
 type ServiceInstanceLevel string
 
 const (
-	// PAAS: The Oracle Database Cloud Service service level
+	// ServiceInstanceLevelPAAS - PAAS: The Oracle Database Cloud Service service level
 	ServiceInstanceLevelPAAS ServiceInstanceLevel = "PAAS"
-	// BASIC: The Oracle Database Cloud Service - Virtual Image service level
+	// ServiceInstanceLevelBasic - BASIC: The Oracle Database Cloud Service - Virtual Image service level
 	ServiceInstanceLevelBasic ServiceInstanceLevel = "BASIC"
 )
 
+// ServiceInstanceBackupDestination is the allowable backup destinations a service instance can use
 type ServiceInstanceBackupDestination string
 
 const (
-	// BOTH - Both Cloud Storage and Local Storage
+	// ServiceInstanceBackupDestinationBoth - Both Cloud Storage and Local Storage
 	ServiceInstanceBackupDestinationBoth ServiceInstanceBackupDestination = "BOTH"
-	// OSS - Cloud Storage only
+	// ServiceInstanceBackupDestinationOSS - Cloud Storage only
 	ServiceInstanceBackupDestinationOSS ServiceInstanceBackupDestination = "OSS"
-	// NONE - None
+	// ServiceInstanceBackupDestinationNone - None
 	ServiceInstanceBackupDestinationNone ServiceInstanceBackupDestination = "NONE"
 )
 
+// ServiceInstanceNCharSet is the allowable char sets a service instance can use
 type ServiceInstanceNCharSet string
 
 const (
+	// ServiceInstanceNCharSetUTF16 - AL16UTF16
 	ServiceInstanceNCharSetUTF16 ServiceInstanceNCharSet = "AL16UTF16"
-	ServiceInstanceNCharSetUTF8  ServiceInstanceNCharSet = "UTF8"
+	// ServiceInstanceNCharSetUTF8 - UTF8
+	ServiceInstanceNCharSetUTF8 ServiceInstanceNCharSet = "UTF8"
 )
 
+// ServiceInstanceType is the allowable types a service instance can be
 type ServiceInstanceType string
 
 const (
+	// ServiceInstanceTypeDB - db
 	ServiceInstanceTypeDB ServiceInstanceType = "db"
 )
 
+// ServiceInstanceShape specifies the allowable shapes a service instance can be
 type ServiceInstanceShape string
 
 const (
 	// Suportted OCI Classic Shapes
-	// oc3: 1 OCPU, 7.5 GB memory
+
+	// ServiceInstanceShapeOC3 - oc3: 1 OCPU, 7.5 GB memory
 	ServiceInstanceShapeOC3 ServiceInstanceShape = "oc3"
-	// oc4: 2 OCPUs, 15 GB memory
+	// ServiceInstanceShapeOC4 - oc4: 2 OCPUs, 15 GB memory
 	ServiceInstanceShapeOC4 ServiceInstanceShape = "oc4"
-	// oc5: 4 OCPUs, 30 GB memory
+	// ServiceInstanceShapeOC5 - oc5: 4 OCPUs, 30 GB memory
 	ServiceInstanceShapeOC5 ServiceInstanceShape = "oc5"
-	// oc6: 8 OCPUs, 60 GB memory
+	// ServiceInstanceShapeOC6 - oc6: 8 OCPUs, 60 GB memory
 	ServiceInstanceShapeOC6 ServiceInstanceShape = "oc6"
-	// oc7: 16 OCPUS, 120 GB memory
+	// ServiceInstanceShapeOC7 - oc7: 16 OCPUS, 120 GB memory
 	ServiceInstanceShapeOC7 ServiceInstanceShape = "oc7"
-	// oc1m: 1 OCPU, 15 GB memory
+	// ServiceInstanceShapeOC1M - oc1m: 1 OCPU, 15 GB memory
 	ServiceInstanceShapeOC1M ServiceInstanceShape = "oc1m"
-	// oc2m: 2 OCPUs, 30 GB memory
+	// ServiceInstanceShapeOC2M - oc2m: 2 OCPUs, 30 GB memory
 	ServiceInstanceShapeOC2M ServiceInstanceShape = "oc2m"
-	// oc3m: 4 OCPUs, 60 GB memory
+	// ServiceInstanceShapeOC3M - oc3m: 4 OCPUs, 60 GB memory
 	ServiceInstanceShapeOC3M ServiceInstanceShape = "oc3m"
-	// oc4m: 8 OCPUs, 120 GB memory
+	// ServiceInstanceShapeOC4M - oc4m: 8 OCPUs, 120 GB memory
 	ServiceInstanceShapeOC4M ServiceInstanceShape = "oc4m"
-	// oc5m: 16 OCPUS, 240 GB memory
+	// ServiceInstanceShapeOC5M - oc5m: 16 OCPUS, 240 GB memory
 	ServiceInstanceShapeOC5M ServiceInstanceShape = "oc5m"
 
 	// Supported OCI VM shapes
-	// VM.Standard1.1: 1 OCPU, 7 GB memory
+
+	// ServiceInstanceShapeVMStandard1_1 - VM.Standard1.1: 1 OCPU, 7 GB memory
 	ServiceInstanceShapeVMStandard1_1 ServiceInstanceShape = "VM.Standard1.1"
-	// VM.Standard1.2: 2 OCPU, 14 GB memory
+	// ServiceInstanceShapeVMStandard1_2 - VM.Standard1.2: 2 OCPU, 14 GB memory
 	ServiceInstanceShapeVMStandard1_2 ServiceInstanceShape = "VM.Standard1.2"
-	// VM.Standard1.4: 4 OCPU, 28 GB memory
+	// ServiceInstanceShapeVMStandard1_4 - VM.Standard1.4: 4 OCPU, 28 GB memory
 	ServiceInstanceShapeVMStandard1_4 ServiceInstanceShape = "VM.Standard1.4"
-	// VM.Standard1.8: 8 OCPU, 56 GB memory
+	// ServiceInstanceShapeVMStandard1_8 - VM.Standard1.8: 8 OCPU, 56 GB memory
 	ServiceInstanceShapeVMStandard1_8 ServiceInstanceShape = "VM.Standard1.8"
-	// VM.Standard1.16: 16 OCPU, 112 GB memory
+	// ServiceInstanceShapeVMStandard1_16 - VM.Standard1.16: 16 OCPU, 112 GB memory
 	ServiceInstanceShapeVMStandard1_16 ServiceInstanceShape = "VM.Standard1.16"
-	// VM.Standard2.1: 1 OCPU, 15 GB memory
+	// ServiceInstanceShapeVMStandard2_1 - VM.Standard2.1: 1 OCPU, 15 GB memory
 	ServiceInstanceShapeVMStandard2_1 ServiceInstanceShape = "VM.Standard2.1"
-	// VM.Standard2.2: 2 OCPU, 30 GB memory
+	// ServiceInstanceShapeVMStandard2_2 - VM.Standard2.2: 2 OCPU, 30 GB memory
 	ServiceInstanceShapeVMStandard2_2 ServiceInstanceShape = "VM.Standard2.2"
-	// VM.Standard2.4: 4 OCPU, 60 GB memory
+	// ServiceInstanceShapeVMStandard2_4 - VM.Standard2.4: 4 OCPU, 60 GB memory
 	ServiceInstanceShapeVMStandard2_4 ServiceInstanceShape = "VM.Standard2.4"
-	// VM.Standard2.8: 8 OCPU, 120 GB memory
+	// ServiceInstanceShapeVMStandard2_8 - VM.Standard2.8: 8 OCPU, 120 GB memory
 	ServiceInstanceShapeVMStandard2_8 ServiceInstanceShape = "VM.Standard2.8"
-	// VM.Standard2.16: 16 OCPU, 240 GB memory
+	// ServiceInstanceShapeVMStandard2_16 - VM.Standard2.16: 16 OCPU, 240 GB memory
 	ServiceInstanceShapeVMStandard2_16 ServiceInstanceShape = "VM.Standard2.16"
-	// VM.Standard2.24: 24 OCPU, 320 GB memory
+	// ServiceInstanceShapeVMStandard2_24 - VM.Standard2.24: 24 OCPU, 320 GB memory
 	ServiceInstanceShapeVMStandard2_24 ServiceInstanceShape = "VM.Standard2.24"
 
 	// Supported OCI Bare Metal shapes
-	// BM.Standard1.36: 36 OCPU, 256 GB memory
+
+	// ServiceInstanceShapeBMStandard1_36 - BM.Standard1.36: 36 OCPU, 256 GB memory
 	ServiceInstanceShapeBMStandard1_36 ServiceInstanceShape = "BM.Standard1.36"
-	// BM.Standard2.52: 52 OCPU, 768 GB memory
+	// ServiceInstanceShapeBMStandard2_52 - BM.Standard2.52: 52 OCPU, 768 GB memory
 	ServiceInstanceShapeBMStandard2_52 ServiceInstanceShape = "BM.Standard2.52"
 )
 
+// ServiceInstanceSubscriptionType specifies the allowable subscription types a service instance can be in
 type ServiceInstanceSubscriptionType string
 
 const (
-	ServiceInstanceSubscriptionTypeHourly  ServiceInstanceSubscriptionType = "HOURLY"
+	// ServiceInstanceSubscriptionTypeHourly - HOURLY
+	ServiceInstanceSubscriptionTypeHourly ServiceInstanceSubscriptionType = "HOURLY"
+	// ServiceInstanceSubscriptionTypeMonthly - MONTHLY
 	ServiceInstanceSubscriptionTypeMonthly ServiceInstanceSubscriptionType = "MONTHLY"
 )
 
+// ServiceInstanceVersion speicifes the constancts for service instance versions
 type ServiceInstanceVersion string
 
 const (
-	// 18.0.0.0
+	// ServiceInstanceVersion18000 - 18.0.0.0
 	ServiceInstanceVersion18000 ServiceInstanceVersion = "18.0.0.0"
-	// 12.2.0.1
+	// ServiceInstanceVersion12201 - 12.2.0.1
 	ServiceInstanceVersion12201 ServiceInstanceVersion = "12.2.0.1"
-	// 12.1.0.2
+	// ServiceInstanceVersion12102 - 12.1.0.2
 	ServiceInstanceVersion12102 ServiceInstanceVersion = "12.1.0.2"
-	// 11.2.0.4
+	// ServiceInstanceVersion11204 - 11.2.0.4
 	ServiceInstanceVersion11204 ServiceInstanceVersion = "11.2.0.4"
 )
 
+// ServiceInstanceState specifies the allowed states a service instance can be in
 type ServiceInstanceState string
 
 const (
-	// 	Configured: the service instance has been configured.
+	// ServiceInstanceConfigured - the service instance has been configured.
 	ServiceInstanceConfigured ServiceInstanceState = "Configured"
-	//	In Progress: the service instance is being created.
+	// ServiceInstanceInProgress - the service instance is being created.
 	ServiceInstanceInProgress ServiceInstanceState = "In Progress"
-	//	Maintenance: the service instance is being stopped, started, restarted or scaled.
+	// ServiceInstanceMaintenance - the service instance is being stopped, started, restarted or scaled.
 	ServiceInstanceMaintenance ServiceInstanceState = "Maintenance"
-	//	Running: the service instance is running.
+	// ServiceInstanceRunning  - the service instance is running.
 	ServiceInstanceRunning ServiceInstanceState = "Running"
-	//	Stopped: the service instance is stopped.
+	// ServiceInstanceStopped - the service instance is stopped.
 	ServiceInstanceStopped ServiceInstanceState = "Stopped"
-	//	Terminating: the service instance is being deleted.
+	// ServiceInstanceTerminating - the service instance is being deleted.
 	ServiceInstanceTerminating ServiceInstanceState = "Terminating"
 )
 
@@ -199,6 +216,7 @@ const (
 	ServiceInstanceLifecycleStateRestart ServiceInstanceLifecycleState = "restart"
 )
 
+// ServiceInstance specifies the service instance obtained from a GET request
 type ServiceInstance struct {
 	// The URL to use to connect to Oracle Application Express on the service instance.
 	ApexURL string `json:"apex_url"`
@@ -235,8 +253,6 @@ type ServiceInstance struct {
 	Edition ServiceInstanceEdition `json:"edition"`
 	// The URL to use to connect to Enterprise Manager on the service instance.
 	EMURL string `json:"em_url"`
-	// Indicates whether the service instance hosts an Oracle Data Guard configuration.
-	FailoverDatabase bool `json:"failover_database"`
 	// The URL to use to connect to the Oracle GlassFish Server Administration Console on the service instance.
 	GlassFishURL string `json:"glassfish_url"`
 	// Data Guard Role of the on-premise instance in Oracle Hybrid Disaster Recovery configuration.
@@ -253,26 +269,18 @@ type ServiceInstance struct {
 	// This attribute is only applicable to accounts where regions are supported.
 	// This attribute is returned when you set the ?outputLevel=verbose query parameter.
 	IPReservations string `json:"ipReservations"`
-	// Indicates whether service instance was provisioned with the 'Bring Your Own License' (BYOL) option.
-	IsBYOL bool `json:"isBYOL"`
 	// The Oracle Java Cloud Service instances using this Database Cloud Service instance.
 	JAASInstancesUsingService string `json:"jaas_instances_using_service"`
 	// The date-and-time stamp when the service instance was last modified.
 	LastModifiedTime string `json:"last_modified_time"`
 	// The service level of the service instance.
 	Level ServiceInstanceLevel `json:"level"`
-	// The listener port for Oracle Net Services (SQL*Net) connections.
-	ListenerPort int `json:"listener_port"`
 	// The national character set of the database.
 	NCharSet string `json:"ncharset"`
-	// The number of Oracle Compute Service IP reservations assigned to the service instance.
-	NumIPReservations int `json:"num_ip_reservations"`
 	// The number of compute nodes in the service instance.
 	NumNodes string `json:"num_nodes"`
 	// The name of the default PDB (pluggable database) created when the service instance was created.
 	PDBName string `json:"pdbName"`
-	// Indicates whether the service instance hosts an Oracle RAC database.
-	RACDatabase bool `json:"rac_database"`
 	// This attribute is only applicable to accounts where regions are supported.
 	// Location where the service instance is provisioned (only for accounts where regions are supported).
 	Region string `json:"region"`
@@ -295,15 +303,26 @@ type ServiceInstance struct {
 	SubscriptionType ServiceInstanceSubscriptionType `json:"subscriptionType"`
 	// The time zone of the operating system.
 	Timezone string `json:"timezone"`
+	// The Oracle Database version on the service instance.
+	Version string `json:"version"`
+	// Indicates whether the service instance hosts an Oracle Data Guard configuration.
+	FailoverDatabase bool `json:"failover_database"`
+	// Indicates whether service instance was provisioned with the 'Bring Your Own License' (BYOL) option.
+	IsBYOL bool `json:"isBYOL"`
+	// Indicates whether the service instance hosts an Oracle RAC database.
+	RACDatabase bool `json:"rac_database"`
+	// Indicates whether the service instance was provisioned with high performance storage.
+	UseHighPerformanceStorage bool `json:"useHighPerformanceStorage"`
+	// The listener port for Oracle Net Services (SQL*Net) connections.
+	ListenerPort int `json:"listener_port"`
+	// The number of Oracle Compute Service IP reservations assigned to the service instance.
+	NumIPReservations int `json:"num_ip_reservations"`
 	// For service instances hosting an Oracle RAC database, the size in GB of the storage shared
 	// and accessed by the nodes of the RAC database.
 	TotalSharedStorage int `json:"total_shared_storage"`
-	// Indicates whether the service instance was provisioned with high performance storage.
-	UseHighPerformanceStorage bool `json:"useHighPerformanceStorage"`
-	// The Oracle Database version on the service instance.
-	Version string `json:"version"`
 }
 
+// CreateServiceInstanceInput specifies the create request for a database service instance
 type CreateServiceInstanceInput struct {
 	// Name of the availability domain within the region where the Oracle Database Cloud Service instance is to be provisioned.
 	// Optional
@@ -318,15 +337,6 @@ type CreateServiceInstanceInput struct {
 	// Cloud Service instance as Cluster Database.
 	// Required.
 	Edition ServiceInstanceEdition `json:"edition"`
-	// Specify if you want an email notification sent upon successful or unsuccessful completion of the instance-creation operation.
-	// When true, you must also specify notificationEmail. Valid values are true and false. Default value is false.
-	// Optional
-	EnableNotification bool `json:"enableNotification,omitempty"`
-	// Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
-	// When true, your Oracle Cloud account will be charged a lesser amount for the new instance because the right to use Oracle Database is covered by your perpetual license agreement.
-	// Valid values are true and false. Default value is false.
-	// Optional
-	IsBYOL bool `json:"isBYOL,omitempty"`
 	// This parameter is not available on Oracle Cloud at Customer.
 	// Applicable only if region is an Oracle Cloud Infrastructure Classic region.
 	// The three-part name of a custom IP network to use. For example: /Compute-identity_domain/user/object.
@@ -378,12 +388,7 @@ type CreateServiceInstanceInput struct {
 	SubscriptionType ServiceInstanceSubscriptionType `json:"subscriptionType"`
 	// Applicable only in Oracle Cloud Infrastructure regions.
 	// Array of one JSON object that specifies configuration details of the standby database when failoverDatabase is set to true. disasterRecovery must be set to true.
-	Standbys []StandBy `json:"standbys`
-	// Specify if high performance storage should be used for the Database Cloud Service instance. Default data storage will allocate your database
-	// block storage on spinning devices. By checking this box, your block storage will be allocated on solid state devices. Valid values are true and false.
-	// Default value is false.
-	// Optional
-	UseHighPerformanceStorage bool `json:"useHighPerformanceStorage,omitempty"`
+	Standbys []StandBy `json:"standbys"`
 	// Oracle Database software version
 	// Required.
 	Version ServiceInstanceVersion `json:"version"`
@@ -393,8 +398,23 @@ type CreateServiceInstanceInput struct {
 	// a Compute Node Through Secure Shell (SSH) in Using Oracle Database Cloud Service.
 	// Required.
 	VMPublicKey string `json:"vmPublicKeyText"`
+	// Specify if you want an email notification sent upon successful or unsuccessful completion of the instance-creation operation.
+	// When true, you must also specify notificationEmail. Valid values are true and false. Default value is false.
+	// Optional
+	EnableNotification bool `json:"enableNotification,omitempty"`
+	// Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
+	// When true, your Oracle Cloud account will be charged a lesser amount for the new instance because the right to use Oracle Database is covered by your perpetual license agreement.
+	// Valid values are true and false. Default value is false.
+	// Optional
+	IsBYOL bool `json:"isBYOL,omitempty"`
+	// Specify if high performance storage should be used for the Database Cloud Service instance. Default data storage will allocate your database
+	// block storage on spinning devices. By checking this box, your block storage will be allocated on solid state devices. Valid values are true and false.
+	// Default value is false.
+	// Optional
+	UseHighPerformanceStorage bool `json:"useHighPerformanceStorage,omitempty"`
 }
 
+// StandBy specifies the standby attributes for a database service instance
 type StandBy struct {
 	// Name of the availability domain within the region where the standby database of the Oracle Database
 	// Cloud Service instance is to be provisioned.
@@ -406,11 +426,14 @@ type StandBy struct {
 	Subnet string `json:"subnet"`
 }
 
+// CreateServiceInstanceRequest specifies the create request attributes for a database service instance
 type CreateServiceInstanceRequest struct {
 	CreateServiceInstanceInput
 	ParameterRequest []ParameterRequest `json:"parameters"`
 }
 
+// ParameterInput specifies the parameters for the database service instance with the yes/no values of
+// the recovery attributes with booleans
 type ParameterInput struct {
 	AdditionalParameters AdditionalParameters `json:"additionalParams,omitempty"`
 	// Password for Oracle Database administrator users sys and system. The password must meet the following requirements:
@@ -458,36 +481,6 @@ type ParameterInput struct {
 	// Username for the Oracle Storage Cloud Service administrator.
 	// Optional.
 	CloudStorageUsername string `json:"cloudStorageUser,omitempty"`
-	// Specify if the given cloudStorageContainer is to be created if it does not already exist.
-	// Default value is false.
-	// Optional.
-	CreateStorageContainerIfMissing bool `json:"createStorageContainerIfMissing,omitempty"`
-	// Specify if an Oracle Data Guard configuration is created using the Disaster Recovery option
-	// or the High Availability option.
-	// true - The Disaster Recovery option is used, which places the compute node hosting the primary
-	// database and the compute node hosting the standby database in compute zones of different data centers.
-	// false - The High Availability option is used, which places the compute node hosting the primary
-	// database and the compute node hosting the standby database in different compute zones of the same
-	// data center.
-	// Default value is false.
-	// This option is applicable only when failoverDatabase is set to true.
-	// Optional
-	DisasterRecovery bool `json:"-"`
-	// Specify if an Oracle Data Guard configuration comprising a primary database and a
-	// standby database is created. Default value is false.
-	// You cannot set both failoverDatabase and isRac to false.
-	// Optional
-	FailoverDatabase bool `json:"-"`
-	// Specify if the database should be configured for use as the replication database of an
-	// Oracle GoldenGate Cloud Service instance. Default value is false.
-	// You cannot set goldenGate to true if either isRac or failoverDatabase is set to true.
-	// Optional
-	GoldenGate bool `json:"-"`
-	// Specify if an Oracle Hybrid Disaster Recovery configuration comprising a primary database on customer premisesand a standby database in Oracle Public Cloud should be configured.
-	// Valid values are yes and no. Default value is no.
-	// You cannot set failoverDatabase or isRac to yes if Hybrid Disaster Recovery options is chosen.
-	// Optional
-	HDG bool `json:"-"`
 	// Name of the Oracle Storage Cloud Service container where the backup from on-premise instance is stored. This parameter is required if hdg is set to yes.
 	// Optional
 	HDGCloudStorageContainer string `json:"hdgCloudStorageContainer,omitempty"`
@@ -497,11 +490,6 @@ type ParameterInput struct {
 	// User name of an Oracle Cloud user who has read access to the container specified in hdgCloudStorageContainer. This parameter is required if hdg is set to yes.
 	// Optional
 	HDGCloudStorageUser string `json:"hdgCloudStorageUser,omitempty"`
-	// Specify if the service instance's database should, after the instance is created, be replaced
-	// by a database stored in an existing cloud backup that was created using Oracle Database Backup
-	// Cloud Service. Default value is false.
-	// Optional
-	IBKUP bool `json:"-"`
 	// Name of the Oracle Storage Cloud Service container where the existing cloud backup is stored. This parameter is required if ibkup is set to yes and ibkupOnPremise is set to yes.
 	// Optional
 	IBKUPCloudStorageContainer string `json:"ibkupCloudStorageContainer,omitempty"`
@@ -523,10 +511,6 @@ type ParameterInput struct {
 	// This parameter is required if ibkup is set to yes.
 	// Optional
 	IBKUPDecryptionKey string `json:"ibkupDecryptionKey,omitempty"`
-	// Specify if the existing cloud backup being used to replace the database is from an on-premises database or another Database Cloud Service instance.
-	// Valid values are true for an on-premises database and false for a Database Cloud Service instance. Default value is true.
-	// Optional
-	IBKUPOnPremise bool `json:"ibkupOnPremise,omitempty"`
 	// Oracle Databsae Cloud Service instance name from which the database of new Oracle Database Cloud Service instance should be created.
 	// This parameter is required if ibkup is set to yes and ibkupOnPremise is set to no.
 	// Optional
@@ -534,10 +518,6 @@ type ParameterInput struct {
 	// String containing the xsd:base64Binary representation of the cloud backup's wallet archive file.
 	// Optional
 	IBKUPWalletFileContent string `json:"ibkupWalletFileContent,omitempty"`
-	// Specify if a cluster database using Oracle Real Application Clusters should be configured.
-	// Valid values are yes and no. Default value is no.
-	// Optional
-	IsRAC bool `json:"-"`
 	// National Character Set for the Database Cloud Service instance.
 	// Default value is AL16UTF16.
 	// Optional.
@@ -590,8 +570,52 @@ type ParameterInput struct {
 	// the maximum value is 2048.
 	// Required.
 	UsableStorage string `json:"usableStorage"`
+	// Specify if the given cloudStorageContainer is to be created if it does not already exist.
+	// Default value is false.
+	// Optional.
+	CreateStorageContainerIfMissing bool `json:"createStorageContainerIfMissing,omitempty"`
+	// Specify if an Oracle Data Guard configuration is created using the Disaster Recovery option
+	// or the High Availability option.
+	// true - The Disaster Recovery option is used, which places the compute node hosting the primary
+	// database and the compute node hosting the standby database in compute zones of different data centers.
+	// false - The High Availability option is used, which places the compute node hosting the primary
+	// database and the compute node hosting the standby database in different compute zones of the same
+	// data center.
+	// Default value is false.
+	// This option is applicable only when failoverDatabase is set to true.
+	// Optional
+	DisasterRecovery bool `json:"-"`
+	// Specify if an Oracle Data Guard configuration comprising a primary database and a
+	// standby database is created. Default value is false.
+	// You cannot set both failoverDatabase and isRac to false.
+	// Optional
+	FailoverDatabase bool `json:"-"`
+	// Specify if the database should be configured for use as the replication database of an
+	// Oracle GoldenGate Cloud Service instance. Default value is false.
+	// You cannot set goldenGate to true if either isRac or failoverDatabase is set to true.
+	// Optional
+	GoldenGate bool `json:"-"`
+	// Specify if an Oracle Hybrid Disaster Recovery configuration comprising a primary database on customer premisesand a standby database in Oracle Public Cloud should be configured.
+	// Valid values are yes and no. Default value is no.
+	// You cannot set failoverDatabase or isRac to yes if Hybrid Disaster Recovery options is chosen.
+	// Optional
+	HDG bool `json:"-"`
+	// Specify if the service instance's database should, after the instance is created, be replaced
+	// by a database stored in an existing cloud backup that was created using Oracle Database Backup
+	// Cloud Service. Default value is false.
+	// Optional
+	IBKUP bool `json:"-"`
+	// Specify if the existing cloud backup being used to replace the database is from an on-premises database or another Database Cloud Service instance.
+	// Valid values are true for an on-premises database and false for a Database Cloud Service instance. Default value is true.
+	// Optional
+	IBKUPOnPremise bool `json:"ibkupOnPremise,omitempty"`
+	// Specify if a cluster database using Oracle Real Application Clusters should be configured.
+	// Valid values are yes and no. Default value is no.
+	// Optional
+	IsRAC bool `json:"-"`
 }
 
+// ParameterRequest specifies database request including the yes/no values of the specific recovery strings
 type ParameterRequest struct {
 	ParameterInput
 	DisasterRecoveryString string `json:"disasterRecovery,omitempty"`
@@ -602,6 +626,7 @@ type ParameterRequest struct {
 	IBKUPString            string `json:"ibkup,omitempty"`
 }
 
+// AdditionalParameters specifies any additional parameters for the DBService Instance
 type AdditionalParameters struct {
 	// Indicates whether to include the Demos PDB
 	// Optional
@@ -611,37 +636,13 @@ type AdditionalParameters struct {
 // CreateServiceInstance creates a new ServiceInstace.
 func (c *ServiceInstanceClient) CreateServiceInstance(input *CreateServiceInstanceInput) (*ServiceInstance, error) {
 	if c.PollInterval == 0 {
-		c.PollInterval = WaitForServiceInstanceReadyPollInterval
+		c.PollInterval = waitForServiceInstanceReadyPollInterval
 	}
 	if c.Timeout == 0 {
-		c.Timeout = WaitForServiceInstanceReadyTimeout
+		c.Timeout = waitForServiceInstanceReadyTimeout
 	}
-	// Since these CloudStorageUsername and CloudStoragePassword are sensitive we'll read them
-	// from the client if they haven't specified in the config.
-	if input.Parameter.CloudStorageContainer != "" {
-		if input.Parameter.CloudStorageUsername == "" {
-			input.Parameter.CloudStorageUsername = *c.ResourceClient.DatabaseClient.client.UserName
-		}
-		if input.Parameter.CloudStoragePassword == "" {
-			input.Parameter.CloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
-		}
-	}
-	if input.Parameter.IBKUPCloudStorageContainer != "" {
-		if input.Parameter.IBKUPCloudStorageUser == "" {
-			input.Parameter.IBKUPCloudStorageUser = *c.ResourceClient.DatabaseClient.client.UserName
-		}
-		if input.Parameter.IBKUPCloudStoragePassword == "" {
-			input.Parameter.IBKUPCloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
-		}
-	}
-	if input.Parameter.HDGCloudStorageContainer != "" {
-		if input.Parameter.HDGCloudStorageUser == "" {
-			input.Parameter.HDGCloudStorageUser = *c.ResourceClient.DatabaseClient.client.UserName
-		}
-		if input.Parameter.HDGCloudStoragePassword == "" {
-			input.Parameter.HDGCloudStoragePassword = *c.ResourceClient.DatabaseClient.client.Password
-		}
-	}
+
+	c.checkAndSetCredentials(input)
 
 	// Create request where bools(true/false) are switched to strings(yes/no).
 	request := createRequest(input)
@@ -669,6 +670,35 @@ func createRequest(input *CreateServiceInstanceInput) *CreateServiceInstanceRequ
 	}
 
 	return request
+}
+
+// Since these CloudStorageUsername and CloudStoragePassword are sensitive we'll read them
+// from the client if they haven't specified in the config.
+func (c *ServiceInstanceClient) checkAndSetCredentials(input *CreateServiceInstanceInput) {
+	if input.Parameter.CloudStorageContainer != "" {
+		if input.Parameter.CloudStorageUsername == "" {
+			input.Parameter.CloudStorageUsername = *c.ResourceClient.Client.client.UserName
+		}
+		if input.Parameter.CloudStoragePassword == "" {
+			input.Parameter.CloudStoragePassword = *c.ResourceClient.Client.client.Password
+		}
+	}
+	if input.Parameter.IBKUPCloudStorageContainer != "" {
+		if input.Parameter.IBKUPCloudStorageUser == "" {
+			input.Parameter.IBKUPCloudStorageUser = *c.ResourceClient.Client.client.UserName
+		}
+		if input.Parameter.IBKUPCloudStoragePassword == "" {
+			input.Parameter.IBKUPCloudStoragePassword = *c.ResourceClient.Client.client.Password
+		}
+	}
+	if input.Parameter.HDGCloudStorageContainer != "" {
+		if input.Parameter.HDGCloudStorageUser == "" {
+			input.Parameter.HDGCloudStorageUser = *c.ResourceClient.Client.client.UserName
+		}
+		if input.Parameter.HDGCloudStoragePassword == "" {
+			input.Parameter.HDGCloudStoragePassword = *c.ResourceClient.Client.client.Password
+		}
+	}
 }
 
 func (c *ServiceInstanceClient) startServiceInstance(name string, input *CreateServiceInstanceRequest) (*ServiceInstance, error) {
@@ -738,6 +768,7 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceState(input *GetServiceIns
 	return info, err
 }
 
+// GetServiceInstanceInput specifies what service instance to obtain
 type GetServiceInstanceInput struct {
 	// Name of the Database Cloud Service instance.
 	// Required.
@@ -754,6 +785,7 @@ func (c *ServiceInstanceClient) GetServiceInstance(getInput *GetServiceInstanceI
 	return &serviceInstance, nil
 }
 
+// DeleteServiceInstanceInput specifies what instance to delete and whether or not to delete backups
 type DeleteServiceInstanceInput struct {
 	// Name of the Database Cloud Service instance.
 	// Required.
@@ -766,12 +798,13 @@ type DeleteServiceInstanceInput struct {
 	DeleteBackup bool
 }
 
+// DeleteServiceInstance deletes the service instance with the specified input
 func (c *ServiceInstanceClient) DeleteServiceInstance(input *DeleteServiceInstanceInput) error {
 	if c.PollInterval == 0 {
-		c.PollInterval = WaitForServiceInstanceDeletePollInterval
+		c.PollInterval = waitForServiceInstanceDeletePollInterval
 	}
 	if c.Timeout == 0 {
-		c.Timeout = WaitForServiceInstanceDeleteTimeout
+		c.Timeout = waitForServiceInstanceDeleteTimeout
 	}
 
 	// We can't delete backups if the instance is stopped so we'll start the instance if that is the case.
@@ -805,7 +838,7 @@ func (c *ServiceInstanceClient) DeleteServiceInstance(input *DeleteServiceInstan
 	// If delete fails, rerun it in case the instance still has not been setup correctly.
 	// An instance takes additional time to setup after it's configured.
 	var deleteErr error
-	for i := 0; i < ServiceInstanceDeleteRetry; i++ {
+	for i := 0; i < serviceInstanceDeleteRetry; i++ {
 		if deleteErr = c.deleteResource(input.Name, input.DeleteBackup); deleteErr != nil {
 			log.Printf("Error during delete, waiting 30s: %+v", deleteErr)
 			time.Sleep(30 * time.Second)
@@ -879,10 +912,10 @@ type UpdateServiceInstanceInput struct {
 // UpdateServiceInstance updates the specified service instance
 func (c *ServiceInstanceClient) UpdateServiceInstance(input *UpdateServiceInstanceInput) (*ServiceInstance, error) {
 	if c.PollInterval == 0 {
-		c.PollInterval = WaitForServiceInstanceReadyPollInterval
+		c.PollInterval = waitForServiceInstanceReadyPollInterval
 	}
 	if c.Timeout == 0 {
-		c.Timeout = WaitForServiceInstanceReadyTimeout
+		c.Timeout = waitForServiceInstanceReadyTimeout
 	}
 
 	if err := c.updateResource(input.Name, *input, nil, "PUT"); err != nil {
@@ -923,10 +956,10 @@ type DesiredStateInput struct {
 // UpdateDesiredState updates the specified desired state of a service instance
 func (c *ServiceInstanceClient) UpdateDesiredState(input *DesiredStateInput) (*ServiceInstance, error) {
 	if c.PollInterval == 0 {
-		c.PollInterval = WaitForServiceInstanceReadyPollInterval
+		c.PollInterval = waitForServiceInstanceReadyPollInterval
 	}
 	if c.Timeout == 0 {
-		c.Timeout = WaitForServiceInstanceReadyTimeout
+		c.Timeout = waitForServiceInstanceReadyTimeout
 	}
 
 	if err := c.updateResource(input.Name, *input, nil, "POST"); err != nil {

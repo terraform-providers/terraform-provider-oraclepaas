@@ -26,8 +26,8 @@ type Config struct {
 }
 
 type OPAASClient struct {
-	databaseClient *database.DatabaseClient
-	javaClient     *java.JavaClient
+	databaseClient *database.Client
+	javaClient     *java.Client
 }
 
 func (c *Config) Client() (*OPAASClient, error) {
