@@ -38,6 +38,7 @@ func TestAccOraclePAASJavaServiceInstance_Basic(t *testing.T) {
 	})
 }
 
+/* Add support for OTD
 func TestAccOraclePAASJavaServiceInstance_OTD(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccJavaServiceInstanceOTD(ri)
@@ -59,7 +60,7 @@ func TestAccOraclePAASJavaServiceInstance_OTD(t *testing.T) {
 			},
 		},
 	})
-}
+} */
 
 func TestAccOraclePAASJavaServiceInstance_Clusters(t *testing.T) {
 	ri := acctest.RandInt()
@@ -158,6 +159,8 @@ func testAccCheckJavaServiceInstanceDestroy(s *terraform.State) error {
 func testAccJavaServiceInstanceBasic(rInt int) string {
 	return fmt.Sprintf(`
 resource "oraclepaas_database_service_instance" "test" {
+	bring_your_own_license = true
+
 	name        = "test-service-instance-%d"
 	description = "test service instance"
 	edition = "EE"
@@ -176,13 +179,15 @@ resource "oraclepaas_database_service_instance" "test" {
 	}
   
 	backups {
-		cloud_storage_container = "Storage-%s/acctest-%d"
+		cloud_storage_container = "%sacctest-%d"
 		create_if_missing = true
 	}
 }
 
 resource "oraclepaas_java_service_instance" "test" {
-    name = "test-java-service-instance-%d"
+	bring_your_own_license = true
+
+    name = "tfinstance%d"
 	edition = "SUITE"
 	service_version = "12cRelease212"
 	ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3QxPp0BFK+ligB9m1FBcFELyvN5EdNUoSwTCe4Zv2b51OIO6wGM/dvTr/yj2ltNA/Vzl9tqf9AUBL8tKjAOk8uukip6G7rfigby+MvoJ9A8N0AC2te3TI+XCfB5Ty2M2OmKJjPOPCd6+OdzhT4cWnPOM+OAiX0DP7WCkO4Kx2kntf8YeTEurTCspOrRjGdo+zZkJxEydMt31asu9zYOTLmZPwLCkhel8vY6SnZhDTNSNkRzxZFv+Mh2VGmqu4SSxfVXr4tcFM6/MbAXlkA8jo+vHpy5sC79T4uNaPu2D8Ed7uC3yDdO3KRVdzZCfWHj4NjixdMs2CtK6EmyeVOPuiYb8/mcTybrb4F/CqA4jydAU6Ok0j0bIqftLyxNgfS31hR1Y3/GNPzly4+uUIgZqmsuVFh5h0L7qc1jMv7wRHphogo5snIp45t9jWNj8uDGzQgWvgbFP5wR7Nt6eS0kaCeGQbxWBDYfjQE801IrwhgMfmdmGw7FFveCH0tFcPm6td/8kMSyg/OewczZN3T62ETQYVsExOxEQl2t4SZ/yqklg+D9oGM+ILTmBRzIQ2m/xMmsbowiTXymjgVmvrWuc638X6dU2fKJ7As4hxs3rA1BA5sOt0XyqfHQhtYrL/Ovb1iV+C7MRhKicTyoNTc7oVcDDG0VW785d8CPqttDi50w=="
@@ -200,15 +205,17 @@ resource "oraclepaas_java_service_instance" "test" {
 		}
 	}
 	backups {
-		cloud_storage_container = "Storage-%s/acctest-%d"
+		cloud_storage_container = "%sacctest-%d"
 		auto_generate = true
 	}
-}`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt)
+}`, rInt, os.Getenv("OPC_STORAGE_URL"), rInt, rInt, os.Getenv("OPC_STORAGE_URL"), rInt)
 }
 
 func testAccJavaServiceInstanceUpdateShape(rInt int) string {
 	return fmt.Sprintf(`
 resource "oraclepaas_database_service_instance" "test" {
+	bring_your_own_license = true
+
 	name        = "test-service-instance-%d"
 	description = "test service instance"
 	edition = "EE"
@@ -227,13 +234,15 @@ resource "oraclepaas_database_service_instance" "test" {
 	}
   
 	backups {
-		cloud_storage_container = "Storage-%s/acctest-%d"
+		cloud_storage_container = "%sacctest-%d"
 		create_if_missing = true
 	}
 }
 
 resource "oraclepaas_java_service_instance" "test" {
-    name = "test-java-service-instance-%d"
+	bring_your_own_license = true
+
+    name = "tfinstance%d"
 	edition = "SUITE"
 	service_version = "12cRelease212"
 	ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3QxPp0BFK+ligB9m1FBcFELyvN5EdNUoSwTCe4Zv2b51OIO6wGM/dvTr/yj2ltNA/Vzl9tqf9AUBL8tKjAOk8uukip6G7rfigby+MvoJ9A8N0AC2te3TI+XCfB5Ty2M2OmKJjPOPCd6+OdzhT4cWnPOM+OAiX0DP7WCkO4Kx2kntf8YeTEurTCspOrRjGdo+zZkJxEydMt31asu9zYOTLmZPwLCkhel8vY6SnZhDTNSNkRzxZFv+Mh2VGmqu4SSxfVXr4tcFM6/MbAXlkA8jo+vHpy5sC79T4uNaPu2D8Ed7uC3yDdO3KRVdzZCfWHj4NjixdMs2CtK6EmyeVOPuiYb8/mcTybrb4F/CqA4jydAU6Ok0j0bIqftLyxNgfS31hR1Y3/GNPzly4+uUIgZqmsuVFh5h0L7qc1jMv7wRHphogo5snIp45t9jWNj8uDGzQgWvgbFP5wR7Nt6eS0kaCeGQbxWBDYfjQE801IrwhgMfmdmGw7FFveCH0tFcPm6td/8kMSyg/OewczZN3T62ETQYVsExOxEQl2t4SZ/yqklg+D9oGM+ILTmBRzIQ2m/xMmsbowiTXymjgVmvrWuc638X6dU2fKJ7As4hxs3rA1BA5sOt0XyqfHQhtYrL/Ovb1iV+C7MRhKicTyoNTc7oVcDDG0VW785d8CPqttDi50w=="
@@ -251,15 +260,17 @@ resource "oraclepaas_java_service_instance" "test" {
 		}
 	}
 	backups {
-		cloud_storage_container = "Storage-%s/acctest-%d"
+		cloud_storage_container = "%sacctest-%d"
 		auto_generate = true
 	}
-}`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt)
+}`, rInt, os.Getenv("OPC_STORAGE_URL"), rInt, rInt, os.Getenv("OPC_STORAGE_URL"), rInt)
 }
 
 func testAccJavaServiceInstanceOTD(rInt int) string {
 	return fmt.Sprintf(`
 resource "oraclepaas_database_service_instance" "test" {
+	bring_your_own_license = true
+
     name        = "test-service-instance-%d"
 	description = "test service instance"
 	edition = "EE"
@@ -276,13 +287,15 @@ resource "oraclepaas_database_service_instance" "test" {
 	  usable_storage = 15
 	}
 	backups {
-	  cloud_storage_container = "Storage-%s/acctest-%d"
+	  cloud_storage_container = "%sacctest-%d"
 	  create_if_missing = true
 	}
 }
 
 resource "oraclepaas_java_service_instance" "test" {
-    name = "test-java-service-instance-%d"
+	bring_your_own_license = true
+
+    name = "tfinstance%d"
 	edition = "SUITE"
 	service_version = "12cRelease212"
 	ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3QxPp0BFK+ligB9m1FBcFELyvN5EdNUoSwTCe4Zv2b51OIO6wGM/dvTr/yj2ltNA/Vzl9tqf9AUBL8tKjAOk8uukip6G7rfigby+MvoJ9A8N0AC2te3TI+XCfB5Ty2M2OmKJjPOPCd6+OdzhT4cWnPOM+OAiX0DP7WCkO4Kx2kntf8YeTEurTCspOrRjGdo+zZkJxEydMt31asu9zYOTLmZPwLCkhel8vY6SnZhDTNSNkRzxZFv+Mh2VGmqu4SSxfVXr4tcFM6/MbAXlkA8jo+vHpy5sC79T4uNaPu2D8Ed7uC3yDdO3KRVdzZCfWHj4NjixdMs2CtK6EmyeVOPuiYb8/mcTybrb4F/CqA4jydAU6Ok0j0bIqftLyxNgfS31hR1Y3/GNPzly4+uUIgZqmsuVFh5h0L7qc1jMv7wRHphogo5snIp45t9jWNj8uDGzQgWvgbFP5wR7Nt6eS0kaCeGQbxWBDYfjQE801IrwhgMfmdmGw7FFveCH0tFcPm6td/8kMSyg/OewczZN3T62ETQYVsExOxEQl2t4SZ/yqklg+D9oGM+ILTmBRzIQ2m/xMmsbowiTXymjgVmvrWuc638X6dU2fKJ7As4hxs3rA1BA5sOt0XyqfHQhtYrL/Ovb1iV+C7MRhKicTyoNTc7oVcDDG0VW785d8CPqttDi50w=="
@@ -300,7 +313,7 @@ resource "oraclepaas_java_service_instance" "test" {
 		}
 	}
 	backups {
-		cloud_storage_container = "Storage-%s/acctest-%d"
+		cloud_storage_container = "%sacctest-%d"
 		auto_generate = true
 	}
 	otd {
@@ -310,12 +323,14 @@ resource "oraclepaas_java_service_instance" "test" {
 		}
 		shape = "oc1m"
 	}
-}`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt)
+}`, rInt, os.Getenv("OPC_STORAGE_URL"), rInt, rInt, os.Getenv("OPC_STORAGE_URL"), rInt)
 }
 
 func testAccJavaServiceInstanceClusters(rInt int) string {
 	return fmt.Sprintf(`
 resource "oraclepaas_database_service_instance" "test" {
+	bring_your_own_license = true
+
 	name        = "test-service-instance-%d"
 	description = "test service instance"
 	edition = "EE"
@@ -332,13 +347,15 @@ resource "oraclepaas_database_service_instance" "test" {
 		usable_storage = 15
 	}
 	backups {
-		cloud_storage_container = "Storage-%s/acctest-%d"
+		cloud_storage_container = "%sacctest-%d"
 		create_if_missing = true
 	}
 }
 
 resource "oraclepaas_java_service_instance" "test" {
-    name = "test-java-service-instance-%d"
+	bring_your_own_license = true
+
+    name = "tfinstance%d"
 	edition = "SUITE"
 	service_version = "12cRelease212"
 	ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3QxPp0BFK+ligB9m1FBcFELyvN5EdNUoSwTCe4Zv2b51OIO6wGM/dvTr/yj2ltNA/Vzl9tqf9AUBL8tKjAOk8uukip6G7rfigby+MvoJ9A8N0AC2te3TI+XCfB5Ty2M2OmKJjPOPCd6+OdzhT4cWnPOM+OAiX0DP7WCkO4Kx2kntf8YeTEurTCspOrRjGdo+zZkJxEydMt31asu9zYOTLmZPwLCkhel8vY6SnZhDTNSNkRzxZFv+Mh2VGmqu4SSxfVXr4tcFM6/MbAXlkA8jo+vHpy5sC79T4uNaPu2D8Ed7uC3yDdO3KRVdzZCfWHj4NjixdMs2CtK6EmyeVOPuiYb8/mcTybrb4F/CqA4jydAU6Ok0j0bIqftLyxNgfS31hR1Y3/GNPzly4+uUIgZqmsuVFh5h0L7qc1jMv7wRHphogo5snIp45t9jWNj8uDGzQgWvgbFP5wR7Nt6eS0kaCeGQbxWBDYfjQE801IrwhgMfmdmGw7FFveCH0tFcPm6td/8kMSyg/OewczZN3T62ETQYVsExOxEQl2t4SZ/yqklg+D9oGM+ILTmBRzIQ2m/xMmsbowiTXymjgVmvrWuc638X6dU2fKJ7As4hxs3rA1BA5sOt0XyqfHQhtYrL/Ovb1iV+C7MRhKicTyoNTc7oVcDDG0VW785d8CPqttDi50w=="
@@ -365,8 +382,8 @@ resource "oraclepaas_java_service_instance" "test" {
 		}
 	}
 	backups {
-		cloud_storage_container = "Storage-%s/acctest-%d"
+		cloud_storage_container = "%sacctest-%d"
 		auto_generate = true
 	}
-}`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"), rInt)
+}`, rInt, os.Getenv("OPC_STORAGE_URL"), rInt, rInt, os.Getenv("OPC_STORAGE_URL"), rInt)
 }
