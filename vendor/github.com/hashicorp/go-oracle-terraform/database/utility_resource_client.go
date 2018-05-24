@@ -20,7 +20,7 @@ type UtilityClient struct {
 
 // UtilityResourceClient is a client to manage resources on an already created service instance
 type UtilityResourceClient struct {
-	*DatabaseClient
+	*Client
 	ContainerPath     string
 	ResourceRootPath  string
 	ServiceInstanceID string
@@ -28,11 +28,8 @@ type UtilityResourceClient struct {
 
 func (c *UtilityResourceClient) createResource(requestBody interface{}, responseBody interface{}) error {
 	_, err := c.executeRequest("POST", c.getContainerPath(c.ContainerPath), requestBody)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (c *UtilityResourceClient) updateResource(name string, requestBody interface{}, responseBody interface{}) error {
@@ -60,30 +57,17 @@ func (c *UtilityResourceClient) getResource(name string, responseBody interface{
 	return c.unmarshalResponseBody(resp, responseBody)
 }
 
-func (c *UtilityResourceClient) deleteResource(name string, body interface{}) error {
-	var objectPath string
-	if name != "" {
-		objectPath = c.getObjectPath(c.ResourceRootPath, name)
-	} else {
-		objectPath = c.ResourceRootPath
-	}
-	_, err := c.executeRequest("DELETE", objectPath, body)
+func (c *UtilityResourceClient) unmarshalResponseBody(resp *http.Response, iface interface{}) error {
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(resp.Body)
 	if err != nil {
 		return err
 	}
-
-	// No errors and no response body to write
-	return nil
-}
-
-func (c *UtilityResourceClient) unmarshalResponseBody(resp *http.Response, iface interface{}) error {
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(resp.Body)
 	c.client.DebugLogString(fmt.Sprintf("HTTP Resp (%d): %s", resp.StatusCode, buf.String()))
 	// JSON decode response into interface
 	var tmp interface{}
 	dcd := json.NewDecoder(buf)
-	if err := dcd.Decode(&tmp); err != nil {
+	if err = dcd.Decode(&tmp); err != nil {
 		return fmt.Errorf("Error decoding: %s\n%+v", err.Error(), resp)
 	}
 
