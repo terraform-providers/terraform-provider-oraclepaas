@@ -1,3 +1,4 @@
+## 1.2.0 (Unreleased)
 ## 1.1.1 (May 25, 2018)
 
 IMPROVEMENTS: 
