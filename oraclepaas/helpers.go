@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/go-oracle-terraform/java"
+	"github.com/hashicorp/go-oracle-terraform/mysql"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -77,5 +78,17 @@ func getJavaClient(meta interface{}) (*java.JavaClient, error) {
 	if client == nil {
 		return nil, fmt.Errorf("Java Client is not initialized. Make sure to use `java_endpoint` variable or `ORACLEPAAS_JAVA_ENDPOINT` env variable")
 	}
+	return client, nil
+}
+
+// A user may inadvertently call the mysql without passing in the required parameters to use that service
+// (because it's optional) so we check to make sure that the mysql client has been initialized
+func getMySQLClient(meta interface{}) (*mysql.MySQLClient, error) {
+	client := meta.(*OPAASClient).mysqlClient
+
+	if client == nil {
+		return nil, fmt.Errorf("MySQL Client is not initialized. Make sure to use `mysql_endpoint` variable or `OPC_MYSQL_ENDPOINT` env variable")
+	}
+
 	return client, nil
 }
