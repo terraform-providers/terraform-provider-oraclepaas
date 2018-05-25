@@ -1,8 +1,8 @@
-## 1.1.1 (Unreleased)
+## 1.1.1 (May 25, 2018)
 
 IMPROVEMENTS: 
 
-* oraclepaas_java_service_instance - Updated list of supported service versions [GH-23]
+* oraclepaas_java_service_instance - Updated list of supported service versions ([#23](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/23))
 
 ## 1.1.0 (May 25, 2018)
 
