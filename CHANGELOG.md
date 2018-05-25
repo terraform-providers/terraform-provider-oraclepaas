@@ -1,10 +1,10 @@
-## 1.1.0 (Unreleased)
+## 1.1.0 (May 25, 2018)
 
 FEATURES:
 
-* oraclepaas_database_service_instance - Scale up and down [GH-19]
+* oraclepaas_database_service_instance - Scale up and down ([#19](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/19))
 
-* oraclepaas_database_service_instance - Set desired state [GH-20]
+* oraclepaas_database_service_instance - Set desired state ([#20](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/20))
 
 ## 1.0.0 (March 23, 2018)
 
