@@ -29,19 +29,19 @@ const (
 	DBSSHKeyName          = "vmspublickey"
 )
 
-// Default poll interval value for Create
-const WaitForSSHKeyPollInterval = time.Duration(5 * time.Second)
+// WaitForSSHKeyPollInterval default poll interval value for Create
+const WaitForSSHKeyPollInterval = 5 * time.Second
 
-// Default timeout value for Create
+// WaitForSSHKeyTimeout is the default timeout value for Create
 // In testing this is anywhere between 10-20s depending on if it's a new SSH Key
 // or if it's an "updated" ssh key.
-const WaitForSSHKeyTimeout = time.Duration(30 * time.Second)
+const WaitForSSHKeyTimeout = 30 * time.Second
 
 // SSHKeys returns a UtilityClient for managing SSHKeys for a DBaaS Service Instance
-func (c *DatabaseClient) SSHKeys() *UtilityClient {
+func (c *Client) SSHKeys() *UtilityClient {
 	return &UtilityClient{
 		UtilityResourceClient: UtilityResourceClient{
-			DatabaseClient:   c,
+			Client:           c,
 			ContainerPath:    DBSSHKeyContainerPath,
 			ResourceRootPath: DBSSHKeyRootPath,
 		},
@@ -100,7 +100,7 @@ type CreateSSHKeyInput struct {
 	Timeout time.Duration `json:"-"`
 }
 
-// Creates an SSH Key with the supplied input struct.
+// CreateSSHKey creates an SSH Key with the supplied input struct.
 func (c *UtilityClient) CreateSSHKey(input *CreateSSHKeyInput) (*SSHKeyInfo, error) {
 	if input.ServiceInstanceID != "" {
 		c.ServiceInstanceID = input.ServiceInstanceID
@@ -122,7 +122,7 @@ func (c *UtilityClient) CreateSSHKey(input *CreateSSHKeyInput) (*SSHKeyInfo, err
 	}
 
 	// Can leave ServiceInstanceID nil here, it will be the same as the current client's
-	result, err := c.WaitForSSHKeyReady(&GetSSHKeyInput{}, pollInterval, timeout)
+	result, err := c.waitForSSHKeyReady(&GetSSHKeyInput{}, pollInterval, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ type GetSSHKeyInput struct {
 	ServiceInstanceID string `json:"-"`
 }
 
-// Get's information on a single SSH Key
+// GetSSHKey gets information on a single SSH Key
 func (c *UtilityClient) GetSSHKey(input *GetSSHKeyInput) (*SSHKeyInfo, error) {
 	if input.ServiceInstanceID != "" {
 		c.ServiceInstanceID = input.ServiceInstanceID
@@ -156,10 +156,7 @@ func (c *UtilityClient) GetSSHKey(input *GetSSHKeyInput) (*SSHKeyInfo, error) {
 	return &sshKey, nil
 }
 
-// No Delete, or Update currently.
-// TODO: Add Delete and Update for SSH Keys when they are available in the API.
-
-func (c *UtilityClient) WaitForSSHKeyReady(input *GetSSHKeyInput, pollInterval, timeout time.Duration) (*SSHKeyInfo, error) {
+func (c *UtilityClient) waitForSSHKeyReady(input *GetSSHKeyInput, pollInterval, timeout time.Duration) (*SSHKeyInfo, error) {
 	var info *SSHKeyInfo
 	var getErr error
 	err := c.client.WaitFor("sshkey to be ready", pollInterval, timeout, func() (bool, error) {

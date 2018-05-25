@@ -476,6 +476,15 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"desired_state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(database.ServiceInstanceLifecycleStateStop),
+					string(database.ServiceInstanceLifecycleStateRestart),
+					string(database.ServiceInstanceLifecycleStateStart),
+				}, true),
+			},
 			"cloud_storage_container": {
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -502,6 +511,10 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Computed: true,
 			},
 			"identity_domain": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -643,6 +656,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("cloud_storage_container", result.CloudStorageContainer)
 	d.Set("compute_site_name", result.ComputeSiteName)
 	d.Set("connect_descriptor", result.ConnectDescriptor)
+	d.Set("desired_state", d.Get("desired_state"))
 	d.Set("dbaas_monitor_url", result.DBAASMonitorURL)
 	d.Set("edition", result.Edition)
 	d.Set("em_url", result.EMURL)
@@ -658,6 +672,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("uri", result.URI)
 	d.Set("shape", result.Shape)
 	d.Set("sid", result.SID)
+	d.Set("status", result.Status)
 	d.Set("subnet", result.Subnet)
 	d.Set("subscription_type", result.SubscriptionType)
 	d.Set("timezone", result.Timezone)
@@ -710,7 +725,37 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 }
 
 func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := updateDefaultAccessRules(d, meta)
+	dbClient, err := getDatabaseClient(meta)
+	if err != nil {
+		return err
+	}
+	client := dbClient.ServiceInstanceClient()
+
+	if d.HasChange("desired_state") {
+		updateInput := &database.DesiredStateInput{
+			Name:           d.Id(),
+			LifecycleState: database.ServiceInstanceLifecycleState(d.Get("desired_state").(string)),
+		}
+
+		_, err := client.UpdateDesiredState(updateInput)
+		if err != nil {
+			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
+		}
+	}
+
+	if old, new := d.GetChange("shape"); old.(string) != "" && old.(string) != new.(string) {
+		updateInput := &database.UpdateServiceInstanceInput{
+			Name:  d.Id(),
+			Shape: database.ServiceInstanceShape(new.(string)),
+		}
+
+		_, err := client.UpdateServiceInstance(updateInput)
+		if err != nil {
+			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
+		}
+	}
+
+	err = updateDefaultAccessRules(d, meta)
 	if err != nil {
 		return fmt.Errorf("Unable to update Default Access Rules: %+v", err)
 	}
