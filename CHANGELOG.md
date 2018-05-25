@@ -2,7 +2,7 @@
 
 FEATURES:
 
-* oraclepaas_database_service_instance - Can now scale up and down [GH-19]
+* oraclepaas_database_service_instance - Scale up and down [GH-19]
 
 * oraclepaas_database_service_instance - Set desired state [GH-20]
 
