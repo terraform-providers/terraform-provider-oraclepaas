@@ -83,38 +83,6 @@ func TestAccOraclePAASJavaServiceInstance_Clusters(t *testing.T) {
 	})
 }
 
-func TestAccOraclePAASJavaServiceInstance_UpdateShape(t *testing.T) {
-	ri := acctest.RandInt()
-	config := testAccJavaServiceInstanceBasic(ri)
-	config2 := testAccJavaServiceInstanceUpdateShape(ri)
-	resourceName := "oraclepaas_java_service_instance.test"
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckJavaServiceInstanceDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckJavaServiceInstanceExists,
-					resource.TestCheckResourceAttr(
-						resourceName, "level", "PAAS"),
-					resource.TestCheckResourceAttr(
-						resourceName, "weblogic_server.0.shape", "oc3"),
-				),
-			},
-			{
-				Config: config2,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckJavaServiceInstanceExists,
-					resource.TestCheckResourceAttr(
-						resourceName, "weblogic_server.0.shape", "oc5"),
-				),
-			},
-		},
-	})
-}
-
 func testAccCheckJavaServiceInstanceExists(s *terraform.State) error {
 	client := testAccProvider.Meta().(*OPAASClient).javaClient.ServiceInstanceClient()
 
