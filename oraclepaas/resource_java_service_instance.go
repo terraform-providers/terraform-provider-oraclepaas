@@ -59,6 +59,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				ValidateFunc: validation.StringInSlice([]string{
+					string(java.ServiceInstanceMiddlewareVersion12c213),
 					string(java.ServiceInstanceMiddlewareVersion12c212),
 					string(java.ServiceInstanceMiddlewareVersion12cR3),
 					string(java.ServiceInstanceMiddlewareVersion11gR1),
