@@ -866,6 +866,7 @@ func expandOTDConfig(d *schema.ResourceData, input *java.CreateServiceInstanceIn
 		otdInfo.LoadBalancingPolicy = java.ServiceInstanceLoadBalancingPolicy(v.(string))
 	}
 
+	input.ProvisionOTD = true
 	input.Components.OTD = otdInfo
 }
 
