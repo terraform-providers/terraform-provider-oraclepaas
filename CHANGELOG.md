@@ -1,4 +1,9 @@
-## 1.2.0 (Unreleased)
+## 1.1.1 (Unreleased)
+
+IMPROVEMENTS: 
+
+* oraclepaas_java_service_instance - Updated list of supported service versions [GH-23]
+
 ## 1.1.0 (May 25, 2018)
 
 FEATURES:
