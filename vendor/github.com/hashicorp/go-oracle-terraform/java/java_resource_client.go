@@ -11,27 +11,14 @@ import (
 
 // ResourceClient is an AuthenticatedClient with some additional information about the resources to be addressed.
 type ResourceClient struct {
-	*JavaClient
+	*Client
 	ContainerPath    string
 	ResourceRootPath string
 }
 
 func (c *ResourceClient) createResource(requestBody interface{}, responseBody interface{}) error {
 	_, err := c.executeRequest("POST", c.getContainerPath(c.ContainerPath), requestBody)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *ResourceClient) updateResource(name string, requestBody interface{}, responseBody interface{}) error {
-	_, err := c.executeRequest("PUT", c.getObjectPath(c.ResourceRootPath, name), requestBody)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (c *ResourceClient) getResource(name string, responseBody interface{}) error {
@@ -49,20 +36,9 @@ func (c *ResourceClient) getResource(name string, responseBody interface{}) erro
 	return c.unmarshalResponseBody(resp, responseBody)
 }
 
-func (c *ResourceClient) deleteResource(name string) error {
-	var objectPath string
-	if name != "" {
-		objectPath = c.getObjectPath(c.ResourceRootPath, name)
-	} else {
-		objectPath = c.ResourceRootPath
-	}
-	_, err := c.executeRequest("DELETE", objectPath, nil)
-	if err != nil {
-		return err
-	}
-
-	// No errors and no response body to write
-	return nil
+func (c *ResourceClient) updateResource(name, path, method string, requestBody interface{}) error {
+	_, err := c.executeRequest(method, fmt.Sprintf("%s%s", c.getObjectPath(c.ResourceRootPath, name), path), requestBody)
+	return err
 }
 
 // ServiceInstance needs a PUT and a body to be destroyed
@@ -74,27 +50,26 @@ func (c *ResourceClient) deleteInstanceResource(name string, requestBody interfa
 		objectPath = c.ResourceRootPath
 	}
 	_, err := c.executeRequest("PUT", objectPath, requestBody)
-	if err != nil {
-		return err
-	}
-
-	// No errors and no response body to write
-	return nil
+	return err
 }
 
 func (c *ResourceClient) unmarshalResponseBody(resp *http.Response, iface interface{}) error {
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(resp.Body)
+	_, err := buf.ReadFrom(resp.Body)
+	if err != nil {
+		return err
+	}
 	c.client.DebugLogString(fmt.Sprintf("HTTP Resp (%d): %s", resp.StatusCode, buf.String()))
 	// JSON decode response into interface
 	var tmp interface{}
 	dcd := json.NewDecoder(buf)
-	if err := dcd.Decode(&tmp); err != nil {
+	if err = dcd.Decode(&tmp); err != nil {
 		return fmt.Errorf("Error decoding: %s\n%+v", err.Error(), resp)
 	}
 
 	// Use mapstructure to weakly decode into the resulting interface
-	msdcd, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+	var msdcd *mapstructure.Decoder
+	msdcd, err = mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
 		Result:           iface,
 		TagName:          "json",

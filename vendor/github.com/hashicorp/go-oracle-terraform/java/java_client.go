@@ -8,18 +8,18 @@ import (
 	"github.com/hashicorp/go-oracle-terraform/opc"
 )
 
-const AUTH_HEADER = "Authorization"
-const TENANT_HEADER = "X-ID-TENANT-NAME"
-const JAVA_QUALIFIED_NAME = "%s%s/%s"
+const authHeader = "Authorization"
+const tenantHeader = "X-ID-TENANT-NAME"
 
 // Client represents an authenticated java client, with compute credentials and an api client.
-type JavaClient struct {
+type Client struct {
 	client     *client.Client
 	authHeader *string
 }
 
-func NewJavaClient(c *opc.Config) (*JavaClient, error) {
-	javaClient := &JavaClient{}
+// NewJavaClient returns a new java client
+func NewJavaClient(c *opc.Config) (*Client, error) {
+	javaClient := &Client{}
 	client, err := client.NewClient(c)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func NewJavaClient(c *opc.Config) (*JavaClient, error) {
 	return javaClient, nil
 }
 
-func (c *JavaClient) executeRequest(method, path string, body interface{}) (*http.Response, error) {
+func (c *Client) executeRequest(method, path string, body interface{}) (*http.Response, error) {
 	reqBody, err := c.client.MarshallRequestBody(body)
 	if err != nil {
 		return nil, err
@@ -52,8 +52,8 @@ func (c *JavaClient) executeRequest(method, path string, body interface{}) (*htt
 	c.client.DebugLogString(debugReqString)
 
 	// Set the authentiation headers
-	req.Header.Add(AUTH_HEADER, *c.authHeader)
-	req.Header.Add(TENANT_HEADER, *c.client.IdentityDomain)
+	req.Header.Add(authHeader, *c.authHeader)
+	req.Header.Add(tenantHeader, *c.client.IdentityDomain)
 
 	resp, err := c.client.ExecuteRequest(req)
 	if err != nil {
@@ -62,10 +62,10 @@ func (c *JavaClient) executeRequest(method, path string, body interface{}) (*htt
 	return resp, nil
 }
 
-func (c *JavaClient) getContainerPath(root string) string {
+func (c *Client) getContainerPath(root string) string {
 	return fmt.Sprintf(root, *c.client.IdentityDomain)
 }
 
-func (c *JavaClient) getObjectPath(root, name string) string {
+func (c *Client) getObjectPath(root, name string) string {
 	return fmt.Sprintf(root, *c.client.IdentityDomain, name)
 }

@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -56,9 +55,4 @@ func testAccPreCheck(t *testing.T) {
 	if client.javaClient == nil {
 		t.Fatalf("Java Client is nil. Make sure your Oracle Cloud Account has access to the Java Cloud")
 	}
-}
-
-type OPAASResourceState struct {
-	*database.DatabaseClient
-	*terraform.InstanceState
 }
