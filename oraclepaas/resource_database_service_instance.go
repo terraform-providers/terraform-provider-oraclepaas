@@ -460,7 +460,6 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 			"desired_state": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  string(database.ServiceInstanceLifecycleStateStart),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(database.ServiceInstanceLifecycleStateStop),
 					string(database.ServiceInstanceLifecycleStateRestart),
