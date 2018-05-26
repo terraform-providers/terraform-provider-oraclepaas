@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-/** Use these variables for OCI Testing. Fill in the appropriate values 
+/** Use these variables for OCI Testing. Fill in the appropriate values
 var (
 	oci_region              = ""
 	oci_availability_domain = ""
@@ -104,7 +104,7 @@ func TestAccOPAASMySQLServiceInstance_OCI(t *testing.T) {
 		},
 	})
 }
-/*
+*/
 func testAccCheckMySQLServiceInstanceExists(s *terraform.State) error {
 	client := testAccProvider.Meta().(*OPAASClient).mysqlClient.ServiceInstanceClient()
 
