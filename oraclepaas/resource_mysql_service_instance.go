@@ -366,6 +366,10 @@ func getServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, erro
 		VMPublicKeyText:   d.Get("ssh_public_key").(string),
 	}
 
+	if value, ok := d.GetOk("availability_domain"); ok {
+		input.AvailabilityDomain = value.(string)
+	}
+
 	if value, ok := d.GetOk("metering_frequency"); ok {
 		input.MeteringFrequency = value.(string)
 	}
@@ -505,6 +509,10 @@ func getComponentParameters(d *schema.ResourceData) (mysql.ComponentParameters, 
 
 	if val, ok := attrs["source_service_name"]; ok && val != "" {
 		MysqlInput.SourceServiceName = val.(string)
+	}
+
+	if val, ok := attrs["subnet"]; ok && val != "" {
+		MysqlInput.Subnet = val.(string)
 	}
 
 	result.Mysql = *MysqlInput
