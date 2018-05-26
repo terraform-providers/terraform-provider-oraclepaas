@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -61,9 +60,4 @@ func testAccPreCheck(t *testing.T) {
 	if client.mysqlClient == nil {
 		t.Fatalf("MySQL Client is nil. Make sure your Oracle Cloud Account has access to the MySQL Cloud")
 	}
-}
-
-type OPAASResourceState struct {
-	*database.DatabaseClient
-	*terraform.InstanceState
 }
