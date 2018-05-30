@@ -17,8 +17,8 @@ import (
 	"github.com/hashicorp/go-oracle-terraform/opc"
 )
 
-const DEFAULT_MAX_RETRIES = 1
-const USER_AGENT_HEADER = "User-Agent"
+const defaultMaxRetries = 1
+const userAgentHeader = "User-Agent"
 
 var (
 	// defaultUserAgent builds a string containing the Go version, system archityecture and OS,
@@ -44,6 +44,7 @@ type Client struct {
 	loglevel       opc.LogLevelType
 }
 
+// NewClient returns a new client
 func NewClient(c *opc.Config) (*Client, error) {
 	// First create a client
 	client := &Client{
@@ -75,7 +76,7 @@ func NewClient(c *opc.Config) (*Client, error) {
 
 	// Default max retries if unset
 	if c.MaxRetries == nil {
-		client.MaxRetries = opc.Int(DEFAULT_MAX_RETRIES)
+		client.MaxRetries = opc.Int(defaultMaxRetries)
 	}
 
 	// Protect against any nil http client
@@ -86,7 +87,7 @@ func NewClient(c *opc.Config) (*Client, error) {
 	return client, nil
 }
 
-// Marshalls the request body and returns the resulting byte slice
+// MarshallRequestBody marshalls the request body and returns the resulting byte slice
 // This is split out of the BuildRequestBody method so as to allow
 // the developer to print a debug string of the request body if they
 // should so choose.
@@ -99,7 +100,7 @@ func (c *Client) MarshallRequestBody(body interface{}) ([]byte, error) {
 	return json.Marshal(body)
 }
 
-// Builds an HTTP Request that accepts a pre-marshaled body parameter as a raw byte array
+// BuildRequestBody builds an HTTP Request that accepts a pre-marshaled body parameter as a raw byte array
 // Returns the raw HTTP Request and any error occured
 func (c *Client) BuildRequestBody(method, path string, body []byte) (*http.Request, error) {
 	// Parse URL Path
@@ -119,13 +120,13 @@ func (c *Client) BuildRequestBody(method, path string, body []byte) (*http.Reque
 		return nil, err
 	}
 	// Adding UserAgent Header
-	req.Header.Add(USER_AGENT_HEADER, *c.UserAgent)
+	req.Header.Add(userAgentHeader, *c.UserAgent)
 
 	return req, nil
 }
 
-// Build a new HTTP request that doesn't marshall the request body
-func (c *Client) BuildNonJSONRequest(method, path string, body io.ReadSeeker) (*http.Request, error) {
+// BuildNonJSONRequest builds a new HTTP request that doesn't marshall the request body
+func (c *Client) BuildNonJSONRequest(method, path string, body io.Reader) (*http.Request, error) {
 	// Parse URL Path
 	urlPath, err := url.Parse(path)
 	if err != nil {
@@ -138,12 +139,12 @@ func (c *Client) BuildNonJSONRequest(method, path string, body io.ReadSeeker) (*
 		return nil, err
 	}
 	// Adding UserAgentHeader
-	req.Header.Add(USER_AGENT_HEADER, *c.UserAgent)
+	req.Header.Add(userAgentHeader, *c.UserAgent)
 
 	return req, nil
 }
 
-// Builds a new HTTP Request for a multipart form request
+// BuildMultipartFormRequest builds a new HTTP Request for a multipart form request
 func (c *Client) BuildMultipartFormRequest(method, path string, files map[string]string, parameters map[string]interface{}) (*http.Request, error) {
 	urlPath, err := url.Parse(path)
 	if err != nil {
@@ -153,30 +154,44 @@ func (c *Client) BuildMultipartFormRequest(method, path string, files map[string
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 
+	var (
+		file         *os.File
+		fileContents []byte
+		fi           os.FileInfo
+		part         io.Writer
+	)
 	for fileName, filePath := range files {
 		// Open the file
-		file, err := os.Open(filePath)
+		file, err = os.Open(filePath)
 		if err != nil {
 			return nil, err
 		}
-		defer file.Close()
+		defer func() {
+			fileErr := file.Close()
+			if fileErr != nil {
+				err = fileErr
+			}
+		}()
 
 		// Read the file contents
-		fileContents, err := ioutil.ReadAll(file)
+		fileContents, err = ioutil.ReadAll(file)
 		if err != nil {
 			return nil, err
 		}
 
 		// Write out the file information and contents
-		fi, err := file.Stat()
+		fi, err = file.Stat()
 		if err != nil {
 			return nil, err
 		}
-		part, err := writer.CreateFormFile(fileName, fi.Name())
+		part, err = writer.CreateFormFile(fileName, fi.Name())
 		if err != nil {
 			return nil, err
 		}
-		part.Write(fileContents)
+		_, err = part.Write(fileContents)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Add additional parameters to the writer
@@ -196,7 +211,7 @@ func (c *Client) BuildMultipartFormRequest(method, path string, files map[string
 	return req, err
 }
 
-// This method executes the http.Request from the BuildRequest method.
+// ExecuteRequest executes the http.Request from the BuildRequest method.
 // It is split up to add additional authentication that is Oracle API dependent.
 func (c *Client) ExecuteRequest(req *http.Request) (*http.Response, error) {
 	// Execute request with supplied client
@@ -218,7 +233,10 @@ func (c *Client) ExecuteRequest(req *http.Request) (*http.Response, error) {
 	// error fields that are possible to be returned we can have stricter error types.
 	if resp.Body != nil {
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
+		_, err = buf.ReadFrom(resp.Body)
+		if err != nil {
+			return resp, nil
+		}
 		oracleErr.Message = buf.String()
 	}
 
@@ -234,7 +252,7 @@ func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
 	// Double check maxRetries is not nil
 	var retries int
 	if c.MaxRetries == nil {
-		retries = DEFAULT_MAX_RETRIES
+		retries = defaultMaxRetries
 	} else {
 		retries = *c.MaxRetries
 	}
@@ -253,7 +271,10 @@ func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
 		}
 
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
+		_, err = buf.ReadFrom(resp.Body)
+		if err != nil {
+			return resp, err
+		}
 		errMessage = buf.String()
 		statusCode = resp.StatusCode
 		c.DebugLogString(fmt.Sprintf("Encountered HTTP (%d) Error: %s", statusCode, errMessage))
@@ -273,16 +294,15 @@ func (c *Client) formatURL(path *url.URL) string {
 	return c.APIEndpoint.ResolveReference(path).String()
 }
 
-// Retry function
+// WaitFor - Retry function
 func (c *Client) WaitFor(description string, pollInterval, timeout time.Duration, test func() (bool, error)) error {
-	tick := time.Tick(1 * time.Second)
+	tick := time.NewTicker(1 * time.Second)
 
 	timeoutSeconds := int(timeout.Seconds())
 	pollIntervalSeconds := int(pollInterval.Seconds())
 
 	for i := 0; i < timeoutSeconds; i += pollIntervalSeconds {
-		select {
-		case <-tick:
+		for range tick.C {
 			completed, err := test()
 			if err != nil || completed {
 				return err
@@ -294,7 +314,7 @@ func (c *Client) WaitFor(description string, pollInterval, timeout time.Duration
 	return fmt.Errorf("Timeout after %d seconds waiting for %s", timeoutSeconds, description)
 }
 
-// Used to determine if the checked resource was found or not.
+// WasNotFoundError Used to determine if the checked resource was found or not.
 func WasNotFoundError(e error) bool {
 	err, ok := e.(*opc.OracleError)
 	if ok {

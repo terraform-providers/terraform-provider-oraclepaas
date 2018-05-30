@@ -9,7 +9,8 @@ import (
 	"github.com/hashicorp/go-oracle-terraform/opc"
 )
 
-func GetDatabaseTestClient(c *opc.Config) (*DatabaseClient, error) {
+// GetDatabaseTestClient obtains a client for testing purposes
+func GetDatabaseTestClient(c *opc.Config) (*Client, error) {
 	// Build up config with default values if omitted
 
 	if c.IdentityDomain == nil {
