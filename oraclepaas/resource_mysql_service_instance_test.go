@@ -10,13 +10,12 @@ import (
 	"testing"
 )
 
-/** Use these variables for OCI Testing. Fill in the appropriate values
+/** Use these variables for OCI Testing. Fill in the appropriate values */
 var (
 	oci_region              = ""
 	oci_availability_domain = ""
-	oci_subnet = ""
+	oci_subnet              = ""
 )
-*/
 
 func TestAccOraclePAASMySQLServiceInstance_EnterpriseMonitor(t *testing.T) {
 
@@ -208,7 +207,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 }`, rInt, container)
 }
 
-func testAccMtySQLServiceInstanceOCI(rInt int) string {
+func testAccMySQLServiceInstanceOCI(rInt int) string {
 
 	return fmt.Sprintf(`
 resource "oraclepaas_mysql_service_instance" "test" {
@@ -231,7 +230,6 @@ resource "oraclepaas_mysql_service_instance" "test" {
 		mysql_collation                      = "utf8_general_ci"
 	    enterprise_monitor                   = false		
 		subnet                               = "%s"
-
 	}
 }`, rInt, oci_region, oci_availability_domain, oci_subnet)
 }
