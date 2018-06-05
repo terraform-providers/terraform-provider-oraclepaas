@@ -87,7 +87,7 @@ func getMySQLClient(meta interface{}) (*mysql.MySQLClient, error) {
 	client := meta.(*OPAASClient).mysqlClient
 
 	if client == nil {
-		return nil, fmt.Errorf("MySQL Client is not initialized. Make sure to use `mysql_endpoint` variable or `OPC_MYSQL_ENDPOINT` env variable")
+		return nil, fmt.Errorf("MySQL Client is not initialized. Make sure to use `mysql_endpoint` variable or `ORACLEPAAS_MYSQL_ENDPOINT` env variable")
 	}
 
 	return client, nil
