@@ -109,7 +109,7 @@ only available for OCI.
 
 * `source_service_name` - (Optional) Name of the existing Oracle Java Cloud Service instance that has the snapshot from which you are creating a clone.
 
-* `subnet` - (Optional) A subdivision of a cloud network that is set up in the data center as specified in availabilityDomain.
+* `subnet` - (Optional) A subdivision of a cloud network that is set up in the data center as specified in `availability_domain`.
 This is only available for OCI.
 
 * `use_identity_service` - (Optional) Flag that specifies whether to use Oracle Identity Cloud Service (true) or the local WebLogic identity store
@@ -136,6 +136,8 @@ and Load Balancer Console.
 
 * `ip_network` - (Optional) The three-part name of a custom IP network to attach this service instance to. For example: `/Compute-identity_domain/user/object`.
 
+* `assign_public_ip` - (Optional) Flag that specifies whether to assign (true) or not assign (false) public IP addresses to the nodes in your service instance. The default is `true`, which means any node added during service instance provisioning, or later added as part of a scaling operation, will have a public IP address assigned to it. This attribute is only applicable when provisioning an Oracle Java Cloud Service instance in a region on Oracle Cloud Infrastructure Classic, and a custom IP network is specified in `ip_network`
+
 * `region` - (Optional) Name of the region where the Oracle Java Cloud Service instance is to be provisioned.
 This attribute is only applicable to accounts where regions are supported. A region name must be specified if you
 want to use ipReservations or ipNetwork.
@@ -148,7 +150,7 @@ instance cannot be reached to delete the database schemas. Default value is `tru
 
 Backups supports the following:
 
-* `cloud_storage_container` - (Required) Name of the Oracle Storage Cloud Service container used to provide storage for your service instance backups. Use the following format to specify the container name: `<storageservicename>-<storageidentitydomain>/<containername>`
+* `cloud_storage_container` - (Required) Name of the Oracle Storage Cloud Service container used to provide storage for your service instance backups. Use the following format to specify the container name on OCI Object Storage `https://swiftobjectstorage.<region>.oraclecloud.com/v1/<tenancy>/<bucketname>` or for Oracle Cloud Infrastructure Classic user the format: `<storageservicename>-<storageidentitydomain>/<containername>`
 
 * `cloud_storage_username` - (Optional) Username for the Oracle Storage Cloud Service administrator. If left unspecified,
 the username for Oracle Public Cloud is used.

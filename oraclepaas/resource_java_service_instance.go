@@ -613,6 +613,11 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"assign_public_ip": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
 			"bring_your_own_license": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -685,6 +690,9 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	}
 	if val, ok := d.GetOk("ip_network"); ok {
 		input.IPNetwork = val.(string)
+	}
+	if val, ok := d.GetOk("assign_public_ip"); ok {
+		input.AssignPublicIP = val.(bool)
 	}
 	if val, ok := d.GetOk("region"); ok {
 		input.Region = val.(string)
