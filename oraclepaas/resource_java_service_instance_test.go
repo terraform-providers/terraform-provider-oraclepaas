@@ -87,7 +87,7 @@ func TestAccOraclePAASJavaServiceIsntance_UpdateShape(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccJavaServiceInstanceBasic(ri)
 	config2 := testAccJavaServiceInstanceUpdateShape(ri)
-	resourceName := "oraclepaas_java_service_instance_.test"
+	resourceName := "oraclepaas_java_service_instance.test"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
