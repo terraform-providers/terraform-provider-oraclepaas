@@ -326,7 +326,7 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 		return fmt.Errorf("[Error] : Error while extracting MySQL Service Instance information : %s", err)
 	}
 
-	input.ComponentParameters, err = expandComponentParametesr(d)
+	input.ComponentParameters, err = expandComponentParameters(d)
 	if err != nil {
 		return fmt.Errorf("[Error] : Error while extracting MySQL component information from TF file. : %s", err)
 	}
@@ -451,7 +451,7 @@ func expandEM(input map[string]interface{}, parameter *mysql.MySQLParameters) er
 	return nil
 }
 
-func expandComponentParametesr(d *schema.ResourceData) (mysql.ComponentParameters, error) {
+func expandComponentParameters(d *schema.ResourceData) (mysql.ComponentParameters, error) {
 
 	result := mysql.ComponentParameters{}
 	mysqlConfiguration := d.Get("mysql_configuration").([]interface{})
@@ -562,14 +562,14 @@ func resourceOraclePAASMySQLServiceInstanceRead(d *schema.ResourceData, meta int
 	d.Set("creator", result.Creator)
 	d.Set("creation_date", result.CreationDate)
 
-	if err := updateMySQLAttributesFromAttachments(d, result.Components.Mysql); err != nil {
+	if err := flattenMySQLAttributesFromAttachments(d, result.Components.Mysql); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func updateMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo mysql.MysqlInfo) error {
+func flattenMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo mysql.MysqlInfo) error {
 
 	result := make([]map[string]interface{}, 0)
 
