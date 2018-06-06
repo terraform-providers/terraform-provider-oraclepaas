@@ -106,7 +106,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 				Sensitive: true,
 			},
 
-			"cloud_storage_configuration": {
+			"backups": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -378,11 +378,11 @@ Expands and reads the values in the Cloud_Storage list specified in the terrafor
 */
 func expandCloudStorage(d *schema.ResourceData, parameter *mysql.ServiceParameters) error {
 
-	cloudStorageInfo := d.Get("cloud_storage_configuration").([]interface{})
+	cloudStorageInfo := d.Get("backups").([]interface{})
 
 	if parameter.BackupDestination == string(mysql.ServiceInstanceBackupDestinationBoth) || parameter.BackupDestination == string(mysql.ServiceInstanceBackupDestinationOSS) {
 		if len(cloudStorageInfo) == 0 {
-			return fmt.Errorf("`cloud_storage_configuration` must be set if `backup_destination` is set to `OSS` or `BOTH`")
+			return fmt.Errorf("`backups` must be set if `backup_destination` is set to `OSS` or `BOTH`")
 		}
 	}
 

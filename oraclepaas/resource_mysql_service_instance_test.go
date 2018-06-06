@@ -10,13 +10,6 @@ import (
 	"testing"
 )
 
-/** Use these variables for OCI Testing. Fill in the appropriate values */
-var (
-	oci_region              = ""
-	oci_availability_domain = ""
-	oci_subnet              = ""
-)
-
 func TestAccOraclePAASMySQLServiceInstance_EnterpriseMonitor(t *testing.T) {
 
 	ri := acctest.RandInt()
@@ -33,7 +26,7 @@ func TestAccOraclePAASMySQLServiceInstance_EnterpriseMonitor(t *testing.T) {
 					testAccCheckMySQLServiceInstanceExists,
 					resource.TestCheckResourceAttr(
 						resourceName, "description", "Test Service Instance with EM"),
-					resource.TestCheckResourceAttr(					
+					resource.TestCheckResourceAttr(
 						resourceName, "mysql_configuration.0.enterprise_monitor_configuration.#", "1"),
 				),
 			},
@@ -71,17 +64,28 @@ func TestAccOPAASMySQLServiceInstance_CloudStorage(t *testing.T) {
 	})
 }
 
-/* Test with OCI. Fill in the variables at the top before running
+/* Test with OCI.
+ */
 func TestAccOPAASMySQLServiceInstance_OCI(t *testing.T) {
 
-	storageEndpoint := os.Getenv("OPC_STORAGE_ENDPOINT")
-	if storageEndpoint == "" {
-		t.Skip("You will need to set the storage endpoint environment parameter `OPC_STORAGE_ENDPOINT` to run this test. Skipping...")
+	oci_region := os.Getenv("TEST_OCI_REGION")
+	oci_availability_domain := os.Getenv("TEST_OCI_AD")
+	oci_subnet := os.Getenv("TEST_OCI_SUBNET")
+
+	if oci_region == "" {
+		t.Skip("Missing Environment Parameter `TEST_OCI_REGION`. You will need to set the environment parameters `TEST_OCI_REGION`, `TEST_OCI_AD` and `TEST_OCI_SUBNET` to run this test.")
+	}
+
+	if oci_availability_domain == "" {
+		t.Skip("Missing Environment Parameter `TEST_OCI_AD`. You will need to set the environment parameters `TEST_OCI_REGION`, `TEST_OCI_AD` and `TEST_OCI_SUBNET` to run this test.")
+	}
+
+	if oci_subnet == "" {
+		t.Skip("Missing Environment Parameter `TEST_OCI_SUBNET`. You will need to set the environment parameters `TEST_OCI_REGION`, `TEST_OCI_AD` and `TEST_OCI_SUBNET` to run this test.")
 	}
 
 	ri := acctest.RandInt()
-	config := testAccMtySQLServiceInstanceOCI(ri)
-
+	config := testAccMySQLServiceInstanceOCI(ri, oci_region, oci_availability_domain, oci_subnet)
 	t.Logf("Config : %s", config)
 
 	resourceName := "oraclepaas_mysql_service_instance.test"
@@ -103,7 +107,7 @@ func TestAccOPAASMySQLServiceInstance_OCI(t *testing.T) {
 		},
 	})
 }
-*/
+
 func testAccCheckMySQLServiceInstanceExists(s *terraform.State) error {
 	client := testAccProvider.Meta().(*OPAASClient).mysqlClient.ServiceInstanceClient()
 
@@ -149,29 +153,28 @@ func testAccCheckMySQLServiceInstanceDestroy(s *terraform.State) error {
 func testMySQLServiceInstanceEnterpriseMonitor(rInt int) string {
 	return fmt.Sprintf(`
 resource "oraclepaas_mysql_service_instance" "test" {
-    description		= "Test Service Instance with EM"
-    name                    = "TestInst%d"
-    ssh_public_key          = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC0Pspsfu8lUTxILGf+dJnTTbIeFZrL/NKaQNNEvH9jF9aXcr347C5dKlu45LE2jTB8OfjtaExOznn7kKiOErwWPJUzDncDDsmUacDzs5KGbDBGQb6zxEMyYgYCKDiru5V24CrZqam+3QP5AurLopD3JaYmZSikKgP+syu16jBs3WzRLvGzDknIkrUk6t7XjzJ5X/wgMTqepjDDyn9NJ3nG5l4iQe7ULgAbfnRjTM3pRQZ5EM67iN3jc+cIFeNsEwqnxb9ZCJ7avb+Yqdcm/7A5tlX+rMwnTYYCPF/j8bgFdHuO9VHEiQHkM7FuRvZGWkXCryyg9iLM+myG5XdVa3Z2IsfBx3qIfxKMcWsHIk5mmDvWIDbgvBne6JSPKhkB7qM6F10pJSVvt08tGwmlTxZZJPKCkpd0nrfrVChMdMr9yRoYH46bqwMbPFCffNeVkJfj4IMlSSU+A9RGLLEnkdv+Xk3yCS+8RcNA6Zilv9VnJm4hBEJ2LsDVZfwqTvUAeB4evpOCMS+v4YKn/w+R4cB/+SdYDtifBwKW8TYk4ZK3J4wHa6XAI4u3b9C0bIfUmXZs36Gyy4MArtg6QGqrmTzYMa5eI2uB7BnO0JM/Moref8vvQYvGjbnkC5G/yCoLswbt477Gn+Ih96PyZ81qMmTv8qE9S3F3qCqkR3sDJA3oDw=="
-    backup_destination      = "NONE"
-	
-	mysql_configuration = {
-        db_name             = "demo_db"
-        db_storage          = 25
-        mysql_port          = 3306
-        mysql_username      = "root"
-        mysql_password      = "MySqlPassword_1"
-        shape               = "oc3"
-        mysql_charset       = "utf8"
-		mysql_collation     = "utf8_general_ci"
-		
-		enterprise_monitor_configuration = {
-    		em_agent_password = "MySqlPassword_1"
-	    	em_agent_username = "admin"
-		    em_password = "MySqlPassword_1"
-		    em_username = "admin"
-		    em_port = "18443"
-	    }
+	description		= "Test Service Instance with EM"
+	name                    = "TestInst%d"
+	ssh_public_key          = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC0Pspsfu8lUTxILGf+dJnTTbIeFZrL/NKaQNNEvH9jF9aXcr347C5dKlu45LE2jTB8OfjtaExOznn7kKiOErwWPJUzDncDDsmUacDzs5KGbDBGQb6zxEMyYgYCKDiru5V24CrZqam+3QP5AurLopD3JaYmZSikKgP+syu16jBs3WzRLvGzDknIkrUk6t7XjzJ5X/wgMTqepjDDyn9NJ3nG5l4iQe7ULgAbfnRjTM3pRQZ5EM67iN3jc+cIFeNsEwqnxb9ZCJ7avb+Yqdcm/7A5tlX+rMwnTYYCPF/j8bgFdHuO9VHEiQHkM7FuRvZGWkXCryyg9iLM+myG5XdVa3Z2IsfBx3qIfxKMcWsHIk5mmDvWIDbgvBne6JSPKhkB7qM6F10pJSVvt08tGwmlTxZZJPKCkpd0nrfrVChMdMr9yRoYH46bqwMbPFCffNeVkJfj4IMlSSU+A9RGLLEnkdv+Xk3yCS+8RcNA6Zilv9VnJm4hBEJ2LsDVZfwqTvUAeB4evpOCMS+v4YKn/w+R4cB/+SdYDtifBwKW8TYk4ZK3J4wHa6XAI4u3b9C0bIfUmXZs36Gyy4MArtg6QGqrmTzYMa5eI2uB7BnO0JM/Moref8vvQYvGjbnkC5G/yCoLswbt477Gn+Ih96PyZ81qMmTv8qE9S3F3qCqkR3sDJA3oDw=="
+	backup_destination      = "NONE"
 
+	mysql_configuration = {
+		db_name             = "demo_db"
+		db_storage          = 25
+		mysql_port          = 3306
+		mysql_username      = "root"
+		mysql_password      = "MySqlPassword_1"
+		shape               = "oc3"
+		mysql_charset       = "utf8"
+		mysql_collation     = "utf8_general_ci"
+
+		enterprise_monitor_configuration = {
+			em_agent_password = "MySqlPassword_1"
+			em_agent_username = "admin"
+			em_password = "MySqlPassword_1"
+			em_username = "admin"
+			em_port = "18443"
+		}
 	}
 }
 `, rInt)
@@ -204,7 +207,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 }`, rInt, container)
 }
 
-func testAccMySQLServiceInstanceOCI(rInt int) string {
+func testAccMySQLServiceInstanceOCI(rInt int, oci_region string, oci_availability_domain string, oci_subnet string) string {
 
 	return fmt.Sprintf(`
 resource "oraclepaas_mysql_service_instance" "test" {
