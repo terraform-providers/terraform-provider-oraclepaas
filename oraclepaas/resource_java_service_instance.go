@@ -17,6 +17,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 		Create: resourceOraclePAASJavaServiceInstanceCreate,
 		Read:   resourceOraclePAASJavaServiceInstanceRead,
 		Delete: resourceOraclePAASJavaServiceInstanceDelete,
+		Update: resourceOraclePAASJavaServiceInstanceUpdate,
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(90 * time.Minute),
@@ -807,6 +808,34 @@ func resourceOraclePAASJavaServiceInstanceDelete(d *schema.ResourceData, meta in
 		return fmt.Errorf("Error deleting JavaServiceInstance: %+v", err)
 	}
 	return nil
+}
+
+func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] Resource state: %#v", d.State())
+	jClient, err := getJavaClient(meta)
+	if err != nil {
+		return err
+	}
+	client := jClient.ServiceInstanceClient()
+
+	// Updating the shape refers to changing the shape of the admin cluster for the weblogic server
+	if old, new := d.GetChange("weblogic_server.0.shape"); old.(string) != "" && old.(string) != new.(string) {
+		wlsComponent := java.ScaleUpDownWLS{
+			Hosts: []string{d.Get("weblogic_server.0.admin.0.hostname").(string)},
+			Shape: java.ServiceInstanceShape(old.(string)),
+		}
+		updateInput := &java.ScaleUpDownServiceInstanceInput{
+			Name:       d.Id(),
+			Components: java.ScaleUpDownComponent{WLS: wlsComponent},
+		}
+
+		err := client.ScaleUpDownServiceInstance(updateInput)
+		if err != nil {
+			return err
+		}
+	}
+
+	return resourceOraclePAASJavaAccessRuleRead(d, meta)
 }
 
 func expandWebLogicConfig(d *schema.ResourceData, input *java.CreateServiceInstanceInput) {
