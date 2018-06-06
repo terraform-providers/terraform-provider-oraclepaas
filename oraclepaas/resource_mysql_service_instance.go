@@ -26,7 +26,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 
-			"service_name": {
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -361,7 +361,7 @@ with the respective values for calling the "Create"
 func getServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, error) {
 
 	input := &mysql.ServiceParameters{
-		ServiceName:       d.Get("service_name").(string),
+		ServiceName:       d.Get("name").(string),
 		BackupDestination: d.Get("backup_destination").(string),
 		VMPublicKeyText:   d.Get("ssh_public_key").(string),
 	}
@@ -550,7 +550,7 @@ func resourceOraclePAASMySQLServiceInstanceRead(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Read state of mysql service instance %s: %#v", d.Id(), result)
 
-	d.Set("service_name", result.ServiceName)
+	d.Set("name", result.ServiceName)
 	d.Set("service_description", result.ServiceDescription)
 	d.Set("backup_destination", result.BackupDestination)
 	d.Set("metering_frequency", result.MeteringFrequency)
