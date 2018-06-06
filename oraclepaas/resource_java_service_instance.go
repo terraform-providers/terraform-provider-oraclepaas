@@ -118,7 +118,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 			"weblogic_server": {
 				Type:     schema.TypeList,
 				Required: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -456,7 +455,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 						"shape": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ForceNew:     true,
 							ValidateFunc: validation.StringInSlice(javaServiceInstanceShapes(), false),
 						},
 						"upper_stack_product_name": {
