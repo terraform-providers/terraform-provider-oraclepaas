@@ -15,7 +15,7 @@ import (
 func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceOraclePAASMySQLServiceInstanceCreate,
-		Read:   resourceOraclePAASMySQLServiceInstanceRead,
+		Read:   resourceOraclePAASMySQLServiceInstanceRead,		
 		Delete: resourceOraclePAASMySQLServiceInstanceDelete,
 
 		Timeouts: &schema.ResourceTimeout{
@@ -203,7 +203,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
-						/* Couldn't get these to work with the current API. I've commented them out for now
+						/* TODO: Couldn't get these to work with the current API. I've commented them out for now
 						"mysql_options" : {
 							Type: schema.TypeString,
 							Optional: true,
@@ -225,11 +225,11 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
-						"enterprise_monitor": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							ForceNew: true,
-						},
+						//						"enterprise_monitor": {
+						//							Type:     schema.TypeBool,
+						//							Optional: true,
+						//							ForceNew: true,
+						//						},
 						"enterprise_monitor_configuration": {
 							Type:     schema.TypeList,
 							Optional: true,
@@ -326,12 +326,16 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 		return fmt.Errorf("[Error] : Error while extracting MySQL Service Instance information : %s", err)
 	}
 
-	input.ComponentParameters, err = getComponentParameters(d)
+	input.ComponentParameters, err = expandComponentParametesr(d)
 	if err != nil {
 		return fmt.Errorf("[Error] : Error while extracting MySQL component information from TF file. : %s", err)
 	}
 
+	
 	newServiceInstance, err := client.CreateServiceInstance(&input)
+	//TODO: Modified for Testing purpose
+	//newServiceInstance := ServiceInstance{}
+	//err = fmt.Errorf("Deliberate Error")
 
 	if err != nil {
 		return fmt.Errorf("[Error] : Error while creating MySQL Service Instance : %v", err)
@@ -339,7 +343,6 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 
 	d.SetId(newServiceInstance.ServiceName)
 	return resourceOraclePAASMySQLServiceInstanceRead(d, meta)
-
 }
 
 /**
@@ -413,11 +416,13 @@ func expandEM(input map[string]interface{}, parameter *mysql.MySQLParameters) er
 	log.Printf("[DEBUG] parameter.EnterpriseMonitor : %v", parameter.EnterpriseMonitor)
 	log.Printf("[DEBUG] emInfo                      : %d", len(emInfo))
 
-	if parameter.EnterpriseMonitor == "Yes" {
-		if len(emInfo) == 0 {
-			return fmt.Errorf("`enterprise_monitor_configuration` must be set if `enterprise_monitor` is set to `Yes`")
+	/*
+		if parameter.EnterpriseMonitor == "Yes" {
+			if len(emInfo) == 0 {
+				return fmt.Errorf("`enterprise_monitor_configuration` must be set if `enterprise_monitor` is set to `Yes`")
+			}
 		}
-	}
+	*/
 
 	if len(emInfo) > 0 {
 		attrs := emInfo[0].(map[string]interface{})
@@ -446,7 +451,7 @@ func expandEM(input map[string]interface{}, parameter *mysql.MySQLParameters) er
 	return nil
 }
 
-func getComponentParameters(d *schema.ResourceData) (mysql.ComponentParameters, error) {
+func expandComponentParametesr(d *schema.ResourceData) (mysql.ComponentParameters, error) {
 
 	result := mysql.ComponentParameters{}
 	mysqlConfiguration := d.Get("mysql_configuration").([]interface{})
@@ -462,17 +467,24 @@ func getComponentParameters(d *schema.ResourceData) (mysql.ComponentParameters, 
 
 	log.Printf("[DEBUG] Enterprise Monitor : %v", attrs["enterprise_monitor"])
 
-	if val, ok := attrs["enterprise_monitor"]; ok {
-		if val.(bool) == true {
-			MysqlInput.EnterpriseMonitor = "Yes"
-		} else {
-			MysqlInput.EnterpriseMonitor = "No"
+	/*
+		if val, ok := attrs["enterprise_monitor"]; ok {
+			if val.(bool) == true {
+				MysqlInput.EnterpriseMonitor = "Yes"
+			} else {
+				MysqlInput.EnterpriseMonitor = "No"
+			}
 		}
-	}
+	*/
 
-	err := expandEM(attrs, MysqlInput)
-	if err != nil {
-		return result, err
+	if value, ok := attrs["enterprise_monitor_configuration"]; ok {
+		MysqlInput.EnterpriseMonitor = "Yes"
+		err := expandEM(attrs, MysqlInput)
+		if err != nil {
+			return result, err
+		}
+	} else {
+		MysqlInput.EnterpriseMonitor = "No"
 	}
 
 	if val, ok := attrs["mysql_charset"]; ok && val != "" {

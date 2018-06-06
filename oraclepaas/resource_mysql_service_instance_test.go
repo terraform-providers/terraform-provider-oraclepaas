@@ -164,7 +164,6 @@ resource "oraclepaas_mysql_service_instance" "test" {
         mysql_charset       = "utf8"
 		mysql_collation     = "utf8_general_ci"
 		
-		enterprise_monitor = true
 		enterprise_monitor_configuration = {
     		em_agent_password = "MySqlPassword_1"
 	    	em_agent_username = "admin"
