@@ -323,18 +323,14 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 
 	input := mysql.CreateServiceInstanceInput{}
 	input.ServiceParameters, err = getServiceParameters(d)
-	if err != nil {
-		log.Printf("[Error] : Error while extracting MySQL Service Instance information : %s", err)
-		return err
+	if err != nil {		
+		return fmt.Errorf("[Error] : Error while extracting MySQL Service Instance information : %s", err)
 	}
 
 	input.ComponentParameters, err = getComponentParameters(d)
 	if err != nil {
-		log.Printf("[Error] : Error while extracting MySQL component information from TF file. : %s", err)
-		return err
+		return fmt.Errorf("[Error] : Error while extracting MySQL component information from TF file. : %s", err)		
 	}
-
-	log.Printf("[DEBUG] : Testing Create :%v : ", &input)
 
 	_, err = client.CreateServiceInstance(&input)
 
