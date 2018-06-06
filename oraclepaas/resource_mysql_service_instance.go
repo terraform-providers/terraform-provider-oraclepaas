@@ -32,7 +32,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"service_description": {
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -378,7 +378,7 @@ func getServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, erro
 		input.Region = value.(string)
 	}
 
-	if value, ok := d.GetOk("service_description"); ok {
+	if value, ok := d.GetOk("description"); ok {
 		input.ServiceDescription = value.(string)
 	}
 
@@ -551,7 +551,7 @@ func resourceOraclePAASMySQLServiceInstanceRead(d *schema.ResourceData, meta int
 	log.Printf("[DEBUG] Read state of mysql service instance %s: %#v", d.Id(), result)
 
 	d.Set("name", result.ServiceName)
-	d.Set("service_description", result.ServiceDescription)
+	d.Set("description", result.ServiceDescription)
 	d.Set("backup_destination", result.BackupDestination)
 	d.Set("metering_frequency", result.MeteringFrequency)
 	d.Set("service_id", result.ServiceId)
