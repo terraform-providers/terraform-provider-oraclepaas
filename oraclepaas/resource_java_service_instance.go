@@ -833,7 +833,7 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 		}
 	}
 
-	return resourceOraclePAASJavaAccessRuleRead(d, meta)
+	return resourceOraclePAASJavaServiceInstanceRead(d, meta)
 }
 
 func expandWebLogicConfig(d *schema.ResourceData, input *java.CreateServiceInstanceInput) {

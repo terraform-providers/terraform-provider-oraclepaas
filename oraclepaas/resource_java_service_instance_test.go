@@ -83,7 +83,7 @@ func TestAccOraclePAASJavaServiceInstance_Clusters(t *testing.T) {
 	})
 }
 
-func TestAccOraclePAASJavaServiceIsntance_UpdateShape(t *testing.T) {
+func TestAccOraclePAASJavaServiceInstance_UpdateShape(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccJavaServiceInstanceBasic(ri)
 	config2 := testAccJavaServiceInstanceUpdateShape(ri)
