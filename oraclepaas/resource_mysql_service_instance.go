@@ -291,20 +291,20 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 			},
 			"service_version": {
 				Type:     schema.TypeString,
-				Computed: true,				
+				Computed: true,
 			},
 
 			"release_version": {
 				Type:     schema.TypeString,
-				Computed: true,				
+				Computed: true,
 			},
 			"base_release_version": {
 				Type:     schema.TypeString,
-				Computed: true,				
+				Computed: true,
 			},
 			"em_url": {
 				Type:     schema.TypeString,
-				Computed: true,				
+				Computed: true,
 			},
 		}, // end declaration
 	} // end return
@@ -323,20 +323,19 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 
 	input := mysql.CreateServiceInstanceInput{}
 	input.ServiceParameters, err = getServiceParameters(d)
-	if err != nil {		
+	if err != nil {
 		return fmt.Errorf("[Error] : Error while extracting MySQL Service Instance information : %s", err)
 	}
 
 	input.ComponentParameters, err = getComponentParameters(d)
 	if err != nil {
-		return fmt.Errorf("[Error] : Error while extracting MySQL component information from TF file. : %s", err)		
+		return fmt.Errorf("[Error] : Error while extracting MySQL component information from TF file. : %s", err)
 	}
 
 	newServiceInstance, err = client.CreateServiceInstance(&input)
 
 	if err != nil {
-		log.Printf("[Error] : Error while creating MySQL Service Instance : %v", err)
-		return err
+		return fmt.Errorf("[Error] : Error while creating MySQL Service Instance : %v", err)		
 	}
 
 	d.SetId(newServiceInstance.ServiceName)
