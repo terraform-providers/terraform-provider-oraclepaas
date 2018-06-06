@@ -50,12 +50,12 @@ func resourceOraclePAASMySQLAccessRule() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			// name validation: start with a letter, include letter, number and hyphen only
+			// name validation: start with a letter, include letter, number and underscore only
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				//ValidateFunc: validateAccessRuleName,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateAccessRuleName,
 			},
 			"type": {
 				Type:     schema.TypeString,
@@ -84,25 +84,30 @@ func resourceOraclePAASMySQLAccessRuleCreate(d *schema.ResourceData, meta interf
 
 	client := mySQLClient.AccessRules()
 
-	enabled := d.Get("enabled").(bool)
-	var status string
-	if enabled == true {
-		status = string(mysql.AccessRuleEnabled)
-	} else {
-		status = string(mysql.AccessRuleDisabled)
-	}
-
 	var name = d.Get("name").(string)
 
 	input := mysql.CreateAccessRuleInput{
 		ServiceInstanceID: d.Get("service_instance_id").(string),
 		RuleName:          name,
-		Description:       d.Get("description").(string),
 		Destination:       d.Get("destination").(string),
 		Ports:             d.Get("ports").(string),
-		Protocol:          d.Get("protocol").(string),
 		Source:            d.Get("source").(string),
-		Status:            status,
+	}
+
+	if value, ok := d.GetOk("description"); ok {
+		input.Description = value.(string)
+	}
+
+	if value, ok := d.GetOk("protocol"); ok {
+		input.Protocol = value.(string)
+	}
+
+	if value, ok := d.GetOk("enabled"); ok {
+		if value.(bool) == true {
+			input.Status = string(mysql.AccessRuleEnabled)
+		} else {
+			input.Status = string(mysql.AccessRuleDisabled)
+		}
 	}
 
 	err = client.CreateAccessRule(&input)
