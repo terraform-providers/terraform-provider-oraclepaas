@@ -16,7 +16,6 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceOraclePAASMySQLServiceInstanceCreate,
 		Read:   resourceOraclePAASMySQLServiceInstanceRead,
-		Update: resourceOraclePAASMySQLServiceInstanceUpdate,
 		Delete: resourceOraclePAASMySQLServiceInstanceDelete,
 
 		Timeouts: &schema.ResourceTimeout{
@@ -332,14 +331,15 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 		return fmt.Errorf("[Error] : Error while extracting MySQL component information from TF file. : %s", err)
 	}
 
-	newServiceInstance, err = client.CreateServiceInstance(&input)
+	newServiceInstance, err := client.CreateServiceInstance(&input)
 
 	if err != nil {
-		return fmt.Errorf("[Error] : Error while creating MySQL Service Instance : %v", err)		
+		return fmt.Errorf("[Error] : Error while creating MySQL Service Instance : %v", err)
 	}
 
 	d.SetId(newServiceInstance.ServiceName)
-	return resourceOraclePAASMySQLServiceInstanceUpdate(d, meta)
+	return resourceOraclePAASMySQLServiceInstanceRead(d, meta)
+
 }
 
 /**
@@ -620,10 +620,6 @@ func updateMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo m
 	}
 
 	return d.Set("mysql_configuration", result)
-}
-
-func resourceOraclePAASMySQLServiceInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	return resourceOraclePAASMySQLServiceInstanceRead(d, meta)
 }
 
 func resourceOraclePAASMySQLServiceInstanceDelete(d *schema.ResourceData, meta interface{}) error {
