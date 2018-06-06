@@ -15,7 +15,7 @@ import (
 func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceOraclePAASMySQLServiceInstanceCreate,
-		Read:   resourceOraclePAASMySQLServiceInstanceRead,		
+		Read:   resourceOraclePAASMySQLServiceInstanceRead,
 		Delete: resourceOraclePAASMySQLServiceInstanceDelete,
 
 		Timeouts: &schema.ResourceTimeout{
@@ -225,11 +225,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
-						//						"enterprise_monitor": {
-						//							Type:     schema.TypeBool,
-						//							Optional: true,
-						//							ForceNew: true,
-						//						},
+
 						"enterprise_monitor_configuration": {
 							Type:     schema.TypeList,
 							Optional: true,
@@ -311,7 +307,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 
 func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
-	log.Printf("[DEBUG] Resource state: %#v", d.State())
+	log.Printf("[DEBUG] Resource state: %v", d.State())
 	log.Print("[DEBUG] Creating mySQL service instance")
 
 	mySQLClient, err := getMySQLClient(meta)
@@ -331,11 +327,7 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 		return fmt.Errorf("[Error] : Error while extracting MySQL component information from TF file. : %s", err)
 	}
 
-	
 	newServiceInstance, err := client.CreateServiceInstance(&input)
-	//TODO: Modified for Testing purpose
-	//newServiceInstance := ServiceInstance{}
-	//err = fmt.Errorf("Deliberate Error")
 
 	if err != nil {
 		return fmt.Errorf("[Error] : Error while creating MySQL Service Instance : %v", err)
@@ -416,14 +408,6 @@ func expandEM(input map[string]interface{}, parameter *mysql.MySQLParameters) er
 	log.Printf("[DEBUG] parameter.EnterpriseMonitor : %v", parameter.EnterpriseMonitor)
 	log.Printf("[DEBUG] emInfo                      : %d", len(emInfo))
 
-	/*
-		if parameter.EnterpriseMonitor == "Yes" {
-			if len(emInfo) == 0 {
-				return fmt.Errorf("`enterprise_monitor_configuration` must be set if `enterprise_monitor` is set to `Yes`")
-			}
-		}
-	*/
-
 	if len(emInfo) > 0 {
 		attrs := emInfo[0].(map[string]interface{})
 
@@ -477,7 +461,8 @@ func expandComponentParameters(d *schema.ResourceData) (mysql.ComponentParameter
 		}
 	*/
 
-	if value, ok := attrs["enterprise_monitor_configuration"]; ok {
+	log.Printf("[DEBUG] Enterprise Monitor : %v", attrs["enterprise_monitor_configuration"])
+	if attrs["enterprise_monitor_configuration"] != nil {
 		MysqlInput.EnterpriseMonitor = "Yes"
 		err := expandEM(attrs, MysqlInput)
 		if err != nil {
