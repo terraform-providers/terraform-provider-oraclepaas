@@ -820,7 +820,7 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 	if old, new := d.GetChange("weblogic_server.0.shape"); old.(string) != "" && old.(string) != new.(string) {
 		wlsComponent := java.ScaleUpDownWLS{
 			Hosts: []string{d.Get("weblogic_server.0.admin.0.hostname").(string)},
-			Shape: java.ServiceInstanceShape(old.(string)),
+			Shape: java.ServiceInstanceShape(new.(string)),
 		}
 		updateInput := &java.ScaleUpDownServiceInstanceInput{
 			Name:       d.Id(),
