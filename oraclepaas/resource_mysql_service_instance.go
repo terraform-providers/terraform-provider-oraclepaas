@@ -322,7 +322,7 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 	client := mySQLClient.ServiceInstanceClient()
 
 	input := mysql.CreateServiceInstanceInput{}
-	input.ServiceParameters, err = getServiceParameters(d)
+	input.ServiceParameters, err = expandServiceParameters(d)
 	if err != nil {
 		return fmt.Errorf("[Error] : Error while extracting MySQL Service Instance information : %s", err)
 	}
@@ -343,10 +343,10 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 }
 
 /**
-getServiceParameters gets the values from the terraform resource file, and updates the inputParameter
+expandServiceParameters gets the values from the terraform resource file, and updates the inputParameter
 with the respective values for calling the "Create"
 */
-func getServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, error) {
+func expandServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, error) {
 
 	input := &mysql.ServiceParameters{
 		ServiceName:       d.Get("name").(string),
