@@ -73,17 +73,17 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 				}, true),
 			},
 
-			//			"enable_notification": {
-			//				Type:     schema.TypeBool,
-			//				Optional: true,
-			//				ForceNew: true,
-			//			},
+			"enable_notification": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
 
-			//			"notification_email": {
-			//				Type:     schema.TypeString,
-			//				Optional: true,
-			//				ForceNew: true,
-			//			},
+			"notification_email": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 
 			// Use for OCI configuration (not OCI-Classic)
 			"ip_network": {
@@ -276,42 +276,35 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 						// this comes from the service.
 						"connect_string": {
 							Type:     schema.TypeString,
-							Optional: true,
 							Computed: true,
 						},
 						"ip_address": {
 							Type:     schema.TypeString,
-							Optional: true,
 							Computed: true,
 						},
 						"public_ip_address": {
 							Type:     schema.TypeString,
 							Computed: true,
-							Optional: true,
 						},
 					},
 				},
 			},
 			"service_version": {
 				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+				Computed: true,				
 			},
 
 			"release_version": {
 				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+				Computed: true,				
 			},
 			"base_release_version": {
 				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+				Computed: true,				
 			},
 			"em_url": {
 				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+				Computed: true,				
 			},
 		}, // end declaration
 	} // end return
