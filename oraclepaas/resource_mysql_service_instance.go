@@ -307,7 +307,6 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 
 func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
-	log.Printf("[DEBUG] Resource state: %v", d.State())
 	log.Print("[DEBUG] Creating mySQL service instance")
 
 	mySQLClient, err := getMySQLClient(meta)
@@ -404,10 +403,6 @@ func expandEM(input map[string]interface{}, parameter *mysql.MySQLParameters) er
 
 	emInfo := input["enterprise_monitor_configuration"].([]interface{})
 
-	log.Printf("[DEBUG] input                       : %v", input)
-	log.Printf("[DEBUG] parameter.EnterpriseMonitor : %v", parameter.EnterpriseMonitor)
-	log.Printf("[DEBUG] emInfo                      : %d", len(emInfo))
-
 	if len(emInfo) > 0 {
 		attrs := emInfo[0].(map[string]interface{})
 
@@ -449,20 +444,6 @@ func expandComponentParameters(d *schema.ResourceData) (mysql.ComponentParameter
 		MysqlUserPassword: attrs["mysql_password"].(string),
 	}
 
-	// TODO: Remove
-	log.Printf("[DEBUG] Enterprise Monitor : %v", attrs["enterprise_monitor"])
-
-	/*
-		if val, ok := attrs["enterprise_monitor"]; ok {
-			if val.(bool) == true {
-				MysqlInput.EnterpriseMonitor = "Yes"
-			} else {
-				MysqlInput.EnterpriseMonitor = "No"
-			}
-		}
-	*/
-
-	log.Printf("[DEBUG] Enterprise Monitor : %v", attrs["enterprise_monitor_configuration"])
 	if attrs["enterprise_monitor_configuration"] != nil {
 		MysqlInput.EnterpriseMonitor = "Yes"
 		err := expandEM(attrs, MysqlInput)
@@ -525,7 +506,7 @@ func resourceOraclePAASMySQLServiceInstanceRead(d *schema.ResourceData, meta int
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading database service instance %s: %+v", d.Id(), err)
+		return fmt.Errorf("Error reading mysql service instance %s: %+v", d.Id(), err)
 	}
 
 	// if there is not result, there was an earlier issue. We set the ID of the mysql instance to blank.
@@ -533,8 +514,6 @@ func resourceOraclePAASMySQLServiceInstanceRead(d *schema.ResourceData, meta int
 		d.SetId("")
 		return nil
 	}
-
-	log.Printf("[DEBUG] Read state of mysql service instance %s: %#v", d.Id(), result)
 
 	d.Set("name", result.ServiceName)
 	d.Set("description", result.ServiceDescription)
@@ -588,19 +567,9 @@ func flattenMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo 
 			attrs["connect_string"] = attr.Value
 		}
 
-		/* TODO: Remove this
-		if attr, ok := attributeMap["MYSQL_ENTERPRISE_MONITOR"]; ok {
-			if attr.Value == "Yes" || attr.Value == "YES" {
-				attrs["enterprise_monitor"] = true
-			} else {
-				attrs["enterprise_monitor"] = false
-			}
-		}
-		*/
-
 		/* Temporarily commented out. Base service has some issues with Timezone
 		if attr, ok := attributeMap["MYSQL_TIMEZONE"]; ok {
-			attrs["enterprise_monitor"] = attr.Value
+			attrs["mysql_timezone"] = attr.Value
 		}
 		*/
 
@@ -624,7 +593,6 @@ func flattenMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo 
 
 func resourceOraclePAASMySQLServiceInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 
-	log.Printf("[DEBUG] Resource state: %#v", d.State())
 	log.Print("[DEBUG] Deleting mySQL service instance")
 
 	mySQLClient, err := getMySQLClient(meta)
@@ -636,7 +604,7 @@ func resourceOraclePAASMySQLServiceInstanceDelete(d *schema.ResourceData, meta i
 	client := mySQLClient.ServiceInstanceClient()
 	jobID := d.Id()
 
-	log.Printf("[DEBUG] Deleting DatabaseServiceInstance: %v", jobID)
+	log.Printf("[DEBUG] Deleting MySQL ServiceInstance: %v", jobID)
 
 	if err := client.DeleteServiceInstance(jobID); err != nil {
 		return fmt.Errorf("Error deleting MySQL instance %s: %s", jobID, err)
