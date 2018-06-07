@@ -37,7 +37,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ssh_public_key": {
+			"vm_public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -346,7 +346,7 @@ func expandServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, e
 	input := &mysql.ServiceParameters{
 		ServiceName:       d.Get("name").(string),
 		BackupDestination: d.Get("backup_destination").(string),
-		VMPublicKeyText:   d.Get("ssh_public_key").(string),
+		VMPublicKeyText:   d.Get("vm_public_key").(string),
 	}
 
 	if value, ok := d.GetOk("availability_domain"); ok {
@@ -449,6 +449,7 @@ func expandComponentParameters(d *schema.ResourceData) (mysql.ComponentParameter
 		MysqlUserPassword: attrs["mysql_password"].(string),
 	}
 
+	// TODO: Remove
 	log.Printf("[DEBUG] Enterprise Monitor : %v", attrs["enterprise_monitor"])
 
 	/*
@@ -587,6 +588,7 @@ func flattenMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo 
 			attrs["connect_string"] = attr.Value
 		}
 
+		/* TODO: Remove this
 		if attr, ok := attributeMap["MYSQL_ENTERPRISE_MONITOR"]; ok {
 			if attr.Value == "Yes" || attr.Value == "YES" {
 				attrs["enterprise_monitor"] = true
@@ -594,6 +596,7 @@ func flattenMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo 
 				attrs["enterprise_monitor"] = false
 			}
 		}
+		*/
 
 		/* Temporarily commented out. Base service has some issues with Timezone
 		if attr, ok := attributeMap["MYSQL_TIMEZONE"]; ok {
