@@ -3,7 +3,7 @@ layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_mysql_access_rule"
 sidebar_current: "docs-oraclepaas-resource-access-rule"
 description: |-
-  Creates and manages a Database Access Rule for an Oracle Database Cloud service instance.
+  Creates and manages a MySQL Access Rule for an Oracle MySQL Cloud service instance.
 
 ---
 

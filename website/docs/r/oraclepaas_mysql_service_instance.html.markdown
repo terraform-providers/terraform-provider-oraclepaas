@@ -14,38 +14,38 @@ The `oraclepaas_mysql_service_instance` resource creates and manages a an Oracle
 
 ```hcl
 resource "oraclepaas_mysql_service_instance" "default" {
-	name                = "SimpleMySQLInstance"
-	description         = "This is a simple mysql instance"
-	vm_public_key       = "A SSH public key"
-	backup_destination  = "NONE"
-	enable_notification = true
-	notification_email  = myemail@mydomain.com
+  name                      = "SimpleMySQLInstance"
+  description               = "This is a simple mysql instance"
+  vm_public_key             = "A SSH public key"
+  backup_destination        = "NONE"
+  enable_notification       = true
+  notification_email        = myemail@mydomain.com
 
-	backups {
+  backups {
     cloud_storage_container = "https://uscom-east-1.storage.oraclecloud.com/v1/MyStorageAccount/MyContainer"
     cloud_storage_username  = "MyCloudStorageAccount"
     cloud_storage_password  = "MyCloudStoragePassword"
     create_if_missing       = "true"
   }
 
-	mysql_configuration = {
-		db_name          = "demo_db"
-		db_storage       = 25
-		mysql_port       = 3306
-		mysql_username   = "root"
-		mysql_password   = "MySqlPassword_1"
-		shape            = "oc3"
-		mysql_charset    = "utf8"
-		mysql_collation  = "utf8_general_ci"
+  mysql_configuration = {
+    db_name                 = "demo_db"
+    db_storage              = 25
+    mysql_port              = 3306
+    mysql_username          = "root"
+    mysql_password          = "MySqlPassword_1"
+    shape                   = "oc3"
+    mysql_charset           = "utf8"
+    mysql_collation         = "utf8_general_ci"
 
-		enterprise_monitor_configuration {
-			em_agent_username = "MyEmAgentUser"
-			em_agent_password = "EmAgentPassw0rd"
-			em_username       = "EmAdminUser"
-			em_password       = "EmAdminPassw0rd"
-			em_port           = 18443
-		}
-	}
+    enterprise_monitor_configuration {
+      em_agent_username     = "MyEmAgentUser"
+      em_agent_password     = "EmAgentPassw0rd"
+      em_username           = "EmAdminUser"
+      em_password           = "EmAdminPassw0rd"
+      em_port               = 18443
+    }
+  }
 }
 ```
 
@@ -53,22 +53,13 @@ resource "oraclepaas_mysql_service_instance" "default" {
 
 The following arguments are supported:
 
-* `name` - (Required). The name of MySQL Cloud Service instance. The name must meet the following requirements:
-  * Must not exceed 50 characters.
-  * Must start with a letter.
-  * Must contain only letters, numbers, or hyphens.
-  * Must not end with a hyphen.
-  * Must not contain any other special characters.
-  * Must be unique within the identity domain.
+* `name` - (Required). The name of MySQL Cloud Service instance.
 
 * `description` - (Optional). A description of the MySQL Instance
 
 * `vm_public_key` - (Required). The public key for the secure shell (SSH). This key wil be used for authentication when the user logs on to the instance over SSH.
 
-* `backup_destination` - (Required) The destination where the database backups will be stored. Allowed values are:
-  * `BOTH` - Backup to Both Cloud Storage and Local Storage
-  * `OSS`  - Backup to Oracle Cloud Storage Only
-  * `NONE` - No Backups
+* `backup_destination` - (Required) The destination where the database backups will be stored. 
 
 * `metering_frequency` - (Optional). The billing frequency of the service instance. Allowed values are `MONTHLY` and `HOURLY`
 
@@ -76,7 +67,7 @@ The following arguments are supported:
 
 * `availability_domain` - (Optional) Name of the availability domain within the region where the Oracle Database Cloud Service instance is to be provisioned. This is applicable only if you wish to provision to an OCI instance.
 
-* `enable_notification` - (Optional) Specifies if you would like to receive notification emails. Allowed values are `true` or `false`. The default is `true`
+* `enable_notification` - (Optional) Specifies if you would like to receive notification emails. The default is `true`
 
 * `notification_email` - (Optional) The email address to send notifications around successful or unsuccessful completions of the instance-creation operation.
 
@@ -96,15 +87,12 @@ The following arguments are supported:
 
 * `cloud_storage_password` - (Required) Password for the Oracle Storage Cloud administrator.
 
-* `create_if_missing` - (Optional) Specified whether to create the container if it does not exist. Allowed values are `true` or `false`. Default value is `false`
+* `create_if_missing` - (Optional) Specifies whether to create the container if it does not exist. Default value is `false`
 
 
 `mysql_configuration` supports the following :
 
-* `db_name` - (Optional). The name of the database instance. The instance name must meet the following requirements:
-  * between 1 and 64 characters
-  * can contain letters, numbers and special chacters `(_,$).`
-Default value is `mydatabase`
+* `db_name` - (Optional). The name of the database instance. Default value is `mydatabase`
 
 * `db_storage` - (Optional). The storage volume sice for MySQL data. The value must be between 25 to 1024. Defaults to 25 (GB)
 
@@ -114,27 +102,11 @@ Default value is `mydatabase`
 
 * `mysql_port` - (Optional) The port number for the MySQL Server. The value must be between 3200-3399. Default value is `3306`
 
-* `mysql_username` - (Optional) The Administration user for connecting to the service via th MySQL protocol. The username should start with a letter, consists of letters and numbers and be between 2 and 32 characters. Default value is `root`.
+* `mysql_username` - (Optional) The Administration user for connecting to the service via th MySQL protocol. Default value is `root`.
 
-* `mysql_password` - (Optional) The password for the MySQL Administration user. The password must meet the following requirements :
-  * starts with a letter
-  * is between 8 and 30 characters long  
-  * can contain letters, numbers and special characters ($#_)
-  * contains at least 1 number
+* `mysql_password` - (Optional) The password for the MySQL Administration user. 
 
-* `shape` - (Optional) The desired compute shape.  A shape defines the number of Oracle Compute Units (OCPUs) and amount of memory (RAM). Valid shapes include:
-  * oc3: 1 OCPU, 7.5 GB memory
-  * oc4: 2 OCPUs, 15 GB memory
-  * oc5: 4 OCPUs, 30 GB memory
-  * oc6: 8 OCPUs, 60 GB memory
-  * oc7: 16 OCPUs, 120 GB memory
-  * oc1m: 1 OCPU, 15 GB memory
-  * oc2m: 2 OCPUs, 30 GB memory
-  * oc3m: 4 OCPUs, 60 GB memory
-  * oc4m: 8 OCPUs, 120 GB memory
-  * oc5m: 16 OCPUs, 240 GB memory
-
-See [About Shapes](http://www.oracle.com/pls/topic/lookup?ctx=cloud&id=OCSUG210) in _Using Oracle Compute Cloud Service_ for more information about shapes.
+* `shape` - (Optional) The desired compute shape.  A shape defines the number of Oracle Compute Units (OCPUs) and amount of memory (RAM). See [About Shapes](http://www.oracle.com/pls/topic/lookup?ctx=cloud&id=OCSUG210) in _Using Oracle Compute Cloud Service_ for more information about shapes.
 
 * `subnet` -(Optional) This attribute is relevant to only Oracle Cloud Infrastructure. Specify the Oracle Cloud Identifier (OCID) of a subnet from a virtual cloud network (VCN) that you had created previously in Oracle Cloud Infrastructure. For the instructions to create a VCN and subnet, see [Prerequisites for Oracle Platform Services on Oracle Cloud Infrastructure](http://www.oracle.com/pls/topic/lookup?ctx=en/cloud/paas/java-cloud&id=oci_general_paasprereqs) in the Oracle Cloud Infrastructure documentation.
 
@@ -146,22 +118,12 @@ See [About Shapes](http://www.oracle.com/pls/topic/lookup?ctx=cloud&id=OCSUG210)
 
 `enterprise_monitor_configuration` supports the following :
 
-* `em_agent_username` - (Optional). Name for the Enterprise Monitor agent user. The User name must meet the following requirements  :
-  * should start with a letter
-  * consist of letters and numbers
-  * be between 2 to 32 characters.
+* `em_agent_username` - (Optional). Name for the Enterprise Monitor agent user. 
 
-* `em_agent_password` - (Optional). Password for MySQL Enterprise Monitor agent. The password must meet the following requirements :
-  * be at least 8 characters long
-  * contains with at least one lower case letter, one upper case letter, one number and one special character.
+* `em_agent_password` - (Optional). Password for MySQL Enterprise Monitor agent.
 
-* `em_username` - (Optional) Name for the Enterprise Monitor Manager user. The User name must meet the following requirements  :
-  * should start with a letter
-  * consist of letters and numbers
-  * be between 2 to 32 characters.
+* `em_username` - (Optional) Name for the Enterprise Monitor Manager user. 
 
-* `em_password` - (Optional) Password for MySQL Enterprise Monitor manager. The password must meet the following requirements: 
-  * be at least 8 characters long 
-  * consist of at least one lower case letter, one upper case letter, one number and one special character.
+* `em_password` - (Optional) Password for MySQL Enterprise Monitor manager. 
 
 * `em_port` - (Optional) The port number for the MySQL Enterprise Monitor instance. The default is 18443.
