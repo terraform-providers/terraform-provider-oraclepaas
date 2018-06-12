@@ -204,7 +204,7 @@ In addition to the above, the following values are exported:
 
 * `compute_site_name` - The Oracle Cloud location housing the service instance.
 
-* `dbaasmonitor_url`- The URL to use to connect to Oracle DBaaS Monitor on the service instance.
+* `dbaas_monitor_url`- The URL to use to connect to Oracle DBaaS Monitor on the service instance.
 
 * `em_url` - The URL to use to connect to Enterprise Manager on the service instance.
 

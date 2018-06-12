@@ -21,7 +21,7 @@ resource "oraclepaas_database_service_instance" "default" {
 resource "oraclepaas_java_service_instance" "default" {
   name            = "java-service-instance"
   edition         = "EE"
-  service_version = "12cRelease212"
+  service_version = "12cRelease213"
   ssh_public_key  = "ssh-rsa public_key"
 
   weblogic_server {
@@ -54,7 +54,7 @@ resource "oraclepaas_database_service_instance" "default" {
 resource "oraclepaas_java_service_instance" "default" {
   name            = "java-service-instance-otd"
   edition         = "EE"
-  service_version = "12cRelease212"
+  service_version = "12cRelease213"
   ssh_public_key  = "ssh-rsa public_key"
   weblogic_server {
     shape = "oc1m"
@@ -94,6 +94,8 @@ The following arguments are supported:
 * `ssh_public_key` - (Required) The ssh key to connect to the java service instance.
 
 * `edition` - (Required) The edition for the service instance. Possible values are `SE`, `EE`, or `SUITE`.
+
+* `service_version` - (Required) Oracle WebLogic Server software version. Valid values are: `12cRelease213`, `12cRelease212`, `12cR3`, or `11gR1`
 
 * `backups` - (Required) Provides Cloud Storage information for service instance backups. Backups
 is documented below

@@ -22,6 +22,7 @@ provider "oraclepaas" {
   identity_domain   = "..."
   database_endpoint = "..."
   java_endpoint     = "..."
+  mysql_endpoint    = "..."
 }
 
 # Create a Database Service Instance
@@ -63,6 +64,8 @@ This is known as the `REST Endpoint` within the Oracle portal. It can also be so
 This is known as the `REST Endpoint` within the Oracle portal. It can also be sourced from the
 `ORACLEPAAS_JAVA_ENDPOINT` environment variable.
 
+* `mysql_endpoint` - (Optional) The MySQL API endpoint to use, associated with your Oracle Cloud Platform Account. This is known as the `REST Endpoint` within the Oracle portal. It can also be sourced from the `ORACLEPAAS_MYSQL_ENDPOINT` environment variable.
+
 * `max_retries` - (Optional) The maximum number of tries to make for a successful response when operating on
 resources within Oracle Cloud Platform. It can also be sourced from the `OPC_MAX_RETRIES` environment variable.
 Defaults to 1.
@@ -73,5 +76,5 @@ absolutely needed. Can also via setting the `OPC_INSECURE` environment variable 
 ## Testing
 
 Credentials must be provided via the `OPC_USERNAME`, `OPC_PASSWORD`,
-`OPC_IDENTITY_DOMAIN` and `ORACLEPAAS_DATABASE_ENDPOINT` and `ORACLEPAAS_JAVA_ENDPOINT` environment variables in order to run
+`OPC_IDENTITY_DOMAIN` and `ORACLEPAAS_DATABASE_ENDPOINT`, `ORACLEPAAS_JAVA_ENDPOINT` and `ORACLEPAAS_MYSQL_ENDPOINT` environment variables in order to run
 acceptance tests.
