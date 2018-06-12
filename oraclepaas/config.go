@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/go-oracle-terraform/java"
+	"github.com/hashicorp/go-oracle-terraform/mysql"
 	"github.com/hashicorp/go-oracle-terraform/opc"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -21,6 +22,7 @@ type Config struct {
 	IdentityDomain   string
 	MaxRetries       int
 	Insecure         bool
+	MySQLEndpoint    string
 	DatabaseEndpoint string
 	JavaEndpoint     string
 }
@@ -28,6 +30,7 @@ type Config struct {
 type OPAASClient struct {
 	databaseClient *database.Client
 	javaClient     *java.Client
+	mysqlClient    *mysql.MySQLClient
 }
 
 func (c *Config) Client() (*OPAASClient, error) {
@@ -85,6 +88,19 @@ func (c *Config) Client() (*OPAASClient, error) {
 			return nil, err
 		}
 		oraclepaasClient.javaClient = javaClient
+	}
+
+	if c.MySQLEndpoint != "" {
+		mysqlEndpoint, err := url.ParseRequestURI(c.MySQLEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid jmysqlava endpoint URI: %+v", err)
+		}
+		config.APIEndpoint = mysqlEndpoint
+		mysqlClient, err := mysql.NewMySQLClient(&config)
+		if err != nil {
+			return nil, err
+		}
+		oraclepaasClient.mysqlClient = mysqlClient
 	}
 
 	return oraclepaasClient, nil

@@ -286,6 +286,14 @@
 			"versionExact": "v0.9.3"
 		},
 		{
+			"checksumSHA1": "OHundugu1APn+HFRUDEecQJGnzk=",
+			"path": "github.com/hashicorp/go-oracle-terraform/mysql",
+			"revision": "9fa50c2576fcf9cd6f7c5cdb2f90e0069b3420c8",
+			"revisionTime": "2018-05-23T15:32:58Z",
+			"version": "v0.9.3",
+			"versionExact": "v0.9.3"
+		},
+		{
 			"checksumSHA1": "aeXObRk6gAfuvnT+puKaEib7dm0=",
 			"path": "github.com/hashicorp/go-oracle-terraform/opc",
 			"revision": "9fa50c2576fcf9cd6f7c5cdb2f90e0069b3420c8",
