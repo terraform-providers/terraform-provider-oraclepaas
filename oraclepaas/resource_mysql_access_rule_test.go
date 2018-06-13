@@ -138,7 +138,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 }
 
 resource "oraclepaas_mysql_access_rule" "test" {
-	name                = "test-access-rule-%d"
+	name                = "TestRule%d"
 	service_instance_id = "${oraclepaas_mysql_service_instance.test.service_name}"
 	description         = "test-access-rule"
 	ports               = "8000"
@@ -174,7 +174,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 }
 
 resource "oraclepaas_mysql_access_rule" "test" {
-	name                = "test-access-rule-%d"
+	name                = "TestRule%d"
 	service_instance_id = "${oraclepaas_mysql_service_instance.test.service_name}"
 	description         = "test-access-rule"
 	ports               = "8000"
