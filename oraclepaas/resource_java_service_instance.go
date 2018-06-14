@@ -17,6 +17,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 		Create: resourceOraclePAASJavaServiceInstanceCreate,
 		Read:   resourceOraclePAASJavaServiceInstanceRead,
 		Delete: resourceOraclePAASJavaServiceInstanceDelete,
+		Update: resourceOraclePAASJavaServiceInstanceUpdate,
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(90 * time.Minute),
@@ -117,7 +118,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 			"weblogic_server": {
 				Type:     schema.TypeList,
 				Required: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -455,7 +455,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 						"shape": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ForceNew:     true,
 							ValidateFunc: validation.StringInSlice(javaServiceInstanceShapes(), false),
 						},
 						"upper_stack_product_name": {
@@ -817,6 +816,34 @@ func resourceOraclePAASJavaServiceInstanceDelete(d *schema.ResourceData, meta in
 	return nil
 }
 
+func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] Resource state: %#v", d.State())
+	jClient, err := getJavaClient(meta)
+	if err != nil {
+		return err
+	}
+	client := jClient.ServiceInstanceClient()
+
+	// Updating the shape refers to changing the shape of the admin cluster for the weblogic server
+	if old, new := d.GetChange("weblogic_server.0.shape"); old.(string) != "" && old.(string) != new.(string) {
+		wlsComponent := java.ScaleUpDownWLS{
+			Hosts: []string{d.Get("weblogic_server.0.admin.0.hostname").(string)},
+			Shape: java.ServiceInstanceShape(new.(string)),
+		}
+		updateInput := &java.ScaleUpDownServiceInstanceInput{
+			Name:       d.Id(),
+			Components: java.ScaleUpDownComponent{WLS: wlsComponent},
+		}
+
+		err := client.ScaleUpDownServiceInstance(updateInput)
+		if err != nil {
+			return err
+		}
+	}
+
+	return resourceOraclePAASJavaServiceInstanceRead(d, meta)
+}
+
 func expandWebLogicConfig(d *schema.ResourceData, input *java.CreateServiceInstanceInput) {
 	webLogicConfig := d.Get("weblogic_server").([]interface{})
 	webLogicServer := &java.CreateWLS{}
@@ -874,6 +901,7 @@ func expandOTDConfig(d *schema.ResourceData, input *java.CreateServiceInstanceIn
 		otdInfo.LoadBalancingPolicy = java.ServiceInstanceLoadBalancingPolicy(v.(string))
 	}
 
+	input.ProvisionOTD = true
 	input.Components.OTD = otdInfo
 }
 
