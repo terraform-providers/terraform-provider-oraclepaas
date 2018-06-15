@@ -56,7 +56,6 @@ func testAccPreCheck(t *testing.T) {
 	if client.javaClient == nil {
 		t.Fatalf("Java Client is nil. Make sure your Oracle Cloud Account has access to the Java Cloud")
 	}
-
 	if client.mysqlClient == nil {
 		t.Fatalf("MySQL Client is nil. Make sure your Oracle Cloud Account has access to the MySQL Cloud")
 	}

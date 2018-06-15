@@ -1,4 +1,16 @@
 ## 1.2.0 (Unreleased)
+
+FEATURES: 
+
+* **New Resource:** `oraclepaas_mysql_service_instance` [GH-27]
+* **New Resource:** `oraclepaas_mysql_access_rule` [GH-27]
+
+IMPROVEMENTS:
+
+* oraclepaas_java_service_instance - Automatically provision otd when `oracle_traffic_director` block is set [GH-30]
+
+* oraclepaas_java_service_instance - Scale up/down of `weblogic_server.0.shape` is now supported [GH-29]
+
 ## 1.1.1 (May 25, 2018)
 
 IMPROVEMENTS: 
