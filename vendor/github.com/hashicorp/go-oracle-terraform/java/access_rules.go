@@ -12,7 +12,10 @@
 
 package java
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // API URI Paths for Container and Root objects
 const (
@@ -184,6 +187,15 @@ func (c *UtilityClient) CreateAccessRule(input *CreateAccessRuleInput) (*AccessR
 		Name: input.Name,
 	}
 
+	getInstanceInput := &GetServiceInstanceInput{
+		Name: input.ServiceInstanceID,
+	}
+
+	serviceInstance, err := c.Client.ServiceInstanceClient().WaitForServiceInstanceState(getInstanceInput, ServiceInstanceLifecycleStateStart, pollInterval, timeout)
+	if err != nil || serviceInstance == nil {
+		return nil, fmt.Errorf("error waiting for service instance to be ready %q: %+v", input.ServiceInstanceID, err)
+	}
+
 	result, err := c.waitForAccessRuleReady(getInput, pollInterval, timeout)
 	if err != nil {
 		return nil, err
@@ -269,6 +281,14 @@ func (c *UtilityClient) UpdateAccessRule(input *UpdateAccessRuleInput,
 	if err := c.updateResource(input.Name, input, &accessRule); err != nil {
 		return nil, err
 	}
+	getInstanceInput := &GetServiceInstanceInput{
+		Name: input.ServiceInstanceID,
+	}
+
+	serviceInstance, err := c.Client.ServiceInstanceClient().WaitForServiceInstanceState(getInstanceInput, ServiceInstanceLifecycleStateStart, waitForAccessRulePollInterval, waitForAccessRuleTimeout)
+	if err != nil || serviceInstance == nil {
+		return nil, fmt.Errorf("error waiting for service instance to be ready %q: %+v", input.ServiceInstanceID, err)
+	}
 	return &accessRule, nil
 }
 
@@ -325,11 +345,16 @@ func (c *UtilityClient) DeleteAccessRule(input *DeleteAccessRuleInput) error {
 		timeout = waitForAccessRuleTimeout
 	}
 
-	getInput := &GetAccessRuleInput{
-		Name: input.Name,
+	getInstanceInput := &GetServiceInstanceInput{
+		Name: input.ServiceInstanceID,
 	}
 
-	_, err := c.waitForAccessRuleDeleted(getInput, pollInterval, timeout)
+	serviceInstance, err := c.Client.ServiceInstanceClient().WaitForServiceInstanceState(getInstanceInput, ServiceInstanceLifecycleStateStart, pollInterval, timeout)
+	if err != nil || serviceInstance == nil {
+		return fmt.Errorf("error waiting for service instance to be ready %q: %+v", input.ServiceInstanceID, err)
+	}
+	time.Sleep(2 * time.Minute)
+
 	return err
 }
 

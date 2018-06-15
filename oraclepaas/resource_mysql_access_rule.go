@@ -68,6 +68,7 @@ func resourceOraclePAASMySQLAccessRule() *schema.Resource {
 			},
 			"enabled": {
 				Type:     schema.TypeBool,
+				Default:  true,
 				Optional: true,
 			},
 		}, // end schema declaration
@@ -94,20 +95,18 @@ func resourceOraclePAASMySQLAccessRuleCreate(d *schema.ResourceData, meta interf
 		Source:            d.Get("source").(string),
 	}
 
+	if d.Get("enabled").(bool) == true {
+		input.Status = string(mysql.AccessRuleEnabled)
+	} else {
+		input.Status = string(mysql.AccessRuleDisabled)
+	}
+
 	if value, ok := d.GetOk("description"); ok {
 		input.Description = value.(string)
 	}
 
 	if value, ok := d.GetOk("protocol"); ok {
 		input.Protocol = value.(string)
-	}
-
-	if value, ok := d.GetOk("enabled"); ok {
-		if value.(bool) == true {
-			input.Status = string(mysql.AccessRuleEnabled)
-		} else {
-			input.Status = string(mysql.AccessRuleDisabled)
-		}
 	}
 
 	err = client.CreateAccessRule(&input)
@@ -118,7 +117,7 @@ func resourceOraclePAASMySQLAccessRuleCreate(d *schema.ResourceData, meta interf
 
 	d.SetId(name)
 
-	return resourceOraclePAASMySQLAccessRuleRead(d, meta)
+	return resourceOraclePAASMySQLAccessRuleUpdate(d, meta)
 }
 
 func resourceOraclePAASMySQLAccessRuleRead(d *schema.ResourceData, meta interface{}) error {
