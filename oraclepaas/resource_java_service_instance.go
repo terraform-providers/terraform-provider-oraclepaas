@@ -769,6 +769,10 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 	d.Set("metering_frequency", result.MeteringFrequency)
 	d.Set("force_delete", d.Get("force_delete"))
 
+	if val, ok := d.GetOk("assign_public_ip"); ok {
+		d.Set("assign_public_ip", val)
+	}
+
 	wlsConfig, err := flattenWebLogicConfig(d, result.Components.WLS, result.WLSRoot)
 	if err != nil {
 		return err
