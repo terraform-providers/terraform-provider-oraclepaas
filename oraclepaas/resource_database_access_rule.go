@@ -205,7 +205,7 @@ func resourceOraclePAASDatabaseAccessRuleDelete(d *schema.ResourceData, meta int
 		ServiceInstanceID: d.Get("service_instance_id").(string),
 		Name:              d.Get("name").(string),
 		Status:            status,
-		Timeout:           d.Timeout("TimeoutDelete"),
+		Timeout:           d.Timeout(schema.TimeoutDelete),
 	}
 
 	err = client.DeleteAccessRule(&input)
