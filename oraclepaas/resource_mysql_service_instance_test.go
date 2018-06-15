@@ -2,12 +2,13 @@ package oraclepaas
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/hashicorp/go-oracle-terraform/mysql"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"os"
-	"testing"
 )
 
 func TestAccOraclePAASMySQLServiceInstance_EnterpriseMonitor(t *testing.T) {
@@ -34,26 +35,9 @@ func TestAccOraclePAASMySQLServiceInstance_EnterpriseMonitor(t *testing.T) {
 }
 
 func TestAccOPAASMySQLServiceInstance_CloudStorage(t *testing.T) {
-
-	storageEndpoint := os.Getenv("TEST_STORAGE_ENDPOINT")
-	storageUsername := os.Getenv("TEST_STORAGE_USERNAME")
-	storagePassword := os.Getenv("TEST_STORAGE_PASSWORD")
-
-	if storageEndpoint == "" {
-		t.Skip("You will need to set the cloud storage container environment parameter `TEST_STORAGE_ENDPOINT` to run this test. Skipping...")
-	}
-
-	if storageUsername == "" {
-		t.Skip("You will need to set the cloud storage username environment parameter `TEST_STORAGE_USERNAME` to run this test. Skipping...")
-	}
-
-	if storagePassword == "" {
-		t.Skip("You will need to set the cloud storage password environment parameter `TEST_STORAGE_PASSWORD` to run this test. Skipping...")
-	}
-
 	ri := acctest.RandInt()
-	container := fmt.Sprintf("%s/acc-test-%d", storageEndpoint, ri)
-	config := testAccMySQLServiceInstanceCloudStorage(ri, container, storageUsername, storagePassword)
+	container := fmt.Sprintf("%sacctest-%d", os.Getenv("OPC_STORAGE_URL"), ri)
+	config := testAccMySQLServiceInstanceCloudStorage(ri)
 	resourceName := "oraclepaas_mysql_service_instance.test"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -192,19 +176,16 @@ resource "oraclepaas_mysql_service_instance" "test" {
 `, rInt)
 }
 
-func testAccMySQLServiceInstanceCloudStorage(rInt int, container string, username string, password string) string {
+func testAccMySQLServiceInstanceCloudStorage(rInt int) string {
 	return fmt.Sprintf(`
 resource "oraclepaas_mysql_service_instance" "test" {
-		
 	description					= "Test Service Instance with Storage"
 	name                    	= "TestInst%d"
 	vm_public_key				= "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC0Pspsfu8lUTxILGf+dJnTTbIeFZrL/NKaQNNEvH9jF9aXcr347C5dKlu45LE2jTB8OfjtaExOznn7kKiOErwWPJUzDncDDsmUacDzs5KGbDBGQb6zxEMyYgYCKDiru5V24CrZqam+3QP5AurLopD3JaYmZSikKgP+syu16jBs3WzRLvGzDknIkrUk6t7XjzJ5X/wgMTqepjDDyn9NJ3nG5l4iQe7ULgAbfnRjTM3pRQZ5EM67iN3jc+cIFeNsEwqnxb9ZCJ7avb+Yqdcm/7A5tlX+rMwnTYYCPF/j8bgFdHuO9VHEiQHkM7FuRvZGWkXCryyg9iLM+myG5XdVa3Z2IsfBx3qIfxKMcWsHIk5mmDvWIDbgvBne6JSPKhkB7qM6F10pJSVvt08tGwmlTxZZJPKCkpd0nrfrVChMdMr9yRoYH46bqwMbPFCffNeVkJfj4IMlSSU+A9RGLLEnkdv+Xk3yCS+8RcNA6Zilv9VnJm4hBEJ2LsDVZfwqTvUAeB4evpOCMS+v4YKn/w+R4cB/+SdYDtifBwKW8TYk4ZK3J4wHa6XAI4u3b9C0bIfUmXZs36Gyy4MArtg6QGqrmTzYMa5eI2uB7BnO0JM/Moref8vvQYvGjbnkC5G/yCoLswbt477Gn+Ih96PyZ81qMmTv8qE9S3F3qCqkR3sDJA3oDw=="
 	backup_destination      	= "BOTH"
 	
 	backups {
-		cloud_storage_container = "%s"
-		cloud_storage_username  = "%s"
-		cloud_storage_password  = "%s"
+		cloud_storage_container = "%sacctest-%d"
 		create_if_missing 		= true				
 	}
 			
@@ -218,7 +199,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 		mysql_charset           = "utf8"
 		mysql_collation         = "utf8_general_ci"	    
 	}
-}`, rInt, container, username, password)
+}`, rInt, os.Getenv("OPC_STORAGE_URL"), rInt)
 }
 
 func testAccMySQLServiceInstanceOCI(rInt int, oci_region string, oci_availability_domain string, oci_subnet string) string {
