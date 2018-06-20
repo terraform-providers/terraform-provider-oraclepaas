@@ -108,9 +108,8 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 
 			"shape": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
-				Default:  "oc3",
 			},
 
 			"backups": {
