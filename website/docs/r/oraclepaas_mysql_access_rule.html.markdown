@@ -14,20 +14,11 @@ description: |-
 
 ```hcl
 resource "oraclepaas_mysql_service_instance" "default" {
-	name                 = "SimpleMySQLInstance"
-	description          = "This is a simple mysql instance"
-	vm_public_key       = "A SSH public key"
-	backup_destination   = "NONE"
-
-	mysql_configuration = {
-		db_name          = "demo_db"
-		db_storage       = 25
-		mysql_port       = 3306
-	}
+	...
 }
 
 resource "oraclepass_mysql_access_rule" "myrule" {
-	service_instance_id = "SimpleMySQLInstance"
+	service_instance_id = "${oraclepaas_mysql_service_instance.default.id}"
 	name                = "My Access Rule"
 	description         = "My Simple Access Rule"
 	protocol            = "tcp"

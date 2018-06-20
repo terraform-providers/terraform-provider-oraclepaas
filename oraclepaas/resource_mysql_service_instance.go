@@ -37,7 +37,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"vm_public_key": {
+			"ssh_public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -72,12 +72,6 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 				}, true),
 			},
 
-			"enable_notification": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-			},
-
 			"notification_email": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -104,6 +98,18 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 				Optional:  true,
 				ForceNew:  true,
 				Sensitive: true,
+			},
+
+			"subnet": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"shape": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"backups": {
@@ -192,16 +198,6 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 							Optional:  true,
 							ForceNew:  true,
 							Sensitive: true,
-						},
-						"shape": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-						"subnet": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
 						},
 						/* TODO: Couldn't get these to work with the current API. I've commented them out for now
 						"mysql_options" : {
@@ -345,7 +341,7 @@ func expandServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, e
 	input := &mysql.ServiceParameters{
 		ServiceName:       d.Get("name").(string),
 		BackupDestination: d.Get("backup_destination").(string),
-		VMPublicKeyText:   d.Get("vm_public_key").(string),
+		VMPublicKeyText:   d.Get("ssh_public_key").(string),
 	}
 
 	if value, ok := d.GetOk("availability_domain"); ok {
@@ -362,6 +358,11 @@ func expandServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, e
 
 	if value, ok := d.GetOk("description"); ok {
 		input.ServiceDescription = value.(string)
+	}
+
+	if value, ok := d.GetOk("notification_email"); ok {
+		input.NotificationEmail = value.(string)
+		input.EnableNotification = true
 	}
 
 	err := expandCloudStorage(d, input)
@@ -437,52 +438,49 @@ func expandComponentParameters(d *schema.ResourceData) (mysql.ComponentParameter
 	attrs := mysqlConfiguration[0].(map[string]interface{})
 
 	// get the first entry.
-	MysqlInput := &mysql.MySQLParameters{
+	mysqlInput := &mysql.MySQLParameters{
 		DBName:            attrs["db_name"].(string),
 		DBStorage:         strconv.Itoa(attrs["db_storage"].(int)),
 		MysqlUserName:     attrs["mysql_username"].(string),
 		MysqlUserPassword: attrs["mysql_password"].(string),
+		Shape:             d.Get("shape").(string),
 	}
 
 	if attrs["enterprise_monitor_configuration"] != nil {
-		MysqlInput.EnterpriseMonitor = "Yes"
-		err := expandEM(attrs, MysqlInput)
+		mysqlInput.EnterpriseMonitor = "Yes"
+		err := expandEM(attrs, mysqlInput)
 		if err != nil {
 			return result, err
 		}
 	} else {
-		MysqlInput.EnterpriseMonitor = "No"
+		mysqlInput.EnterpriseMonitor = "No"
 	}
 
 	if val, ok := attrs["mysql_charset"]; ok && val != "" {
-		MysqlInput.MysqlCharset = val.(string)
+		mysqlInput.MysqlCharset = val.(string)
 	}
 
 	if val, ok := attrs["mysql_collation"]; ok && val != "" {
-		MysqlInput.MysqlCollation = val.(string)
+		mysqlInput.MysqlCollation = val.(string)
 	}
 
 	if val, ok := attrs["mysql_port"]; ok && val != "" {
-		MysqlInput.MysqlPort = strconv.Itoa(val.(int))
-	}
-
-	if val, ok := attrs["shape"]; ok && val != "" {
-		MysqlInput.Shape = val.(string)
+		mysqlInput.MysqlPort = strconv.Itoa(val.(int))
 	}
 
 	if val, ok := attrs["snapshot_name"]; ok && val != "" {
-		MysqlInput.SnapshotName = val.(string)
+		mysqlInput.SnapshotName = val.(string)
 	}
 
 	if val, ok := attrs["source_service_name"]; ok && val != "" {
-		MysqlInput.SourceServiceName = val.(string)
+		mysqlInput.SourceServiceName = val.(string)
 	}
 
-	if val, ok := attrs["subnet"]; ok && val != "" {
-		MysqlInput.Subnet = val.(string)
+	if val, ok := d.GetOk("subnet"); ok && val != "" {
+		mysqlInput.Subnet = val.(string)
 	}
 
-	result.Mysql = *MysqlInput
+	result.Mysql = *mysqlInput
 	return result, nil
 }
 
@@ -526,6 +524,10 @@ func resourceOraclePAASMySQLServiceInstanceRead(d *schema.ResourceData, meta int
 	d.Set("base_release_version", result.BaseReleaseVersion)
 	d.Set("creator", result.Creator)
 	d.Set("creation_date", result.CreationDate)
+	d.Set("ssh_public_key", d.Get("ssh_public_key"))
+	if val, ok := d.GetOk("subnet"); ok {
+		d.Set("subnet", val)
+	}
 
 	if err := flattenMySQLAttributesFromAttachments(d, result.Components.Mysql); err != nil {
 		return err
@@ -560,7 +562,7 @@ func flattenMySQLAttributesFromAttachments(d *schema.ResourceData, instanceInfo 
 		}
 
 		if attr, ok := attributeMap["shape"]; ok {
-			attrs["shape"] = attr.Value
+			d.Set("shape", attr.Value)
 		}
 
 		if attr, ok := attributeMap["CONNECT_STRING"]; ok {
