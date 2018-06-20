@@ -62,6 +62,8 @@ The following arguments are supported:
 
 * `backup_destination` - (Required) The destination where the database backups will be stored. 
 
+* `shape` - (Required) The desired compute shape.  A shape defines the number of Oracle Compute Units (OCPUs) and amount of memory (RAM). See [About Shapes](http://www.oracle.com/pls/topic/lookup?ctx=cloud&id=OCSUG210) in _Using Oracle Compute Cloud Service_ for more information about shapes.
+
 * `metering_frequency` - (Optional). The billing frequency of the service instance. Allowed values are `MONTHLY` and `HOURLY`
 
 * `region` - (Optional). Specifies the region where the instance will be provisioned.
@@ -72,7 +74,6 @@ The following arguments are supported:
 
 * `ip_network` - (Optional) This attribute is only applicable to accounts where regions are supported. The three-part name of an IP network to which the service instance is added. For example: /Compute-identity_domain/user/object
 
-* `shape` - (Optional) The desired compute shape.  A shape defines the number of Oracle Compute Units (OCPUs) and amount of memory (RAM). See [About Shapes](http://www.oracle.com/pls/topic/lookup?ctx=cloud&id=OCSUG210) in _Using Oracle Compute Cloud Service_ for more information about shapes.
 
 * `subnet` -(Optional) This attribute is relevant to only Oracle Cloud Infrastructure. Specify the Oracle Cloud Identifier (OCID) of a subnet from a virtual cloud network (VCN) that you had created previously in Oracle Cloud Infrastructure. For the instructions to create a VCN and subnet, see [Prerequisites for Oracle Platform Services on Oracle Cloud Infrastructure](http://www.oracle.com/pls/topic/lookup?ctx=en/cloud/paas/java-cloud&id=oci_general_paasprereqs) in the Oracle Cloud Infrastructure documentation.
 
