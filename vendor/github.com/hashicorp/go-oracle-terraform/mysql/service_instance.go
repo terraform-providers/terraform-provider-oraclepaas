@@ -329,7 +329,7 @@ type ServiceParameters struct {
 	// The billing frequency of the service instance; either MONTHLY or HOURLY. Default: MONTHLY
 	MeteringFrequency string `json:"meteringFrequency,omitempty"`
 	// The email that will be used to send notifications to.
-	NotificationEmail string `json:"notificationEmail,omitEmpty"`
+	NotificationEmail string `json:"notificationEmail,omitempty"`
 	// Name of the region where the MySQL Service instance is to be provisioned. This attribute is applicable only to accounts where regions are supported
 	Region string `json:"region,omitempty"`
 	// Text that provides addition information about the service instance.
