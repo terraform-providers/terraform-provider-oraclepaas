@@ -7,6 +7,7 @@ import (
 	"time"
 
 	opcClient "github.com/hashicorp/go-oracle-terraform/client"
+	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/go-oracle-terraform/java"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -646,6 +647,18 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Default:  true,
 				ForceNew: true,
 			},
+			"desired_state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(database.ServiceInstanceLifecycleStateStop),
+					string(database.ServiceInstanceLifecycleStateStart),
+				}, true),
+			},
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -760,6 +773,8 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 	d.Set("version", result.ServiceVersion)
 	d.Set("metering_frequency", result.MeteringFrequency)
 	d.Set("force_delete", d.Get("force_delete"))
+	d.Set("desired_state", d.Get("desired_state"))
+	d.Set("status", result.State)
 
 	wlsConfig, err := flattenWebLogicConfig(d, result.Components.WLS, result.WLSRoot)
 	if err != nil {
@@ -815,6 +830,19 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 		return err
 	}
 	client := jClient.ServiceInstanceClient()
+
+	if d.HasChange("desired_state") {
+		updateInput := &java.DesiredStateInput{
+			Name:            d.Id(),
+			LifecycleState:  java.ServiceInstanceLifecycleState(d.Get("desired_state").(string)),
+			AllServiceHosts: true,
+		}
+
+		err := client.UpdateDesiredState(updateInput)
+		if err != nil {
+			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
+		}
+	}
 
 	// Updating the shape refers to changing the shape of the admin cluster for the weblogic server
 	if old, new := d.GetChange("weblogic_server.0.shape"); old.(string) != "" && old.(string) != new.(string) {

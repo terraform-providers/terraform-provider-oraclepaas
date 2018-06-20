@@ -61,7 +61,7 @@ The following arguments are supported:
 * `default_access_rules` - (Optional) Specifies the details on which default access rules are enable or disabled. Default Access Rules
 are configured below.
 
-* `desired_state` - (Optional) Specifies the desired state of the servie instance. Allowed values are `start`, `stop`,
+* `desired_state` - (Optional) Specifies the desired state of the service instance. Allowed values are `start`, `stop`,
 and `restart`.
 
 * `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database
