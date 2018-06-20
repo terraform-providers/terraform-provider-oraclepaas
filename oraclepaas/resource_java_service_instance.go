@@ -734,7 +734,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	}
 
 	d.SetId(info.ServiceName)
-	return resourceOraclePAASJavaServiceInstanceRead(d, meta)
+	return resourceOraclePAASJavaServiceInstanceUpdate(d, meta)
 }
 
 func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta interface{}) error {
