@@ -1,15 +1,15 @@
-## 1.2.0 (Unreleased)
+## 1.2.0 (June 20, 2018)
 
 FEATURES: 
 
-* **New Resource:** `oraclepaas_mysql_service_instance` [GH-27]
-* **New Resource:** `oraclepaas_mysql_access_rule` [GH-27]
+* **New Resource:** `oraclepaas_mysql_service_instance` ([#27](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/27))
+* **New Resource:** `oraclepaas_mysql_access_rule` ([#27](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/27))
 
 IMPROVEMENTS:
 
-* oraclepaas_java_service_instance - Automatically provision otd when `oracle_traffic_director` block is set [GH-30]
+* oraclepaas_java_service_instance - Automatically provision otd when `oracle_traffic_director` block is set ([#30](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/30))
 
-* oraclepaas_java_service_instance - Scale up/down of `weblogic_server.0.shape` is now supported [GH-29]
+* oraclepaas_java_service_instance - Scale up/down of `weblogic_server.0.shape` is now supported ([#29](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/29))
 
 ## 1.1.1 (May 25, 2018)
 
