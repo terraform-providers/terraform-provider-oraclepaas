@@ -2,9 +2,10 @@ package mysql
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/hashicorp/go-oracle-terraform/client"
 	"github.com/hashicorp/go-oracle-terraform/opc"
-	"net/http"
 )
 
 const AUTH_HEADER = "Authorization"
@@ -54,6 +55,9 @@ func (c *MySQLClient) executeRequestWithContentType(method, path string, body in
 	}
 
 	debugReqString := fmt.Sprintf("HTTP %s Path (%s)", method, path)
+	if body != nil {
+		debugReqString = fmt.Sprintf("%s:\nBody: %+v", debugReqString, string(reqBody))
+	}
 
 	// Log the request before the authentication header, so as not to leak credentials
 	c.client.DebugLogString(fmt.Sprintf("[DEBUG] : RequestString (%+v)", debugReqString))

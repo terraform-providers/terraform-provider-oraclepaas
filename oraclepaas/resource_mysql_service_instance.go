@@ -167,6 +167,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 							Optional:     true,
 							ForceNew:     true,
 							ValidateFunc: validation.IntBetween(25, 1024),
+							Default:      25,
 						},
 						"mysql_charset": {
 							Type:     schema.TypeString,
@@ -411,16 +412,16 @@ func expandEM(input map[string]interface{}, parameter *mysql.MySQLParameters) er
 			parameter.EnterpriseMonitorAgentPassword = attrs["em_agent_password"].(string)
 		}
 
-		if val, ok := attrs["em_agent_user"].(string); ok && val != "" {
-			parameter.EnterpriseMonitorAgentUser = attrs["em_agent_user"].(string)
+		if val, ok := attrs["em_agent_username"].(string); ok && val != "" {
+			parameter.EnterpriseMonitorAgentUser = attrs["em_agent_username"].(string)
 		}
 
 		if val, ok := attrs["em_password"].(string); ok && val != "" {
 			parameter.EnterpriseMonitorManagerPassword = attrs["em_password"].(string)
 		}
 
-		if val, ok := attrs["em_user"].(string); ok && val != "" {
-			parameter.EnterpriseMonitorManagerUser = attrs["em_user"].(string)
+		if val, ok := attrs["em_username"].(string); ok && val != "" {
+			parameter.EnterpriseMonitorManagerUser = attrs["em_username"].(string)
 		}
 
 		if val, ok := attrs["em_port"].(string); ok && val != "" {
