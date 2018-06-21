@@ -1,4 +1,11 @@
 ## 1.3.0 (Unreleased)
+
+## 1.2.1 (June 21, 2018)
+
+BUF FIXES: 
+
+* oraclepaas_mysql_service_instance: Fix `em_agent_username` and `em_username` [GH-34]
+
 ## 1.2.0 (June 20, 2018)
 
 FEATURES: 
