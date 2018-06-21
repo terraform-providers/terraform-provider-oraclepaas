@@ -167,6 +167,7 @@ func resourceOraclePAASMySQLServiceInstance() *schema.Resource {
 							Optional:     true,
 							ForceNew:     true,
 							ValidateFunc: validation.IntBetween(25, 1024),
+							Default:      25,
 						},
 						"mysql_charset": {
 							Type:     schema.TypeString,
