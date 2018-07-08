@@ -3,21 +3,20 @@ package helper
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/hashicorp/go-oracle-terraform/opc"
 )
 
+// TestEnvVar is the constant to determine whether to run acceptance tests
 const TestEnvVar = "ORACLE_ACC"
 
-// Test suite helpers
-
+// TestCase Test suite helpers
 type TestCase struct {
 	// Fields to test stuff with
 }
 
+// Test sets up the test framework
 func Test(t TestT, c TestCase) {
 	if os.Getenv(TestEnvVar) == "" {
 		t.Skip(fmt.Sprintf("Acceptance tests skipped unless env '%s' is set", TestEnvVar))
@@ -32,13 +31,9 @@ func Test(t TestT, c TestCase) {
 	log.SetOutput(logWriter)
 }
 
+// TestT supports errors, fatals, and skips for tests
 type TestT interface {
 	Error(args ...interface{})
 	Fatal(args ...interface{})
 	Skip(args ...interface{})
-}
-
-func RInt() int {
-	rand.Seed(time.Now().UTC().UnixNano())
-	return rand.Int()
 }

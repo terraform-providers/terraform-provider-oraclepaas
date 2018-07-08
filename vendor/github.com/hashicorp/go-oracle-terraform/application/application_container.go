@@ -2,6 +2,8 @@ package application
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -85,6 +87,44 @@ const (
 	applicationContainerStatusDestroyPending containerStatus = "DESTROY_PENDING"
 )
 
+// ManifestType determines whether an application is public or private:
+type ManifestType string
+
+const (
+	// ManifestTypeWeb specifies a public application, which you can access using a public URL, the public REST API, or the command-line interface.
+	ManifestTypeWeb ManifestType = "web"
+	// ManifestTypeWorker specifies a worker application, which is private and runs in the background. The isClustered parameter should be set to true in some cases.
+	ManifestTypeWorker ManifestType = "worker"
+)
+
+// ManifestMode details the optional modes for restarting the application container
+type ManifestMode string
+
+const (
+	// ManifestModeRolling performs a rolling restart
+	ManifestModeRolling ManifestMode = "rolling"
+)
+
+// ServiceType details the constants related to what types a service is
+type ServiceType string
+
+const (
+	// ServiceTypeJAAS for Oracle Java Cloud Service
+	ServiceTypeJAAS ServiceType = "JAAS"
+	// ServiceTypeDBAAS for Oracle Database Cloud Service
+	ServiceTypeDBAAS ServiceType = "DBAAS"
+	// ServiceTypeMYSQLCS for MySQL Cloud Service
+	ServiceTypeMYSQLCS ServiceType = "MYSQLCS"
+	// ServiceTypeOEHCS for an Oracle Event Hub Cloud Service topic
+	ServiceTypeOEHCS ServiceType = "OEHCS"
+	// ServiceTypeOEHPCS for an Oracle Event Hub Cloud Service cluster
+	ServiceTypeOEHPCS ServiceType = "OEHPCS"
+	// ServiceTypeDHCS for Oracle Data Hub Cloud Service
+	ServiceTypeDHCS ServiceType = "DHCS"
+	// ServiceTypeCaching for a cache
+	ServiceTypeCaching ServiceType = "caching"
+)
+
 // Container container information about the application container
 type Container struct {
 	// ID of the application
@@ -93,6 +133,8 @@ type Container struct {
 	AppURL string `json:"appURL"`
 	// Creation time of the application
 	CreatedTime string `json:"createdTime"`
+	// The activity acting on the application container
+	CurrentOnGoingActitvity string `json:"currentOngoingActivity"`
 	// Identity Domain of the application
 	IdentityDomain string `json:"identityDomain"`
 	// Shows details of all instances currently running.
@@ -142,9 +184,15 @@ type CreateApplicationContainerInput struct {
 	// Name of the optional deployment file, which specifies memory, number of instances, and service bindings
 	// Optional
 	Deployment string
+	// Deployment Attributes
+	// Optional
+	DeploymentAttributes *DeploymentAttributes
 	// Name of the manifest file, required if this file is not packaged with the application
 	// Optional
 	Manifest string
+	// Manifest Attributes
+	// Optional
+	ManifestAttributes *ManifestAttributes
 	// Time to wait between checks on application container status
 	PollInterval time.Duration
 	// Timeout for creating an application container
@@ -182,21 +230,169 @@ type CreateApplicationContainerAdditionalFields struct {
 	SubscriptionType string //ApplicationSubscriptionType
 }
 
+// ManifestAttributes details the available attributes in a manifest file
+type ManifestAttributes struct {
+	// Optional
+	Runtime Runtime `json:"runtime,omitempty"`
+	// Determines whether an application is public or private
+	// Default is `worker`
+	// Optional
+	Type ManifestType `json:"type,omitempty"`
+	// Launch command to execute after the application has been uploaded.
+	// Optional
+	Command string `json:"command,omitempty"`
+	// Release attributes of a specific build.
+	// Optional
+	Release Release `json:"release,omitempty"`
+	// Maximum time in seconds to wait for the application to start. Allowed values are between 10 and 600. The default is 30.
+	// If the application doesn’t start in the time specified, the application is deemed to have failed to start and is terminated.
+	// For example, if your application takes two minutes to start, set startupTime to at least 120.
+	// Optional
+	StartupTime string `json:"startupTime,omitempty"`
+	// Maximum time in seconds to wait for the application to stop. Allowed values are between 0 and 600.
+	// The default is 0. This allows the application to close connections and free up resources gracefully.
+	// For example, if your application takes two minutes to shut down, set shutdownTime to at least 120.
+	// Optional
+	ShutdownTime string `json:"shutdownTime,omitempty"`
+	// Comments
+	// Optional
+	Notes string `json:"notes,omitempty"`
+	// Restart mode for application instances when the application is restarted. The only allowed option is rolling for a rolling restart.
+	// Omit this parameter to be prompted for a rolling or concurrent restart.
+	// Optional
+	Mode ManifestMode `json:"mode,omitempty"`
+	// Must be set to true for application instances to act as a cluster, with failover capability.
+	// Optional
+	IsClustered bool `json:"isClustered,omitempty"`
+	// Context root of the application. The value of the home parameter is appended to the application URL.
+	// Optional
+	Home string `json:"home,omitempty"`
+	// Allows you to define a URL for your application that the system uses for health checks. The URL must return an HTTP response of 200 OK to indicate that the application is healthy.
+	// Optional
+	HealthCheck HealthCheck `json:"healthcheck,omitempty"`
+}
+
+// DeploymentAttributes details the attributes available for a deployment.json file
+type DeploymentAttributes struct {
+	// The amount of memory in gigabytes made available to the application. Values range from 1G to 20G.
+	// The default is 2G.
+	// Optional
+	Memory string `json:"memory,omitempty"`
+	// Number of application instances. The maximum is 64.
+	// The default is 2.
+	// Optional
+	Instances int `json:"instances,omitempty"`
+	// Free-form comment field. It can be used, for example, to describe the deployment plan.
+	// Optional
+	Notes string `json:"notes,omitempty"`
+	// Environment variables used by the application. This element can contain any number of name-value pairs.
+	// Optional
+	Envrionment map[string]string `json:"environment,omitempty"`
+	// List of environment variables marked as secured on the user interface.
+	// The environment variables to be secured must be present in the environment property.
+	// Optional
+	SecureEnvironment []string `json:"secureEnvironment,omitempty"`
+	// Java EE system properties used by the application. This element can contain any number of name-value pairs.
+	// Optional
+	JavaSystemProperties map[string]string `json:"java_system_properties,omitempty"`
+	// Service bindings for connections to other Oracle Cloud services. This element can contain more
+	// than one block of sub-elements. Each block specifies one service binding.
+	// Optional
+	Services []Service `json:"services,omitempty"`
+}
+
+// Release details the attributes for a specific release for the application container.
+type Release struct {
+	// User-specified value of build.
+	// Required
+	Build string `json:"build"`
+	// User-specified value of commit.
+	// Required
+	Commit string `json:"commit"`
+	// User-specified application version.
+	// Required
+	Version string `json:"version"`
+}
+
+// Runtime details the available runtime attributes for a manifest file
+type Runtime struct {
+	MajorVersion string `json:"majorVersion"`
+}
+
+// HealthCheck specifies the available attributes for a health check
+type HealthCheck struct {
+	// Defines the URI that is appended to the application URL to create the health check URL
+	HTTPEndpoint string `json:"http-endpoint"`
+}
+
+// Service details the service bindings for connections to other Oracle Cloud services.
+type Service struct {
+	// User-specified identifier.
+	// Required
+	Identifier string `json:"identifier"`
+	// Type of the service.
+	// Required
+	Type ServiceType `json:"type"`
+	// Name of the service, the name of an existing Oracle Java Cloud Service instance, Oracle Database Cloud
+	// Service database, MySQL Cloud Service database, Oracle Event Hub Cloud Service topic or cluster,
+	// Oracle Data Hub Cloud Service instance, or cache name.
+	// Required
+	Name string `json:"name"`
+	// Username used to access the service.
+	// Required
+	Username string `json:"username"`
+	// Password for the username.
+	// Required
+	Password string `json:"password"`
+}
+
 // CreateApplicationContainer creates a new Application Container from an ApplicationClient and an input struct.
 // Returns a populated ApplicationContainer struct for the Application, and any errors
 func (c *ContainerClient) CreateApplicationContainer(input *CreateApplicationContainerInput) (*Container, error) {
 
-	files := make(map[string]string)
-	if input.Deployment != "" {
-		files["deployment"] = input.Deployment
-	}
-	if input.Manifest != "" {
-		files["manifest"] = input.Manifest
-	}
+	var applicationContainer *Container
 	additionalFields := structs.Map(input.AdditionalFields)
 
-	var applicationContainer *Container
-	if err := c.createResource(files, additionalFields, applicationContainer); err != nil {
+	if input.Manifest != "" && input.ManifestAttributes != nil {
+		return nil, fmt.Errorf("Cannot specify both a manifest file and manifest attributes")
+	}
+	if input.Deployment != "" && input.DeploymentAttributes != nil {
+		return nil, fmt.Errorf("Cannot specify both a deployment file and deployment attributes")
+	}
+
+	files := make(map[string][]byte)
+	if input.Deployment != "" {
+		fileContents, err := readFileContents(input.Deployment)
+		if err != nil {
+			return nil, fmt.Errorf("Error reading deployment file: %+v", err)
+		}
+		files["deployment"] = fileContents
+	}
+	if input.Manifest != "" {
+		fileContents, err := readFileContents(input.Manifest)
+		if err != nil {
+			return nil, fmt.Errorf("Error reading manifest file: %+v", err)
+		}
+		files["manifest"] = fileContents
+	}
+
+	if input.ManifestAttributes != nil {
+		manifestBytes, err := c.client.MarshallRequestBody(input.ManifestAttributes)
+		if err != nil {
+			return nil, err
+		}
+		files["manifest"] = manifestBytes
+	}
+
+	if input.DeploymentAttributes != nil {
+		deploymentBytes, err := c.client.MarshallRequestBody(input.DeploymentAttributes)
+		if err != nil {
+			return nil, err
+		}
+		files["deployment"] = deploymentBytes
+	}
+
+	if err := c.createApplicationContainerResource("POST", files, additionalFields, applicationContainer); err != nil {
 		return nil, err
 	}
 
@@ -275,9 +471,14 @@ type UpdateApplicationContainerInput struct {
 	// Name of the optional deployment file, which specifies memory, number of instances, and service bindings
 	// Optional
 	Deployment string
+	// Deployment Attributes
+	// Optional
+	DeploymentAttributes *DeploymentAttributes
 	// Name of the manifest file, required if this file is not packaged with the application
 	// Optional
 	Manifest string
+	// Manifest Attributes
+	ManifestAttributes *ManifestAttributes
 	// Time to wait between checks on application container status
 	PollInterval time.Duration
 	// Timeout for creating an application container
@@ -297,17 +498,50 @@ type UpdateApplicationContainerAdditionalFields struct {
 // Returns a populated ApplicationContainer struct for the Application, and any errors
 func (c *ContainerClient) UpdateApplicationContainer(input *UpdateApplicationContainerInput) (*Container, error) {
 
-	files := make(map[string]string)
-	if input.Deployment != "" {
-		files["deployment"] = input.Deployment
+	// To prevent potentially overriding attributes when passing a file and attributes, we only allow one or the other.
+	if input.Manifest != "" && input.ManifestAttributes != nil {
+		return nil, fmt.Errorf("Cannot specify both a manifest file and manifest attributes")
 	}
-	if input.Manifest != "" {
-		files["manifest"] = input.Manifest
+	if input.Deployment != "" && input.DeploymentAttributes != nil {
+		return nil, fmt.Errorf("Cannot specify both a deployment file and deployment attributes")
 	}
+
 	additionalFields := structs.Map(input.AdditionalFields)
 
+	files := make(map[string][]byte)
+	if input.Deployment != "" {
+		fileContents, err := readFileContents(input.Deployment)
+		if err != nil {
+			return nil, fmt.Errorf("Error reading deployment file: %+v", err)
+		}
+		files["deployment"] = fileContents
+	}
+	if input.Manifest != "" {
+		fileContents, err := readFileContents(input.Manifest)
+		if err != nil {
+			return nil, fmt.Errorf("Error reading manifest file: %+v", err)
+		}
+		files["manifest"] = fileContents
+	}
+
+	if input.ManifestAttributes != nil {
+		manifestBytes, err := c.client.MarshallRequestBody(input.ManifestAttributes)
+		if err != nil {
+			return nil, err
+		}
+		files["manifest"] = manifestBytes
+	}
+
+	if input.DeploymentAttributes != nil {
+		deploymentBytes, err := c.client.MarshallRequestBody(input.DeploymentAttributes)
+		if err != nil {
+			return nil, err
+		}
+		files["deployment"] = deploymentBytes
+	}
+
 	var applicationContainer *Container
-	if err := c.updateResource(files, additionalFields, applicationContainer); err != nil {
+	if err := c.updateApplicationContainerResource(input.Name, "PUT", files, additionalFields, applicationContainer); err != nil {
 		return nil, err
 	}
 
@@ -343,6 +577,9 @@ func (c *ContainerClient) WaitForApplicationContainerRunning(input *GetApplicati
 		c.client.DebugLogString(fmt.Sprintf("Application Container name is %v, Application Contiainer info is %+v", info.Name, info))
 		switch s := info.Status; s {
 		case string(applicationContainerStatusRunning): // Target State
+			if info.CurrentOnGoingActitvity != "" {
+				return false, nil
+			}
 			c.client.DebugLogString("Application Container Running")
 			return true, nil
 		case string(applicationContainerStatusNew):
@@ -389,4 +626,25 @@ func (c *ContainerClient) WaitForApplicationContainerDeleted(input *DeleteApplic
 			return false, fmt.Errorf("Unknown application container state: %s", s)
 		}
 	})
+}
+
+func readFileContents(filePath string) ([]byte, error) {
+	// Open the file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		fileErr := file.Close()
+		if fileErr != nil {
+			err = fileErr
+		}
+	}()
+
+	// Read the file contents
+	fileContents, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+	return fileContents, nil
 }

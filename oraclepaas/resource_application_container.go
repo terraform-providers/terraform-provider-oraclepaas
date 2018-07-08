@@ -33,12 +33,108 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 				ForceNew: true,
 			},
 			"manifest_file": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"manifest_attributes"},
+			},
+			"manifest_attributes": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				ConflictsWith: []string{"manifest_file"},
+				MaxItems:      1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"runtime": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"major_version": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+						"type": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"command": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"release": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"build": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"commit": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"version": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+						"startup_time": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(10, 600),
+							Default:      30,
+						},
+						"shutdown_time": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(0, 600),
+							Default:      0,
+						},
+						"notes": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"mode": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice{application.ManifestModeRolling},
+						},
+						"clustered": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"home": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"health_check": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 			"deployment_file": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"manifest_attributes"},
+			},
+			"deployment_attributes": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				ConflictsWith: []string{"deployment_file"},
+				MaxItems:      1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{},
+				},
 			},
 			"archive_url": {
 				Type:     schema.TypeString,

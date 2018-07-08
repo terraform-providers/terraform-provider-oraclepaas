@@ -16,14 +16,14 @@ type ResourceClient struct {
 	ResourceRootPath string
 }
 
-func (c *ResourceClient) createResource(files map[string]string, additionalParams map[string]interface{}, responseBody interface{}) error {
-	_, err := c.executeCreateUpdateRequest("POST", c.getContainerPath(c.ContainerPath), files, additionalParams)
+func (c *ResourceClient) createApplicationContainerResource(method string, files map[string][]byte, additionalParams map[string]interface{}, responseBody interface{}) error {
+	_, err := c.executeCreateUpdateApplicationContainer(method, c.getContainerPath(c.ContainerPath), files, additionalParams)
 
 	return err
 }
 
-func (c *ResourceClient) updateResource(files map[string]string, additionalParams map[string]interface{}, responseBody interface{}) error {
-	_, err := c.executeCreateUpdateRequest("PUT", c.getContainerPath(c.ContainerPath), files, additionalParams)
+func (c *ResourceClient) updateApplicationContainerResource(name string, method string, files map[string][]byte, additionalParams map[string]interface{}, responseBody interface{}) error {
+	_, err := c.executeCreateUpdateApplicationContainer(method, c.getObjectPath(c.ResourceRootPath, name), files, additionalParams)
 
 	return err
 }

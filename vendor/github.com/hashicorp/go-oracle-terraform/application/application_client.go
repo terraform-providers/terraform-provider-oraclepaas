@@ -25,8 +25,8 @@ func NewClient(c *opc.Config) (*Client, error) {
 	return appClient, nil
 }
 
-func (c *Client) executeCreateUpdateRequest(method, path string, files map[string]string, parameters map[string]interface{}) (*http.Response, error) {
-	req, err := c.client.BuildMultipartFormRequest(method, path, files, parameters)
+func (c *Client) executeCreateUpdateApplicationContainer(method, path string, files map[string][]byte, additionalParams map[string]interface{}) (*http.Response, error) {
+	req, err := c.client.BuildMultipartFormRequest(method, path, files, additionalParams)
 	if err != nil {
 		return nil, err
 	}

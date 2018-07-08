@@ -12,7 +12,10 @@
 
 package java
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // API URI Paths for Container and Root objects
 const (
@@ -21,65 +24,80 @@ const (
 )
 
 // Default Timeout value for Create
-const WaitForAccessRuleTimeout = time.Duration(10 * time.Second)
+const waitForAccessRuleTimeout = 10 * time.Minute
 
 // Default Poll Interval value for Create
-const WaitForAccessRulePollInterval = time.Duration(1 * time.Second)
+const waitForAccessRulePollInterval = 1 * time.Second
 
 // AccessRules returns a UtilityClient for managing SSH Keys and Access Rules for a JaaS Service Instance
-func (c *JavaClient) AccessRules() *UtilityClient {
+func (c *Client) AccessRules() *UtilityClient {
 	return &UtilityClient{
 		UtilityResourceClient: UtilityResourceClient{
-			JavaClient:       c,
+			Client:           c,
 			ContainerPath:    JAccessContainerPath,
 			ResourceRootPath: JAccessRootPath,
 		},
 	}
 }
 
-// Status Constants for an Access Rule
+// AccessRuleStatus - status Constants for an Access Rule
 type AccessRuleStatus string
 
 const (
-	AccessRuleEnabled  AccessRuleStatus = "enabled"
+	// AccessRuleEnabled - enabled
+	AccessRuleEnabled AccessRuleStatus = "enabled"
+	// AccessRuleDisabled - disabled
 	AccessRuleDisabled AccessRuleStatus = "disabled"
 )
 
-// Operational Constants for either Updating/Deleting an Access Rule
+// AccessRuleOperation - Operational Constants for either Updating/Deleting an Access Rule
 type AccessRuleOperation string
 
 const (
+	// AccessRuleUpdate - update
 	AccessRuleUpdate AccessRuleOperation = "update"
+	// AccessRuleDelete - delete
 	AccessRuleDelete AccessRuleOperation = "delete"
 )
 
-// Default Destination for an Access Rule
+// AccessRuleDestination - Default Destination for an Access Rule
 type AccessRuleDestination string
 
 const (
-	AccessRuleDestinationWLSAdmin       AccessRuleDestination = "WLS_ADMIN"
+	// AccessRuleDestinationWLSAdmin - WLS_ADMIN
+	AccessRuleDestinationWLSAdmin AccessRuleDestination = "WLS_ADMIN"
+	// AccessRuleDestinationWLSAdminServer - WLS_ADMIN_SERVER
 	AccessRuleDestinationWLSAdminServer AccessRuleDestination = "WLS_ADMIN_SERVER"
-	AccessRuleDestinationOTD            AccessRuleDestination = "OTD"
-	AccessRuleDestinationOTDAdminHost   AccessRuleDestination = "OTD_ADMIN_HOST"
+	// AccessRuleDestinationOTD - OTD
+	AccessRuleDestinationOTD AccessRuleDestination = "OTD"
+	// AccessRuleDestinationOTDAdminHost - OTD_ADMIN_HOST
+	AccessRuleDestinationOTDAdminHost AccessRuleDestination = "OTD_ADMIN_HOST"
 )
 
-// Used for the GET request, as there's no direct GET request for a single Access Rule
+// AccessRules  - Used for the GET request, as there's no direct GET request for a single Access Rule
 type AccessRules struct {
 	Rules []AccessRuleInfo `json:"accessRules"`
 }
 
+// AccessRuleType - type of access rule
 type AccessRuleType string
 
 const (
+	// AccessRuleTypeDefault  - DEFAULT
 	AccessRuleTypeDefault AccessRuleType = "DEFAULT"
-	AccessRuleTypeSystem  AccessRuleType = "SYSTEM"
-	AccessRuleTypeUser    AccessRuleType = "USER"
+	// AccessRuleTypeSystem SYSTEM
+	AccessRuleTypeSystem AccessRuleType = "SYSTEM"
+	// AccessRuleTypeUser - USER
+	AccessRuleTypeUser AccessRuleType = "USER"
 )
 
+// AccessRuleProtocol - protocol for access rules
 type AccessRuleProtocol string
 
 const (
+	// AccessRuleProtocolTCP - tcp
 	AccessRuleProtocolTCP AccessRuleProtocol = "tcp"
+	// AccessRuleProtocolUDP - udp
 	AccessRuleProtocolUDP AccessRuleProtocol = "udp"
 )
 
@@ -141,7 +159,7 @@ type CreateAccessRuleInput struct {
 	Timeout time.Duration `json:"-"`
 }
 
-// Creates an AccessRule with the supplied input struct.
+// CreateAccessRule - Creates an AccessRule with the supplied input struct.
 // The API call to Create returns a nil body object, and a 202 status code on success.
 // Thus, the Create method will return the resulting object from an internal GET call
 // during the WaitForReady timeout.
@@ -157,19 +175,28 @@ func (c *UtilityClient) CreateAccessRule(input *CreateAccessRuleInput) (*AccessR
 
 	pollInterval := input.PollInterval
 	if pollInterval == 0 {
-		pollInterval = WaitForAccessRulePollInterval
+		pollInterval = waitForAccessRulePollInterval
 	}
 
 	timeout := input.Timeout
 	if timeout == 0 {
-		timeout = WaitForAccessRuleTimeout
+		timeout = waitForAccessRuleTimeout
 	}
 
 	getInput := &GetAccessRuleInput{
 		Name: input.Name,
 	}
 
-	result, err := c.WaitForAccessRuleReady(getInput, pollInterval, timeout)
+	getInstanceInput := &GetServiceInstanceInput{
+		Name: input.ServiceInstanceID,
+	}
+
+	serviceInstance, err := c.Client.ServiceInstanceClient().WaitForServiceInstanceState(getInstanceInput, ServiceInstanceLifecycleStateStart, pollInterval, timeout)
+	if err != nil || serviceInstance == nil {
+		return nil, fmt.Errorf("error waiting for service instance to be ready %q: %+v", input.ServiceInstanceID, err)
+	}
+
+	result, err := c.waitForAccessRuleReady(getInput, pollInterval, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +218,7 @@ type GetAccessRuleInput struct {
 	Name string `json:"-"`
 }
 
-// Get's a slice of every AccessRule, and iterates on the result until
+// GetAccessRule - Get's a slice of every AccessRule, and iterates on the result until
 // we find the correctly matching access rule. This is likely an expensive operation depending
 // on how many access rules the customer has. However, since there's no direct GET API endpoint
 // for a single Access Rule, it's not able to be optimized yet.
@@ -239,7 +266,7 @@ type UpdateAccessRuleInput struct {
 	Status AccessRuleStatus `json:"status"`
 }
 
-// Updates an AccessRule with the provided input struct. Returns a fully populated Info struct
+// UpdateAccessRule - Updates an AccessRule with the provided input struct. Returns a fully populated Info struct
 // and any errors encountered
 func (c *UtilityClient) UpdateAccessRule(input *UpdateAccessRuleInput,
 ) (*AccessRuleInfo, error) {
@@ -253,6 +280,14 @@ func (c *UtilityClient) UpdateAccessRule(input *UpdateAccessRuleInput,
 	var accessRule AccessRuleInfo
 	if err := c.updateResource(input.Name, input, &accessRule); err != nil {
 		return nil, err
+	}
+	getInstanceInput := &GetServiceInstanceInput{
+		Name: input.ServiceInstanceID,
+	}
+
+	serviceInstance, err := c.Client.ServiceInstanceClient().WaitForServiceInstanceState(getInstanceInput, ServiceInstanceLifecycleStateStart, waitForAccessRulePollInterval, waitForAccessRuleTimeout)
+	if err != nil || serviceInstance == nil {
+		return nil, fmt.Errorf("error waiting for service instance to be ready %q: %+v", input.ServiceInstanceID, err)
 	}
 	return &accessRule, nil
 }
@@ -283,7 +318,7 @@ type DeleteAccessRuleInput struct {
 	Timeout time.Duration `json:"-"`
 }
 
-// Deletes an AccessRule with the provided input struct. Returns any errors that occurred.
+// DeleteAccessRule Deletes an AccessRule with the provided input struct. Returns any errors that occurred.
 func (c *UtilityClient) DeleteAccessRule(input *DeleteAccessRuleInput) error {
 	if input.ServiceInstanceID != "" {
 		c.ServiceInstanceID = input.ServiceInstanceID
@@ -302,27 +337,28 @@ func (c *UtilityClient) DeleteAccessRule(input *DeleteAccessRuleInput) error {
 
 	pollInterval := input.PollInterval
 	if pollInterval == 0 {
-		pollInterval = WaitForAccessRulePollInterval
+		pollInterval = waitForAccessRulePollInterval
 	}
 
 	timeout := input.Timeout
 	if timeout == 0 {
-		timeout = WaitForAccessRuleTimeout
+		timeout = waitForAccessRuleTimeout
 	}
 
-	getInput := &GetAccessRuleInput{
-		Name: input.Name,
+	getInstanceInput := &GetServiceInstanceInput{
+		Name: input.ServiceInstanceID,
 	}
 
-	_, err := c.WaitForAccessRuleDeleted(getInput, pollInterval, timeout)
-	if err != nil {
-		return err
+	serviceInstance, err := c.Client.ServiceInstanceClient().WaitForServiceInstanceState(getInstanceInput, ServiceInstanceLifecycleStateStart, pollInterval, timeout)
+	if err != nil || serviceInstance == nil {
+		return fmt.Errorf("error waiting for service instance to be ready %q: %+v", input.ServiceInstanceID, err)
 	}
+	time.Sleep(2 * time.Minute)
 
-	return nil
+	return err
 }
 
-func (c *UtilityClient) WaitForAccessRuleReady(input *GetAccessRuleInput, pollInterval, timeout time.Duration) (*AccessRuleInfo, error) {
+func (c *UtilityClient) waitForAccessRuleReady(input *GetAccessRuleInput, pollInterval, timeout time.Duration) (*AccessRuleInfo, error) {
 	var info *AccessRuleInfo
 	var getErr error
 	err := c.client.WaitFor("access rule to be ready", pollInterval, timeout, func() (bool, error) {
@@ -340,7 +376,7 @@ func (c *UtilityClient) WaitForAccessRuleReady(input *GetAccessRuleInput, pollIn
 	return info, err
 }
 
-func (c *UtilityClient) WaitForAccessRuleDeleted(input *GetAccessRuleInput, pollInterval, timeout time.Duration) (*AccessRuleInfo, error) {
+func (c *UtilityClient) waitForAccessRuleDeleted(input *GetAccessRuleInput, pollInterval, timeout time.Duration) (*AccessRuleInfo, error) {
 	var info *AccessRuleInfo
 	var getErr error
 	err := c.client.WaitFor("access rule to be deleted", pollInterval, timeout, func() (bool, error) {
