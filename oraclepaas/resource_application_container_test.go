@@ -70,7 +70,7 @@ func TestAccOraclePAASApplicationContainer_ManifestAttr(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckApplicationContainerExists,
 					resource.TestCheckResourceAttrSet(
-						resourceName, "web_url"),
+						resourceName, "app_url"),
 				),
 			},
 		},
