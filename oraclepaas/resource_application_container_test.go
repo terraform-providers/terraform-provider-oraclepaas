@@ -56,6 +56,27 @@ func TestAccOraclePAASApplicationContainer_Manifest(t *testing.T) {
 	})
 }
 
+func TestAccOraclePAASApplicationContainer_ManifestAttr(t *testing.T) {
+	ri := acctest.RandIntRange(1, 10000)
+	config := testAccApplicationContainerManifestAttr(ri)
+	resourceName := "oraclepaas_application_container.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckApplicationContainerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckApplicationContainerExists,
+					resource.TestCheckResourceAttrSet(
+						resourceName, "web_url"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccOraclePAASApplicationContainer_Deployment(t *testing.T) {
 	ri := acctest.RandIntRange(1, 10000)
 	config := testAccApplicationContainerDeployment(ri)
@@ -71,6 +92,50 @@ func TestAccOraclePAASApplicationContainer_Deployment(t *testing.T) {
 					testAccCheckApplicationContainerExists,
 					resource.TestCheckResourceAttrSet(
 						resourceName, "web_url"),
+					resource.TestCheckResourceAttrSet(
+						resourceName, "app_url"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOraclePAASApplicationContainer_DeploymentAttr(t *testing.T) {
+	ri := acctest.RandIntRange(1, 10000)
+	config := testAccApplicationContainerDeploymentAttr(ri)
+	resourceName := "oraclepaas_application_container.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckApplicationContainerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckApplicationContainerExists,
+					resource.TestCheckResourceAttrSet(
+						resourceName, "web_url"),
+					resource.TestCheckResourceAttrSet(
+						resourceName, "app_url"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOraclePAASApplicationContainer_ManifestDeploymentAttr(t *testing.T) {
+	ri := acctest.RandIntRange(1, 10000)
+	config := testAccApplicationContainerManifestDeploymentAttr(ri)
+	resourceName := "oraclepaas_application_container.test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckApplicationContainerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckApplicationContainerExists,
 					resource.TestCheckResourceAttrSet(
 						resourceName, "app_url"),
 				),
@@ -138,9 +203,71 @@ func testAccApplicationContainerManifest(rInt int) string {
   }`, rInt)
 }
 
+func testAccApplicationContainerManifestAttr(rInt int) string {
+	return fmt.Sprintf(`resource "oraclepaas_application_container" "test" {
+    name        = "testappcontainer%d"
+	manifest_attributes {
+		runtime {
+			major_version = 7
+		}
+		command = "sh target/bin/start"
+		release {
+			build = 150520.1154
+			commit = "d8c2596364d9584050461"
+			version = "15.1.0"
+		}
+		notes = "notes related to release"
+		mode =  "rolling"
+	}
+  }`, rInt)
+}
+
 func testAccApplicationContainerDeployment(rInt int) string {
 	return fmt.Sprintf(`resource "oraclepaas_application_container" "test" {
     name        = "testappcontainer%d"
 	deployment_file = "testdata/deployment.json"
   }`, rInt)
+}
+
+func testAccApplicationContainerDeploymentAttr(rInt int) string {
+	return fmt.Sprintf(`
+resource "oraclepaas_application_container" "test" {
+	name        = "testappcontainer%d"
+	deployment_attributes {
+		memory = "2G"
+    	instances = 1
+    	environment {
+        	"NO_OF_CONNECTIONS" = "25"
+        	"TWITTER_ID" = "JAVA"
+    	}
+	}
+}`, rInt)
+}
+
+func testAccApplicationContainerManifestDeploymentAttr(rInt int) string {
+	return fmt.Sprintf(`
+resource "oraclepaas_application_container" "test" {
+	name        = "testappcontainer%d"
+	manifest_attributes {
+		runtime {
+			major_version = 7
+		}
+		command = "sh target/bin/start"
+		release {
+			build = 150520.1154
+			commit = "d8c2596364d9584050461"
+			version = "15.1.0"
+		}
+		notes = "notes related to release"
+		mode =  "rolling"
+	}
+	deployment_attributes {
+		memory = "2G"
+    	instances = 1
+    	environment {
+        	"NO_OF_CONNECTIONS" = "25"
+        	"TWITTER_ID" = "JAVA"
+    	}
+	}
+}`, rInt)
 }

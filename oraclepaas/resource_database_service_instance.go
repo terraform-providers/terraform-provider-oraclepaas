@@ -460,7 +460,6 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 			"desired_state": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  string(database.ServiceInstanceLifecycleStateStart),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(database.ServiceInstanceLifecycleStateStop),
 					string(database.ServiceInstanceLifecycleStateRestart),
@@ -679,6 +678,8 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 	}
 	client := dbClient.ServiceInstanceClient()
 	name := d.Id()
+
+	client.Timeout = d.Timeout(schema.TimeoutDelete)
 
 	log.Printf("[DEBUG] Deleting DatabaseServiceInstance: %v", name)
 

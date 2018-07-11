@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/go-oracle-terraform/application"
 	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/go-oracle-terraform/java"
+	"github.com/hashicorp/go-oracle-terraform/mysql"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -63,7 +64,7 @@ func setIntList(d *schema.ResourceData, key string, value []int) error {
 
 // A user may inadvertently call the database service without passing in the required parameters (because it's optional)
 // so we check to make sure that the database client has been initialized
-func getDatabaseClient(meta interface{}) (*database.DatabaseClient, error) {
+func getDatabaseClient(meta interface{}) (*database.Client, error) {
 	client := meta.(*OPAASClient).databaseClient
 	if client == nil {
 		return nil, fmt.Errorf("Database Client is not initialized. Make sure to use `database_endpoint` variable or `ORACLEPAAS_DATABASE_ENDPOINT` env variable")
@@ -72,8 +73,8 @@ func getDatabaseClient(meta interface{}) (*database.DatabaseClient, error) {
 }
 
 // A user may inadvertently call the java without passing in the required parameters to use that service
-// (because it's optional) so we check to make sure that the java client has been initialized
-func getJavaClient(meta interface{}) (*java.JavaClient, error) {
+// (because it's optional) so we check to make sure that the database client has been initialized
+func getJavaClient(meta interface{}) (*java.Client, error) {
 	client := meta.(*OPAASClient).javaClient
 	if client == nil {
 		return nil, fmt.Errorf("Java Client is not initialized. Make sure to use `java_endpoint` variable or `ORACLEPAAS_JAVA_ENDPOINT` env variable")
@@ -87,6 +88,17 @@ func getApplicationClient(meta interface{}) (*application.Client, error) {
 	client := meta.(*OPAASClient).applicationClient
 	if client == nil {
 		return nil, fmt.Errorf("Application Client is not initialized. Make sure to use `application_endpoint` variable or `ORACLEPAAS_APPLICAITON_ENDPOINT` env variable")
+	}
+	return client, nil
+}
+
+// A user may inadvertently call the mysql without passing in the required parameters to use that service
+// (because it's optional) so we check to make sure that the mysql client has been initialized
+func getMySQLClient(meta interface{}) (*mysql.MySQLClient, error) {
+	client := meta.(*OPAASClient).mysqlClient
+
+	if client == nil {
+		return nil, fmt.Errorf("MySQL Client is not initialized. Make sure to use `mysql_endpoint` variable or `ORACLEPAAS_MYSQL_ENDPOINT` env variable")
 	}
 	return client, nil
 }
