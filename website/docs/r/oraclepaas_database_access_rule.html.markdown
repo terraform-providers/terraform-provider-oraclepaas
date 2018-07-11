@@ -3,29 +3,28 @@ layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_database_access_rule"
 sidebar_current: "docs-oraclepaas-resource-access-rule"
 description: |-
-  Creates and manages a database access rule in an oraclepaas identity domain.
+  Creates and manages a Database Access Rule for an Oracle Database Cloud service instance.
 
 ---
 
 # oraclepaas_database_access_rule
 
-The oraclepaas_database_access_rule` resource creates and manages a database access rule inside
-Oracle PaaS Cloud
+The `oraclepaas_database_access_rule` resource creates and manages a Database Access Rule for an Oracle Database Cloud service instance.
 
 ## Example Usage
 
 ```hcl
 resource "oraclepaas_database_service_instance" "default" {
-  name        = "service-instance-1"
+  name = "database-service-instance-1"
   ...
 }
 
 resource "oraclepaas_database_access_rule" "default" {
-	name = "test-access-rule-%d"
+	name                = "example-access-rule"
 	service_instance_id = "${oraclepaas_database_service_instance.default.name}"
-	description = "default-access-rule"
-	ports = "8000"
-	source = "PUBLIC-INTERNET"
+	description         = "enable port 8000"
+	ports               = "8000"
+	source              = "PUBLIC-INTERNET"
 }
 ```
 

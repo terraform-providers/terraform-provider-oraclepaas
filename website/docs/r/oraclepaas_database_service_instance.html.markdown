@@ -3,33 +3,37 @@ layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_database_service_instance"
 sidebar_current: "docs-oraclepaas-resource-service-instance"
 description: |-
-  Creates and manages a service instance in an oraclepaas identity domain.
+  Creates and manages an Oracle Database Cloud Service instance on the Oracle Cloud Platform.
 
 ---
 
 # oraclepaas\_database\_service\_instance
 
-The ``oraclepaas_database_service_instance`` resource creates and manages a database service instance inside
-Oracle PaaS Cloud
+The `oraclepaas_database_service_instance` resource creates and manages a an Oracle Database Cloud Service instance on the Oracle Cloud Platform.
 
 ## Example Usage
 
 ```hcl
 resource "oraclepaas_database_service_instance" "default" {
-  name        = "service-instance-1"
+  name        = "database-service-instance"
   description = "This is a description for an service instance"
-  edition = "EE_EP"
-  level = "PAAS"
-  shape = "oc1m"
+
+  edition           = "EE"
+  shape             = "oc1m"
   subscription_type = "HOURLY"
-  version = "12.2.0.1"
-  vm_public_key = "An ssh public key"
+  version           = "12.2.0.1"
+  vm_public_key     = "An ssh public key"
 
   database_configuration {
-      admin_password = "Test_String7"
+      admin_password     = "Pa55_Word"
+      sid                = "BOTH"
       backup_destination = "NONE"
-      sid = "ORCL"
-      usable_storage = 15
+      usable_storage     = 15
+  }
+
+  backups {
+      cloud_storage_container = "Storage-${var.domain}/database-service-instance-backup"
+      auto_generate = true
   }
 }
 ```
@@ -57,6 +61,9 @@ The following arguments are supported:
 * `default_access_rules` - (Optional) Specifies the details on which default access rules are enable or disabled. Default Access Rules
 are configured below.
 
+* `desired_state` - (Optional) Specifies the desired state of the servie instance. Allowed values are `start`, `stop`,
+and `restart`.
+
 * `instantiate_from_backup` - (Optional) Specify if the service instance's database should, after the instance is created, be replaced by a database
 stored in an existing cloud backup that was created using Oracle Database Backup Cloud Service. Instantiate from Backup is documented below.
 
@@ -66,7 +73,7 @@ stored in an existing cloud backup that was created using Oracle Database Backup
 
 * `backups` - (Optional) Provides Cloud Storage information for how to implement service instance backups. Backups is documented below
 
-* `bring_you_own_license` - (Optional) Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
+* `bring_your_own_license` - (Optional) Specify if you want to use an existing perpetual license to Oracle Database to establish the right to use Oracle Database on the new instance.
 Default value is `false`.
 
 * `description` - (Optional) A description of the Service Instance.
@@ -199,12 +206,14 @@ In addition to the above, the following values are exported:
 
 * `compute_site_name` - The Oracle Cloud location housing the service instance.
 
-* `dbaasmonitor_url`- The URL to use to connect to Oracle DBaaS Monitor on the service instance.
+* `dbaas_monitor_url`- The URL to use to connect to Oracle DBaaS Monitor on the service instance.
 
 * `em_url` - The URL to use to connect to Enterprise Manager on the service instance.
 
 * `glassfish_url` - The URL to use to connect to the Oracle GlassFish Server Administration Console on the service instance.
 
 * `identity_domain` - The identity domain housing the service instance.
+
+* `status` - The status of the service instance.
 
 * `uri` - The Uniform Resource Identifier for the Service Instance

@@ -1,16 +1,14 @@
-package database
+package mysql
 
 import (
+	"github.com/hashicorp/go-oracle-terraform/opc"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
-
-	"github.com/hashicorp/go-oracle-terraform/opc"
 )
 
-// GetDatabaseTestClient obtains a client for testing purposes
-func GetDatabaseTestClient(c *opc.Config) (*Client, error) {
+func GetMySQLTestClient(c *opc.Config) (*MySQLClient, error) {
 	// Build up config with default values if omitted
 
 	if c.IdentityDomain == nil {
@@ -29,7 +27,7 @@ func GetDatabaseTestClient(c *opc.Config) (*Client, error) {
 	}
 
 	if c.APIEndpoint == nil {
-		apiEndpoint, err := url.Parse(os.Getenv("ORACLEPAAS_DATABASE_ENDPOINT"))
+		apiEndpoint, err := url.Parse(os.Getenv("ORACLEPAAS_MYSQL_ENDPOINT"))
 		if err != nil {
 			return nil, err
 		}
@@ -44,5 +42,5 @@ func GetDatabaseTestClient(c *opc.Config) (*Client, error) {
 		}
 	}
 
-	return NewDatabaseClient(c)
+	return NewMySQLClient(c)
 }

@@ -8,15 +8,17 @@ import (
 	"github.com/hashicorp/go-oracle-terraform/client"
 )
 
-const WaitForServiceInstanceReadyPollInterval = time.Duration(60 * time.Second)
-const WaitForServiceInstanceReadyTimeout = time.Duration(3600 * time.Second)
-const WaitForServiceInstanceDeletePollInterval = time.Duration(60 * time.Second)
-const WaitForServiceInstanceDeleteTimeout = time.Duration(3600 * time.Second)
-const ServiceInstanceDeleteRetry = 30
+const waitForServiceInstanceReadyPollInterval = 60 * time.Second
+const waitForServiceInstanceReadyTimeout = 3600 * time.Second
+const waitForServiceInstanceDeletePollInterval = 60 * time.Second
+const waitForServiceInstanceDeleteTimeout = 3600 * time.Second
+const deleteMaxRetries = 5
 
 var (
-	ServiceInstanceContainerPath = "/paas/api/v1.1/instancemgmt/%s/services/jaas/instances"
-	ServiceInstanceResourcePath  = "/paas/api/v1.1/instancemgmt/%s/services/jaas/instances/%s"
+	serviceInstanceContainerPath    = "/paas/api/v1.1/instancemgmt/%s/services/jaas/instances"
+	serviceInstanceResourcePath     = "/paas/api/v1.1/instancemgmt/%s/services/jaas/instances/%s"
+	serviceInstanceScaleUpDownPath  = "/hosts/scale"
+	serviceInstanceDesiredStatePath = "/hosts/%s"
 )
 
 // ServiceInstanceClient is a client for the Service functions of the Java API.
@@ -28,256 +30,327 @@ type ServiceInstanceClient struct {
 
 // ServiceInstanceClient obtains an ServiceInstanceClient which can be used to access to the
 // Service Instance functions of the Java Cloud API
-func (c *JavaClient) ServiceInstanceClient() *ServiceInstanceClient {
+func (c *Client) ServiceInstanceClient() *ServiceInstanceClient {
 	return &ServiceInstanceClient{
 		ResourceClient: ResourceClient{
-			JavaClient:       c,
-			ContainerPath:    ServiceInstanceContainerPath,
-			ResourceRootPath: ServiceInstanceResourcePath,
+			Client:           c,
+			ContainerPath:    serviceInstanceContainerPath,
+			ResourceRootPath: serviceInstanceResourcePath,
 		}}
 }
 
+// ServiceInstanceLevel specifies the level type for the service instance
 type ServiceInstanceLevel string
 
 const (
-	// PAAS: Production-level service. This is the default. Supports Oracle Java Cloud Service instance creation
+	// ServiceInstanceLevelPAAS - PAAS: Production-level service. This is the default. Supports Oracle Java Cloud Service instance creation
 	// and monitoring, backup and restoration, patching, and scaling. Use PAAS if you want to enable domain partitions
 	// using WebLogic Server 12.2.1, use AppToCloud artifacts to create a service instance, or create a service instance
 	// for an Oracle Fusion Middleware product.
 	ServiceInstanceLevelPAAS ServiceInstanceLevel = "PAAS"
-	// BASIC: Development-level service. Supports Oracle Java Cloud Service instance creation and monitoring
+	// ServiceInstanceLevelBasic - BASIC: Development-level service. Supports Oracle Java Cloud Service instance creation and monitoring
 	// but does not support backup and restoration, patching, or scaling.
 	ServiceInstanceLevelBasic ServiceInstanceLevel = "BASIC"
 )
 
+// ServiceInstanceBackupDestination specifies the backup destination type
 type ServiceInstanceBackupDestination string
 
 const (
-	// BOTH - Enable backups. This is the default. This means automated scheduled backups are enabled,
+	// ServiceInstanceBackupDestinationBoth - BOTH - Enable backups. This is the default. This means automated scheduled backups are enabled,
 	// and on-demand backups can be initiated. All backups are stored on disk and the Oracle Storage
 	// Cloud Service container that is specified in cloudStorageContainer.
 	ServiceInstanceBackupDestinationBoth ServiceInstanceBackupDestination = "BOTH"
-	// NONE - Do not enable backups. This means automated scheduled backups are not enabled,
+	// ServiceInstanceBackupDestinationNone  - NONE - Do not enable backups. This means automated scheduled backups are not enabled,
 	// and on-demand backups cannot be initiated. When set to NONE, cloudStorageContainer is not required.
 	ServiceInstanceBackupDestinationNone ServiceInstanceBackupDestination = "NONE"
 )
 
+// ServiceInstanceTargetDataSourceType specifies the different types for target data sources
 type ServiceInstanceTargetDataSourceType string
 
 const (
-	// If the specified Database Cloud Service database deployment does not use Oracle RAC, the value must be Generic.
+	// ServiceInstanceTargetDataSourceTypeGeneric - If the specified Database Cloud Service database deployment does not use Oracle RAC, the value must be Generic.
 	ServiceInstanceTargetDataSourceTypeGeneric ServiceInstanceTargetDataSourceType = "Generic"
-	// If the specified Database Cloud Service database deployment uses Oracle RAC and the specified edition
+	// ServiceInstanceTargetDataSourceTypeMulti - If the specified Database Cloud Service database deployment uses Oracle RAC and the specified edition
 	// (for WebLogic Server software) is EE, the value must be Multi.
 	ServiceInstanceTargetDataSourceTypeMulti ServiceInstanceTargetDataSourceType = "Multi"
-	// If the specified Database Cloud Service database deployment uses Oracle RAC and the specified edition
+	// ServiceInstanceTargetDataSourceTypeGridLink - If the specified Database Cloud Service database deployment uses Oracle RAC and the specified edition
 	// (for WebLogic Server software) is SUITE, the value can be GridLink or Multi.
 	ServiceInstanceTargetDataSourceTypeGridLink ServiceInstanceTargetDataSourceType = "GridLink"
 )
 
-type ServiceInstanceProtocol string
-
-const (
-	ServiceInstanceProtocolT3    ServiceInstanceProtocol = "t3"
-	ServiceInstanceProtocolT3S   ServiceInstanceProtocol = "t3s"
-	ServiceInstanceProtocolIIOP  ServiceInstanceProtocol = "iiop"
-	ServiceInstanceProtocolIIOPS ServiceInstanceProtocol = "iiops"
-)
-
+// ServiceInstanceDomainMode specifies the differnt domain modes a service instance can be in
 type ServiceInstanceDomainMode string
 
 const (
+	// ServiceInstanceDomainModeDev - DEVELOPMENT
 	ServiceInstanceDomainModeDev ServiceInstanceDomainMode = "DEVELOPMENT"
+	// ServiceInstanceDomainModePro - PRODUCTION
 	ServiceInstanceDomainModePro ServiceInstanceDomainMode = "PRODUCTION"
 )
 
+// ServiceInstanceEdition specifies the different editions a service instance can be
 type ServiceInstanceEdition string
 
 const (
-	ServiceInstanceEditionSE    ServiceInstanceEdition = "SE"
-	ServiceInstanceEditionEE    ServiceInstanceEdition = "EE"
+	// ServiceInstanceEditionSE  - SE
+	ServiceInstanceEditionSE ServiceInstanceEdition = "SE"
+	// ServiceInstanceEditionEE - EE
+	ServiceInstanceEditionEE ServiceInstanceEdition = "EE"
+	// ServiceInstanceEditionSuite - SUITE
 	ServiceInstanceEditionSuite ServiceInstanceEdition = "SUITE"
 )
 
+// ServiceInstanceLoadBalancingPolicy specifies the different load balancing policies a load balancer can use
 type ServiceInstanceLoadBalancingPolicy string
 
 const (
+	// ServiceInstanceLoadBalancingPolicyLCC - LEAST_CONNECTION_COUNT
 	ServiceInstanceLoadBalancingPolicyLCC ServiceInstanceLoadBalancingPolicy = "LEAST_CONNECTION_COUNT"
+	// ServiceInstanceLoadBalancingPolicyLRT - LEAST_RESPONSE_TIME
 	ServiceInstanceLoadBalancingPolicyLRT ServiceInstanceLoadBalancingPolicy = "LEAST_RESPONSE_TIME"
-	ServiceInstanceLoadBalancingPolicyRR  ServiceInstanceLoadBalancingPolicy = "ROUND_ROBIN"
+	// ServiceInstanceLoadBalancingPolicyRR - ROUND_ROBIN
+	ServiceInstanceLoadBalancingPolicyRR ServiceInstanceLoadBalancingPolicy = "ROUND_ROBIN"
 )
 
+// ServiceInstanceShape specifies the shapes a service instance can be
 type ServiceInstanceShape string
 
 const (
 	// Suportted OCI Classic Shapes
-	// oc3: 1 OCPU, 7.5 GB memory
+
+	// ServiceInstanceShapeOC3 - oc3: 1 OCPU, 7.5 GB memory
 	ServiceInstanceShapeOC3 ServiceInstanceShape = "oc3"
-	// oc4: 2 OCPUs, 15 GB memory
+	// ServiceInstanceShapeOC4 - oc4: 2 OCPUs, 15 GB memory
 	ServiceInstanceShapeOC4 ServiceInstanceShape = "oc4"
-	// oc5: 4 OCPUs, 30 GB memory
+	// ServiceInstanceShapeOC5 - oc5: 4 OCPUs, 30 GB memory
 	ServiceInstanceShapeOC5 ServiceInstanceShape = "oc5"
-	// oc6: 8 OCPUs, 60 GB memory
+	// ServiceInstanceShapeOC6 - oc6: 8 OCPUs, 60 GB memory
 	ServiceInstanceShapeOC6 ServiceInstanceShape = "oc6"
-	// oc7: 16 OCPUS, 120 GB memory
+	// ServiceInstanceShapeOC7 - oc7: 16 OCPUS, 120 GB memory
 	ServiceInstanceShapeOC7 ServiceInstanceShape = "oc7"
-	// oc1m: 1 OCPU, 15 GB memory
+	// ServiceInstanceShapeOC1M - oc1m: 1 OCPU, 15 GB memory
 	ServiceInstanceShapeOC1M ServiceInstanceShape = "oc1m"
-	// oc2m: 2 OCPUs, 30 GB memory
+	// ServiceInstanceShapeOC2M - oc2m: 2 OCPUs, 30 GB memory
 	ServiceInstanceShapeOC2M ServiceInstanceShape = "oc2m"
-	// oc3m: 4 OCPUs, 60 GB memory
+	// ServiceInstanceShapeOC3M - oc3m: 4 OCPUs, 60 GB memory
 	ServiceInstanceShapeOC3M ServiceInstanceShape = "oc3m"
-	// oc4m: 8 OCPUs, 120 GB memory
+	// ServiceInstanceShapeOC4M - oc4m: 8 OCPUs, 120 GB memory
 	ServiceInstanceShapeOC4M ServiceInstanceShape = "oc4m"
-	// oc5m: 16 OCPUS, 240 GB memory
+	// ServiceInstanceShapeOC5M - oc5m: 16 OCPUS, 240 GB memory
 	ServiceInstanceShapeOC5M ServiceInstanceShape = "oc5m"
 
 	// Supported OCI VM shapes
-	// VM.Standard1.1: 1 OCPU, 7 GB memory
+
+	// ServiceInstanceShapeVMStandard1_1 - VM.Standard1.1: 1 OCPU, 7 GB memory
 	ServiceInstanceShapeVMStandard1_1 ServiceInstanceShape = "VM.Standard1.1"
-	// VM.Standard1.2: 2 OCPU, 14 GB memory
+	// ServiceInstanceShapeVMStandard1_2 - VM.Standard1.2: 2 OCPU, 14 GB memory
 	ServiceInstanceShapeVMStandard1_2 ServiceInstanceShape = "VM.Standard1.2"
-	// VM.Standard1.4: 4 OCPU, 28 GB memory
+	// ServiceInstanceShapeVMStandard1_4 - VM.Standard1.4: 4 OCPU, 28 GB memory
 	ServiceInstanceShapeVMStandard1_4 ServiceInstanceShape = "VM.Standard1.4"
-	// VM.Standard1.8: 8 OCPU, 56 GB memory
+	// ServiceInstanceShapeVMStandard1_8 - VM.Standard1.8: 8 OCPU, 56 GB memory
 	ServiceInstanceShapeVMStandard1_8 ServiceInstanceShape = "VM.Standard1.8"
-	// VM.Standard1.16: 16 OCPU, 112 GB memory
+	// ServiceInstanceShapeVMStandard1_16 - VM.Standard1.16: 16 OCPU, 112 GB memory
 	ServiceInstanceShapeVMStandard1_16 ServiceInstanceShape = "VM.Standard1.16"
-	// VM.Standard2.1: 1 OCPU, 15 GB memory
+	// ServiceInstanceShapeVMStandard2_1 - VM.Standard2.1: 1 OCPU, 15 GB memory
 	ServiceInstanceShapeVMStandard2_1 ServiceInstanceShape = "VM.Standard2.1"
-	// VM.Standard2.2: 2 OCPU, 30 GB memory
+	// ServiceInstanceShapeVMStandard2_2 -  VM.Standard2.2: 2 OCPU, 30 GB memory
 	ServiceInstanceShapeVMStandard2_2 ServiceInstanceShape = "VM.Standard2.2"
-	// VM.Standard2.4: 4 OCPU, 60 GB memory
+	// ServiceInstanceShapeVMStandard2_4 - VM.Standard2.4: 4 OCPU, 60 GB memory
 	ServiceInstanceShapeVMStandard2_4 ServiceInstanceShape = "VM.Standard2.4"
-	// VM.Standard2.8: 8 OCPU, 120 GB memory
+	// ServiceInstanceShapeVMStandard2_8 - VM.Standard2.8: 8 OCPU, 120 GB memory
 	ServiceInstanceShapeVMStandard2_8 ServiceInstanceShape = "VM.Standard2.8"
-	// VM.Standard2.16: 16 OCPU, 240 GB memory
+	// ServiceInstanceShapeVMStandard2_16 - VM.Standard2.16: 16 OCPU, 240 GB memory
 	ServiceInstanceShapeVMStandard2_16 ServiceInstanceShape = "VM.Standard2.16"
-	// VM.Standard2.24: 24 OCPU, 320 GB memory
+	// ServiceInstanceShapeVMStandard2_24 - VM.Standard2.24: 24 OCPU, 320 GB memory
 	ServiceInstanceShapeVMStandard2_24 ServiceInstanceShape = "VM.Standard2.24"
 
 	// Supported OCI Bare Metal shapes
-	// BM.Standard1.36: 36 OCPU, 256 GB memory
+
+	// ServiceInstanceShapeBMStandard1_36 - BM.Standard1.36: 36 OCPU, 256 GB memory
 	ServiceInstanceShapeBMStandard1_36 ServiceInstanceShape = "BM.Standard1.36"
-	// BM.Standard2.52: 52 OCPU, 768 GB memory
+	// ServiceInstanceShapeBMStandard2_52 - BM.Standard2.52: 52 OCPU, 768 GB memory
 	ServiceInstanceShapeBMStandard2_52 ServiceInstanceShape = "BM.Standard2.52"
 )
 
+// ServiceInstanceType specifies the different types of service instances
 type ServiceInstanceType string
 
 const (
+	// ServiceInstanceTypeWebLogic - weblogic
 	ServiceInstanceTypeWebLogic ServiceInstanceType = "weblogic"
+	// ServiceInstanceTypeDataGrid - datagrid
 	ServiceInstanceTypeDataGrid ServiceInstanceType = "datagrid"
-	ServiceInstanceTypeOTD      ServiceInstanceType = "otd"
+	// ServiceInstanceTypeOTD - otd
+	ServiceInstanceTypeOTD ServiceInstanceType = "otd"
 )
 
+// ServiceInstanceUpperStackProductName specifies the different upperstack product names
 type ServiceInstanceUpperStackProductName string
 
 const (
+	// ServiceInstanceUpperStackProductNameODI  - ODI
 	ServiceInstanceUpperStackProductNameODI ServiceInstanceUpperStackProductName = "ODI"
+	// ServiceInstanceUpperStackProductNameWCP - WCP
 	ServiceInstanceUpperStackProductNameWCP ServiceInstanceUpperStackProductName = "WCP"
 )
 
+// ServiceInstanceVersion specifies the different type of versions a service instance can be
 type ServiceInstanceVersion string
 
 const (
+	// ServiceInstanceVersion1221 - 12.2.1
 	ServiceInstanceVersion1221 ServiceInstanceVersion = "12.2.1"
+	// ServiceInstanceVersion1213 - 12.1.3
 	ServiceInstanceVersion1213 ServiceInstanceVersion = "12.1.3"
+	// ServiceInstanceVersion1036 - 10.3.6
 	ServiceInstanceVersion1036 ServiceInstanceVersion = "10.3.6"
 )
 
+// ServiceInstanceSubscriptionType specifies the different types of subscriptions
 type ServiceInstanceSubscriptionType string
 
 const (
-	ServiceInstanceSubscriptionTypeHourly  ServiceInstanceSubscriptionType = "HOURLY"
+	// ServiceInstanceSubscriptionTypeHourly - HOURLY
+	ServiceInstanceSubscriptionTypeHourly ServiceInstanceSubscriptionType = "HOURLY"
+	// ServiceInstanceSubscriptionTypeMonthly - MONTHLY
 	ServiceInstanceSubscriptionTypeMonthly ServiceInstanceSubscriptionType = "MONTHLY"
 )
 
+// ServiceInstanceServiceComponentType specifies the different types a component can be
 type ServiceInstanceServiceComponentType string
 
 const (
-	ServiceInstanceServiceComponentTypeJDK    ServiceInstanceServiceComponentType = "JDK"
-	ServiceInstanceServiceComponentTypeOTD    ServiceInstanceServiceComponentType = "OTD"
+	// ServiceInstanceServiceComponentTypeJDK - JDK
+	ServiceInstanceServiceComponentTypeJDK ServiceInstanceServiceComponentType = "JDK"
+	// ServiceInstanceServiceComponentTypeOTD - OTD
+	ServiceInstanceServiceComponentTypeOTD ServiceInstanceServiceComponentType = "OTD"
+	// ServiceInstanceServiceComponentTypeOTDJDK - OTD_JDK
 	ServiceInstanceServiceComponentTypeOTDJDK ServiceInstanceServiceComponentType = "OTD_JDK"
-	ServiceInstanceServiceComponentTypeWLS    ServiceInstanceServiceComponentType = "WLS"
+	// ServiceInstanceServiceComponentTypeWLS - WLS
+	ServiceInstanceServiceComponentTypeWLS ServiceInstanceServiceComponentType = "WLS"
 )
 
+// ServiceInstanceServiceComponentVersion specifies the different versions a component can be
 type ServiceInstanceServiceComponentVersion string
 
 const (
-	ServiceInstanceServiceComponentVersionWLS    ServiceInstanceServiceComponentVersion = "12.1.3.0.5"
-	ServiceInstanceServiceComponentVersionOTD    ServiceInstanceServiceComponentVersion = "11.1.1.9.1"
-	ServiceInstanceServiceComponentVersionJDK    ServiceInstanceServiceComponentVersion = "1.7.0_91"
+	// ServiceInstanceServiceComponentVersionWLS - 12.1.3.0.5
+	ServiceInstanceServiceComponentVersionWLS ServiceInstanceServiceComponentVersion = "12.1.3.0.5"
+	// ServiceInstanceServiceComponentVersionOTD - 11.1.1.9.1
+	ServiceInstanceServiceComponentVersionOTD ServiceInstanceServiceComponentVersion = "11.1.1.9.1"
+	// ServiceInstanceServiceComponentVersionJDK - 1.7.0_91
+	ServiceInstanceServiceComponentVersionJDK ServiceInstanceServiceComponentVersion = "1.7.0_91"
+	// ServiceInstanceServiceComponentVersionOTDJDK - 1.7.0_91
 	ServiceInstanceServiceComponentVersionOTDJDK ServiceInstanceServiceComponentVersion = "1.7.0_91"
 )
 
+// ServiceInstanceShiftStatus specifies the different statuses a shift can be in
 type ServiceInstanceShiftStatus string
 
 const (
-	ServiceInstanceShiftStatusReady     ServiceInstanceShiftStatus = "readyToShift"
+	// ServiceInstanceShiftStatusReady - readyToShift
+	ServiceInstanceShiftStatusReady ServiceInstanceShiftStatus = "readyToShift"
+	// ServiceInstanceShiftStatusCompleted - shiftCompleted
 	ServiceInstanceShiftStatusCompleted ServiceInstanceShiftStatus = "shiftCompleted"
-	ServiceInstanceShiftStatusFailed    ServiceInstanceShiftStatus = "shiftFailed"
+	// ServiceInstanceShiftStatusFailed - shiftFailed
+	ServiceInstanceShiftStatusFailed ServiceInstanceShiftStatus = "shiftFailed"
 )
 
+// ServiceInstanceStatus specifies the different status a service instance can be in
 type ServiceInstanceStatus string
 
 const (
-	ServiceInstanceStatusNew          ServiceInstanceStatus = "NEW"
+	// ServiceInstanceStatusNew - NEW
+	ServiceInstanceStatusNew ServiceInstanceStatus = "NEW"
+	// ServiceInstanceStatusInitializing - INTIALIZING
 	ServiceInstanceStatusInitializing ServiceInstanceStatus = "INITIALIZING"
-	ServiceInstanceStatusReady        ServiceInstanceStatus = "READY"
-	ServiceInstanceStatusConfiguring  ServiceInstanceStatus = "CONFIGURING"
-	ServiceInstanceStatusTerminating  ServiceInstanceStatus = "TERMINATING"
-	ServiceInstanceStatusStopping     ServiceInstanceStatus = "STOPPING"
-	ServiceInstanceStatusStopped      ServiceInstanceStatus = "STOPPED"
-	ServiceInstanceStatusStarting     ServiceInstanceStatus = "STARTING"
-	ServiceInstanceStatusDisabling    ServiceInstanceStatus = "DISABLING"
-	ServiceInstanceStatusDisabled     ServiceInstanceStatus = "DISABLED"
-	ServiceInstanceStatusTerminated   ServiceInstanceStatus = "TERMINATED"
+	// ServiceInstanceStatusReady - READY
+	ServiceInstanceStatusReady ServiceInstanceStatus = "READY"
+	// ServiceInstanceStatusConfiguring - CONFIGURING
+	ServiceInstanceStatusConfiguring ServiceInstanceStatus = "CONFIGURING"
+	// ServiceInstanceStatusTerminating - TERMINATING
+	ServiceInstanceStatusTerminating ServiceInstanceStatus = "TERMINATING"
+	// ServiceInstanceStatusStopping - STOPPING
+	ServiceInstanceStatusStopping ServiceInstanceStatus = "STOPPING"
+	// ServiceInstanceStatusStopped - STOPPED
+	ServiceInstanceStatusStopped ServiceInstanceStatus = "STOPPED"
+	// ServiceInstanceStatusStarting - STARTING
+	ServiceInstanceStatusStarting ServiceInstanceStatus = "STARTING"
+	// ServiceInstanceStatusDisabling - DISABLING
+	ServiceInstanceStatusDisabling ServiceInstanceStatus = "DISABLING"
+	// ServiceInstanceStatusDisabled - DISABLED
+	ServiceInstanceStatusDisabled ServiceInstanceStatus = "DISABLED"
+	// ServiceInstanceStatusTerminated - TERMINATED
+	ServiceInstanceStatusTerminated ServiceInstanceStatus = "TERMINATED"
 )
 
-type ServiceInstanceMiddlewareVersion string
-
-const (
-	ServiceInstanceMiddlewareVersion12c212 ServiceInstanceMiddlewareVersion = "12cRelease212"
-	ServiceInstanceMiddlewareVersion12cR3  ServiceInstanceMiddlewareVersion = "12cR3"
-	ServiceInstanceMiddlewareVersion11gR1  ServiceInstanceMiddlewareVersion = "11gR1"
-)
-
+// ServiceInstanceClusterType are the constances around cluster types for a service instance
 type ServiceInstanceClusterType string
 
 const (
-	// APPLICATION_CLUSTER - Application cluster (default).
+	// ServiceInstanceClusterTypeApplication - APPLICATION_CLUSTER - Application cluster (default).
 	// This is the WebLogic cluster that will run the service applications, which are accessible via the
 	// local load balancer resource (OTD) or the Oracle managed load balancer.
 	ServiceInstanceClusterTypeApplication ServiceInstanceClusterType = "APPLICATION_CLUSTER"
-	// CACHING_CLUSTER - Caching (data grid) cluster. This is the WebLogic cluster for Coherence storage.
+	// ServiceInstanceClusterTypeCaching  - CACHING_CLUSTER - Caching (data grid) cluster. This is the WebLogic cluster for Coherence storage.
 	ServiceInstanceClusterTypeCaching ServiceInstanceClusterType = "CACHING_CLUSTER"
 )
 
+// ServiceInstanceCustomPayloadType are the constants for payload type
 type ServiceInstanceCustomPayloadType string
 
 const (
+	// ServiceInstanceCustomPayloadTypeApp2Cloud - app2cloud
 	ServiceInstanceCustomPayloadTypeApp2Cloud ServiceInstanceCustomPayloadType = "app2cloud"
 )
 
+// ServiceInstanceActivityStatus are the constants for the different statuses a service instance can be in
 type ServiceInstanceActivityStatus string
 
 const (
-	ServiceInstanceActivityStatusNew          ServiceInstanceActivityStatus = "NEW"
-	ServiceInstanceActivityStatusRunning      ServiceInstanceActivityStatus = "RUNNING"
-	ServiceInstanceActivityStatusSucceed      ServiceInstanceActivityStatus = "SUCCEED"
-	ServiceInstanceActivityStatusFailed       ServiceInstanceActivityStatus = "FAILED"
+	// ServiceInstanceActivityStatusNew - NEW
+	ServiceInstanceActivityStatusNew ServiceInstanceActivityStatus = "NEW"
+	// ServiceInstanceActivityStatusRunning - RUNNING
+	ServiceInstanceActivityStatusRunning ServiceInstanceActivityStatus = "RUNNING"
+	// ServiceInstanceActivityStatusSucceed - SUCCEED
+	ServiceInstanceActivityStatusSucceed ServiceInstanceActivityStatus = "SUCCEED"
+	// ServiceInstanceActivityStatusFailed - FAILED
+	ServiceInstanceActivityStatusFailed ServiceInstanceActivityStatus = "FAILED"
+	// ServiceInstanceActivityStatusInitializing - INITIALIZING
 	ServiceInstanceActivityStatusInitializing ServiceInstanceActivityStatus = "INITIALIZING"
-	ServiceInstanceActivityStatusConfiguring  ServiceInstanceActivityStatus = "CONFIGURING"
-	ServiceInstanceActivityStatusTerminating  ServiceInstanceActivityStatus = "TERMINATING"
-	ServiceInstanceActivityStatusStopping     ServiceInstanceActivityStatus = "STOPPING"
-	ServiceInstanceActivityStatusStopped      ServiceInstanceActivityStatus = "STOPPED"
-	ServiceInstanceActivityStatusStarting     ServiceInstanceActivityStatus = "STARTING"
-	ServiceInstanceActivityStatusDisabling    ServiceInstanceActivityStatus = "DISABLING"
-	ServiceInstanceActivityStatusDisabled     ServiceInstanceActivityStatus = "DISABLED"
-	ServiceInstanceActivityStatusTerminated   ServiceInstanceActivityStatus = "TERMINATED"
+	// ServiceInstanceActivityStatusConfiguring - CONFIGURING
+	ServiceInstanceActivityStatusConfiguring ServiceInstanceActivityStatus = "CONFIGURING"
+	// ServiceInstanceActivityStatusTerminating - TERMINATING
+	ServiceInstanceActivityStatusTerminating ServiceInstanceActivityStatus = "TERMINATING"
+	// ServiceInstanceActivityStatusStopping - STOPPING
+	ServiceInstanceActivityStatusStopping ServiceInstanceActivityStatus = "STOPPING"
+	// ServiceInstanceActivityStatusStopped - STOPPED
+	ServiceInstanceActivityStatusStopped ServiceInstanceActivityStatus = "STOPPED"
+	// ServiceInstanceActivityStatusStarting - STARTING
+	ServiceInstanceActivityStatusStarting ServiceInstanceActivityStatus = "STARTING"
+	// ServiceInstanceActivityStatusDisabling - DISABLING
+	ServiceInstanceActivityStatusDisabling ServiceInstanceActivityStatus = "DISABLING"
+	// ServiceInstanceActivityStatusDisabled - DISABLED
+	ServiceInstanceActivityStatusDisabled ServiceInstanceActivityStatus = "DISABLED"
+	// ServiceInstanceActivityStatusTerminated - TERMINATED
+	ServiceInstanceActivityStatusTerminated ServiceInstanceActivityStatus = "TERMINATED"
 )
 
+// ServiceInstanceLifecycleState defines the constants for the lifecycle state
+type ServiceInstanceLifecycleState string
+
+const (
+	// ServiceInstanceLifecycleStateStop - stop: Stops the Database Cloud Service instance or compute node.
+	ServiceInstanceLifecycleStateStop ServiceInstanceLifecycleState = "stop"
+	// ServiceInstanceLifecycleStateStart - start: Starts the Database Cloud Service instance or compute node.
+	ServiceInstanceLifecycleStateStart ServiceInstanceLifecycleState = "start"
+	// ServiceInstanceLifecycleStateRestart - restart: Restarts the Database Cloud Service instance or compute node.
+	ServiceInstanceLifecycleStateRestart ServiceInstanceLifecycleState = "restart"
+)
+
+// ServiceInstance specifies the attributes associated with a service instance
 type ServiceInstance struct {
 	// Activity logs for the service instance.
 	ActivityLogs []ActivityLog `json:"activityLogs"`
@@ -348,6 +421,7 @@ type ServiceInstance struct {
 	WLSRoot string `json:"WLS_ROOT"`
 }
 
+// ActivityLog specifies the acitivty log information around a service instance
 type ActivityLog struct {
 	// ID of the activity log.
 	ActivityLogID int `json:"activityLogId"`
@@ -380,6 +454,7 @@ type ActivityLog struct {
 	SummaryMessage string `json:"summaryMessage"`
 }
 
+// Message specifies the message information associated with a service instance
 type Message struct {
 	// Date and time the activity was logged.
 	ActivityDate string `json:"activityDate"`
@@ -387,6 +462,7 @@ type Message struct {
 	Message string `json:"message"`
 }
 
+// Attributes specifies the attributes associated with a service instance
 type Attributes struct {
 	// Service instance backup details.
 	BackupDestination AttributeInfo `json:"BACKUP_DESTINATION"`
@@ -408,6 +484,7 @@ type Attributes struct {
 	WLSRoot AttributeInfo `json:"WLS_ROOT"`
 }
 
+// AttributeInfo specifies the attribute information associated with the service instance
 type AttributeInfo struct {
 	// Attribute label.
 	DisplayName string `json:"displayName"`
@@ -421,6 +498,7 @@ type AttributeInfo struct {
 	Value string `json:"value"`
 }
 
+// Backup speicifes the backup information about a service instance
 type Backup struct {
 	// The date and the time of the last successful backup operation.
 	LastBackupDate string `json:"lastBackupDate"`
@@ -428,6 +506,7 @@ type Backup struct {
 	LastFailedBackupDate string `json:"lastFailedBackupDate"`
 }
 
+// Components specifies the information about the components associated with the service instnace
 type Components struct {
 	// Details about the OTD component.
 	OTD OTD `json:"OTD"`
@@ -435,6 +514,7 @@ type Components struct {
 	WLS WLS `json:"WLS"`
 }
 
+// OTD specifies information about the oracle traffic director associated with the service instance
 type OTD struct {
 	// Host name of the administration server.
 	AdminHostName string `json:"adminHostName"`
@@ -466,6 +546,7 @@ type OTD struct {
 	VMInstances VMInstances `json:"vmInstances"`
 }
 
+// WLS sepcifies the information about the weblogic server associated with the service instance
 type WLS struct {
 	// Host name of the administration server.
 	AdminHostName string `json:"adminHostName"`
@@ -495,9 +576,10 @@ type WLS struct {
 	// Oracle WebLogic Server software version
 	Version string `json:"version"`
 	// Groups details about WLS VM instances by host name. Each VM instance is a JSON object element.
-	VMInstances VMInstances `json:"vmInstances"`
+	VMInstances map[string]HostName `json:"vmInstances"`
 }
 
+// Clusters specifies the information about the clusters associated with the service instance
 type Clusters struct {
 	ClusterID    int                    `json:"clusterId"`
 	ClusterName  string                 `json:"clusterName"`
@@ -511,11 +593,13 @@ type Clusters struct {
 	Profile string `json:"profile"`
 }
 
+// PaaSServers specifies the informaiton about the different paas servers associated with the service instance
 type PaaSServers struct {
 	// Attribute details of a specific server.
 	Attributes PaaSAttributes `json:"attributes"`
 }
 
+// PaaSAttributes specifies the platform as a service attributes associated with the service instance
 type PaaSAttributes struct {
 	// One or more Managed Server JVM arguments separated by a space.
 	AdditionalJVMArgs string `json:"additional_jvm_args"`
@@ -544,11 +628,13 @@ type PaaSAttributes struct {
 	Template string `json:"template"`
 }
 
+// WLSAttributes specifies information about the weblogic server associated with the service instance
 type WLSAttributes struct {
 	// Attributes of the Fusion Middleware (Upper Stack) product to be installed or installed on the service instance.
 	UpperStackProductName AttributeInfo `json:"upperStackProductName"`
 }
 
+// OTDAttributes specifies information about the Oracle Traffic Director associated with the service instance
 type OTDAttributes struct {
 	AdminPort                    AttributeInfo `json:"ADMIN_PORT"`
 	ListenerPort                 AttributeInfo `json:"LISTENER_PORT"`
@@ -558,15 +644,18 @@ type OTDAttributes struct {
 	SecuredListenerPort          AttributeInfo `json:"SECURE_LISTENER_PORT"`
 }
 
+// Hosts specifies information about the different hosts on the service instance
 type Hosts struct {
 	UserHosts UserHosts `json:"userHosts"`
 }
 
+// UserHosts specifies information about the user hosts on a service instance
 type UserHosts struct {
 	// Host names have dynamic JSON keys that need to be accounted for
 	HostName map[string]HostName `json:"host-name"`
 }
 
+// HostName specifies information about the hostname on the service instances
 type HostName struct {
 	// Type of component.
 	ComponentType string `json:"componentType"`
@@ -600,13 +689,15 @@ type HostName struct {
 	VMID string `json:"vmId"`
 }
 
+// VMInstances specifies information about the vm instances on the service instance
 type VMInstances struct {
 	// Details about a specific VM instance.
 	// TODO HostName will be deprecated in the near future
 	// VMOTDs have dyanmic JSON keys that needs to be accounted for
-	VMOTD map[string]HostName `json:"vm-otd"`
+	VMOTD map[string]HostName
 }
 
+// Patching specifies information about the patches for the service instance
 type Patching struct {
 	// Current Operation
 	CurrentOperation CurrentOperation `json:"currentOperation"`
@@ -614,17 +705,26 @@ type Patching struct {
 	TotalAvailablePatches int `json:"totalAvailablePatches"`
 }
 
+// CurrentOperation specifies the information about the operation currently working on the service instance
 type CurrentOperation struct {
 	// Details about the current patching operation.
 	Operation string `json:"operation"`
 }
 
+// IPReservation specifies the information about the ip reservation associated with the service instance
 type IPReservation struct {
 	// Name of an IP reservation that is assigned to a node on the service instance.
 	Name string `json:"name"`
 }
 
+// CreateServiceInstanceInput specifies the attributes of the service instance that will be created
 type CreateServiceInstanceInput struct {
+	// This attribute is only applicable when provisioning an Oracle Java Cloud Service
+	// instance in a region on Oracle Cloud Infrastructure Classic, and a custom IP
+	// network is specified in ipNetwork. Flag that specifies whether to assign (true)
+	// or not assign (false) public IP addresses to the nodes in your service instance.
+	// Optional.
+	AssignPublicIP bool `json:"assignPublicIP,omitempty"`
 	// This attribute is available only on Oracle Cloud Infrastructure. It is required along with region and subnet.
 	// Name of a data center location in the Oracle Cloud Infrastructure region that is specified in region.
 	// A region is a localized geographic area, composed of one or more availability domains (data centers).
@@ -666,10 +766,6 @@ type CreateServiceInstanceInput struct {
 	// https://swiftobjectstorage.us-phoenix-1.oraclecloud.com/v1/acme/mycontainer
 	// Optional.
 	CloudStorageContainer string `json:"cloudStorageContainer,omitempty"`
-	// This attribute is not applicable when provisioning an Oracle Java Cloud Service instance in Oracle Cloud Infrastructure.
-	// Flag that specifies whether to create (true) or not create (false) the object storage container if the name specified in
-	// cloudStorageContainer does not exist. The default is false.
-	CloudStorageContainerAutoGenerate bool `json:"cloudStorageContainerAutoGenerate,omitempty"`
 	// On Oracle Cloud Infrastructure Classic, this is the password for the Oracle Cloud Infrastructure Object Storage
 	// Classic user who has read and write access to the container that is specified in cloudStorageContainer. This attribute
 	// is not required for the BASIC service level.
@@ -692,19 +788,6 @@ type CreateServiceInstanceInput struct {
 	// SUITE - Suite edition. See Oracle WebLogic Suite.
 	//Optional
 	Edition ServiceInstanceEdition `json:"edition,omitempty"`
-	// This attribute is not relevant when provisioning an Oracle Java Cloud Service instance in Oracle Cloud Infrastructure.
-	// Flag that specifies whether to enable (true) or disable (false) the access rules that control external communication to
-	// the WebLogic Server Administration Console, Fusion Middleware Control, and Load Balancer Console. The default value is false.
-	// If you do not set it to true, after the service instance is created, you have to explicitly enable the rules for the
-	// administration consoles before you can gain access to the consoles. See Update an Access Rule.
-	// Note: On Oracle Cloud Infrastructure, the security rule that controls access to the WebLogic Server Administration
-	// Console and other consoles is enabled by default. You cannot disable it during provisioning.
-	EnableAdminConsole bool `json:"enableAdminConsole,omitempty"`
-	// Flag that specifies whether to enable (true) or disable (false) notifications by email. If this property
-	// is set to true, you must specify a value in notificationEmail.
-	// Currently, notifications are sent only when service instance provisioning is successful or not successful.
-	// Optional
-	EnableNotification bool `json:"enableNotification,omitempty"`
 	// This attribute is applicable only to accounts where regions are supported.
 	// This attribute is not applicable when provisioning Oracle Java Cloud Service instances in Oracle Cloud Infrastructure.
 	// The three-part name of a custom IP network to attach this service instance to. For example:
@@ -720,13 +803,6 @@ type CreateServiceInstanceInput struct {
 	// you can first create reserved IP addresses, then provision the service instance to use those persistent IP addresses.
 	// Optional.
 	IPNetwork string `json:"ipNetwork,omitempty"`
-	// This attribute is not available on Oracle Cloud at Customer.
-	// Flag that specifies whether to apply an existing on-premises license for Oracle WebLogic Server (true) to the new
-	// Oracle Java Cloud Service instance you are provisioning. The default value is false.
-	// If this property is set to true, you must have a Universal Credits subscription in order to use your existing license.
-	// You are responsible for ensuring that you have the required licenses for BYOL instances in Oracle Java Cloud Service.
-	// Optional
-	IsBYOL bool `json:"isBYOL,omitempty"`
 	// This attribute is not available on Oracle Cloud Infrastructure.
 	// This attribute is applicable only when provisioning an Oracle Java Cloud Service instance that uses
 	// Oracle Identity Cloud Service to configure user authentication and administer users, groups, and roles.
@@ -748,11 +824,6 @@ type CreateServiceInstanceInput struct {
 	// Each context root must begin with the / character. For example:
 	// /store/departments/.*,/store/cart/.*,/marketplace/.*,/application1/.*
 	ProtectedRootContext string `json:"protectedRootContext,omitempty"`
-	// Flag that specifies whether to enable the load balancer.
-	// The default value is true when you configure more than one Managed Server for the Oracle
-	// Java Cloud Service instance. Otherwise, the default value is false
-	// Optional.
-	ProvisionOTD bool `json:"provisionOTD,omitempty"`
 	// This attribute is applicable only to accounts where regions are supported, including accounts on Oracle Cloud Infrastructure.
 	// Name of the region where the Oracle Java Cloud Service instance is to be provisioned.
 	// (Not applicable in Oracle Cloud Infrastructure) A region name must be specified if you intend to use
@@ -798,7 +869,7 @@ type CreateServiceInstanceInput struct {
 	// Only 12cRelease212 is valid if you are using upperStackProductName to provision a service instance for an Oracle
 	// Fusion Middleware product.
 	// Optional
-	ServiceVersion ServiceInstanceMiddlewareVersion `json:"serviceVersion,omitempty"`
+	ServiceVersion string `json:"serviceVersion,omitempty"`
 	// This attribute is applicable only to provisioning on Oracle Cloud Infrastructure Classic.
 	// This attribute and sourceServiceName are required when you provision a clone of an existing Oracle
 	// Java Cloud Service instance (the source service instance).
@@ -842,6 +913,41 @@ type CreateServiceInstanceInput struct {
 	// for an Oracle Java Cloud Service instance on Oracle Cloud Infrastructure in Known Issues.
 	// Optional
 	Subnet string `json:"subnet,omitempty"`
+	// The public key for the secure shell (SSH). This key will be used for authentication when connecting to
+	// the Oracle Java Cloud Service instance using an SSH client. You generate an SSH public-private key pair using
+	// a standard SSH key generation tool. See Generating a Secure Shell (SSH) Public-Private Key Pair in Administering
+	// Oracle Java Cloud Service.
+	// Required
+	VMPublicKeyText string `json:"vmPublicKeyText"`
+	// This attribute is not applicable when provisioning an Oracle Java Cloud Service instance in Oracle Cloud Infrastructure.
+	// Flag that specifies whether to create (true) or not create (false) the object storage container if the name specified in
+	// cloudStorageContainer does not exist. The default is false.
+	CloudStorageContainerAutoGenerate bool `json:"cloudStorageContainerAutoGenerate,omitempty"`
+	// This attribute is not relevant when provisioning an Oracle Java Cloud Service instance in Oracle Cloud Infrastructure.
+	// Flag that specifies whether to enable (true) or disable (false) the access rules that control external communication to
+	// the WebLogic Server Administration Console, Fusion Middleware Control, and Load Balancer Console. The default value is false.
+	// If you do not set it to true, after the service instance is created, you have to explicitly enable the rules for the
+	// administration consoles before you can gain access to the consoles. See Update an Access Rule.
+	// Note: On Oracle Cloud Infrastructure, the security rule that controls access to the WebLogic Server Administration
+	// Console and other consoles is enabled by default. You cannot disable it during provisioning.
+	EnableAdminConsole bool `json:"enableAdminConsole,omitempty"`
+	// Flag that specifies whether to enable (true) or disable (false) notifications by email. If this property
+	// is set to true, you must specify a value in notificationEmail.
+	// Currently, notifications are sent only when service instance provisioning is successful or not successful.
+	// Optional
+	EnableNotification bool `json:"enableNotification,omitempty"`
+	// This attribute is not available on Oracle Cloud at Customer.
+	// Flag that specifies whether to apply an existing on-premises license for Oracle WebLogic Server (true) to the new
+	// Oracle Java Cloud Service instance you are provisioning. The default value is false.
+	// If this property is set to true, you must have a Universal Credits subscription in order to use your existing license.
+	// You are responsible for ensuring that you have the required licenses for BYOL instances in Oracle Java Cloud Service.
+	// Optional
+	IsBYOL bool `json:"isBYOL,omitempty"`
+	// Flag that specifies whether to enable the load balancer.
+	// The default value is true when you configure more than one Managed Server for the Oracle
+	// Java Cloud Service instance. Otherwise, the default value is false
+	// Optional.
+	ProvisionOTD bool `json:"provisionOTD,omitempty"`
 	// This attribute is not available in Oracle Cloud Infrastructure.
 	// This attribute is applicable only to accounts that include Oracle Identity Cloud Service.
 	// Flag that specifies whether to use Oracle Identity Cloud Service (true) or the local WebLogic identity store
@@ -859,20 +965,16 @@ type CreateServiceInstanceInput struct {
 	// See Using Oracle Identity Cloud Service with Oracle Java Cloud Service in Administering Oracle Java Cloud Service.
 	// Optional
 	UseIdentityService bool `json:"useIdentityService,omitempty"`
-	// The public key for the secure shell (SSH). This key will be used for authentication when connecting to
-	// the Oracle Java Cloud Service instance using an SSH client. You generate an SSH public-private key pair using
-	// a standard SSH key generation tool. See Generating a Secure Shell (SSH) Public-Private Key Pair in Administering
-	// Oracle Java Cloud Service.
-	// Required
-	VMPublicKeyText string `json:"vmPublicKeyText"`
 }
 
+// LoadBalancer specifies the details of the loadbalancer to create
 type LoadBalancer struct {
 	// Policy to use for routing requests to the origin servers of the Oracle managed load balancer
 	// (that is, when useIdentityService is set to true.
 	LoadBalancingPolicy ServiceInstanceLoadBalancingPolicy `json:"loadBalancingPolicy,omitempty"`
 }
 
+// CreateComponents specifies the details of the components to create
 type CreateComponents struct {
 	// Properties for the Oracle Traffic Director (OTD) component.
 	// Optional
@@ -882,6 +984,7 @@ type CreateComponents struct {
 	WLS *CreateWLS `json:"WLS"`
 }
 
+// CreateOTD specifies the atrributes of the oracle traffic director to create
 type CreateOTD struct {
 	// Password for the Oracle Traffic Director administrator. The password must meet the following requirements:
 	// Starts with a letter
@@ -895,8 +998,6 @@ type CreateOTD struct {
 	// (WLS) administrator password.
 	// Optional
 	AdminPassword string `json:"adminPassword,omitempty"`
-	// Port for accessing Oracle Traffic Director using HTTP. The default value is 8989.
-	AdminPort int `json:"adminPort,omitempty"`
 	// User name for the Oracle Traffic Director administrator. The name must be between 8 and 128 characters
 	// long and cannot contain any of the following characters:
 	// Tab
@@ -908,10 +1009,6 @@ type CreateOTD struct {
 	// user name.
 	// Optional
 	AdminUsername string `json:"adminUserName,omitempty"`
-	// Flag that specifies whether the local load balancer HA is enabled.
-	// This value defaults to false (that is, HA is not enabled).
-	// Optional
-	HAEnabled bool `json:"haEnabled,omitempty"`
 	// Additional Properties Allowed:
 	// This attribute is not applicable to Oracle Java Cloud Service instances in Oracle Cloud Infrastructure.
 	// Reserved or pre-allocated IP addresses can be assigned to local load balancer nodes.
@@ -929,19 +1026,21 @@ type CreateOTD struct {
 	// a Java Cloud Service with Database Exadata Cloud Service (MOS Note 2163568.1).
 	// Optional.
 	IPReservations []string `json:"ipReservations,omitempty"`
+	// Policy to use for routing requests to the load balancer. Valid policies include:
+	// Optional.
+	LoadBalancingPolicy ServiceInstanceLoadBalancingPolicy `json:"loadBalancingPolicy,omitempty"`
+	// Desired compute shape. A shape defines the number of Oracle Compute Units (OCPUs)
+	// and amount of memory (RAM).
+	// Required.
+	Shape ServiceInstanceShape `json:"shape"`
+	// Port for accessing Oracle Traffic Director using HTTP. The default value is 8989.
+	AdminPort int `json:"adminPort,omitempty"`
 	// Listener port for the local load balancer for accessing deployed applications using HTTP.
 	// The default value is 8080.
 	// This value is overridden by privilegedListenerPort unless its value is set to 0.
 	// This value has no effect if the local load balancer is disabled.
 	// Optional.
 	ListenerPort int `json:"listenerPort,omitempty"`
-	// Flag that specifies whether the non-secure listener port is enabled on the local load balancer.
-	// The default value is true.
-	// Optional
-	ListenerPortEnabled bool `json:"listenerPortEnabled,omitempty"`
-	// Policy to use for routing requests to the load balancer. Valid policies include:
-	// Optional.
-	LoadBalancingPolicy ServiceInstanceLoadBalancingPolicy `json:"loadBalancingPolicy,omitempty"`
 	//Privileged listener port for accessing the deployed applications using HTTP. The default value is 80.
 	// This value has no effect if the local load balancer is disabled.
 	// To disable the privileged listener port, set the value to 0. In this case, if the local
@@ -958,12 +1057,17 @@ type CreateOTD struct {
 	// This value is overridden by privilegedSecuredContentPort unless its value is set to 0.
 	// This value has no effect if the local load balancer is disabled.
 	SecuredListenerPort int `json:"securedListenerPort,omitempty"`
-	// Desired compute shape. A shape defines the number of Oracle Compute Units (OCPUs)
-	// and amount of memory (RAM).
-	// Required.
-	Shape ServiceInstanceShape `json:"shape"`
+	// Flag that specifies whether the local load balancer HA is enabled.
+	// This value defaults to false (that is, HA is not enabled).
+	// Optional
+	HAEnabled bool `json:"haEnabled,omitempty"`
+	// Flag that specifies whether the non-secure listener port is enabled on the local load balancer.
+	// The default value is true.
+	// Optional
+	ListenerPortEnabled bool `json:"listenerPortEnabled,omitempty"`
 }
 
+// CreateWLS specifies the attributes of the weblogic server to create
 type CreateWLS struct {
 	// Password for the WebLogic Server administrator. The password must meet the following requirements:
 	// Starts with a letter
@@ -976,11 +1080,6 @@ type CreateWLS struct {
 	// cannot contain the dollar sign ($).
 	// Required
 	AdminPassword string `json:"adminPassword"`
-	// Port for accessing WebLogic Server using HTTP. The default value is 7001.
-	// Note that the adminPort, contentPort, securedAdminPort, securedContentPort, and nodeManagerPort
-	// values must be unique.
-	// Optional
-	AdminPort int `json:"adminPort,omitempty"`
 	// User name for the WebLogic Server administrator. The name must be between 8 and 128 characters long and cannot contain any of the following characters:
 	// Tab
 	// Brackets
@@ -1024,13 +1123,6 @@ type CreateWLS struct {
 	// Cloud Service in dbServiceName. It is used to connect to the database deployment on Database Cloud Service - Virtual Image.
 	// Optional
 	ConnectString string `json:"connectString,omitempty"`
-	// Port for accessing the deployed applications using HTTP.
-	// This value is overridden by privilegedContentPort unless its value is set to 0.
-	// If a local load balancer is configured and enabled, this value has no effect.
-	// Note that the adminPort, contentPort, securedAdminPort, securedContentPort, and nodeManagerPort values must be unique.
-	// The default value is 8001.
-	// Optional.
-	ContentPort int `json:"contentPort,omitempty"`
 	// User name for the database administrator.
 	// For service instances based on Oracle WebLogic Server 11g (10.3.6), this value must be set to a database
 	// user with DBA role. You can use the default user SYSTEM or a user that has been granted the DBA role.
@@ -1070,10 +1162,6 @@ type CreateWLS struct {
 	// 	An Oracle Database Cloud Service database deployment based on a RAC database is also not supported.
 	// Required
 	DBServiceName string `json:"dbServiceName"`
-	// Port for accessing the WebLogic Administration Server using WLST.
-	// The default value is 9001.
-	// Optional
-	DeploymentChannelPort int `json:"deploymentChannelPort,omitempty"`
 	// Mode of the domain. Valid values include: DEVELOPMENT and PRODUCTION. The default value is PRODUCTION.
 	// Optional
 	DomainMode ServiceInstanceDomainMode `json:"domainMode,omitempty"`
@@ -1114,6 +1202,67 @@ type CreateWLS struct {
 	// Cloud Service (MOS Note 2163568.1).
 	// Optional
 	IPReservations []string `json:"ipReservations,omitempty"`
+	// One or more Managed Server JVM arguments separated by a space.
+	// You cannot specify any arguments that are related to JVM heap sizes and PermGen spaces (for example, -Xms, -Xmx,
+	// -XX:PermSize, and -XX:MaxPermSize).
+	// A typical use case would be to set Java system properties using -Dname=value (for example,
+	// -Dmyproject.debugDir=/var/myproject/log).
+	// You can overwrite or append the default JVM arguments, which are used to start Managed Server processes.
+	// See overwriteMsJvmArgs for information on how to overwrite or append the server start arguments.
+	// Optional
+	MSJvmArgs string `json:"msJvmArgs,omitempty"`
+	// Size of the MW_HOME disk volume for the service (/u01/app/oracle/middleware). The value must be a multiple
+	// of GBs. You can specify this value in bytes or GBs. If specified in GBs, use the following format: nG, where n
+	//specifies the number of GBs. For example, you can express 10 GBs as bytes or GBs. For example: 100000000000 or 10G.
+	// This value defaults to the system configured volume size.
+	// Optional
+	MWVolumeSize string `json:"mwVolumeSize,omitempty"`
+	// Password for Node Manager. This value defaults to the WebLogic administrator password (adminPassword)
+	// if no value is supplied.
+	// Note that the Node Manager password cannot be changed after the Oracle Java Cloud Service instance is provisioned.
+	// Optional
+	NodeManagerPassword string `json:"nodeManagerPassword,omitempty"`
+	// User name for Node Manager. This value defaults to the WebLogic administrator user name (adminUserName)
+	// if no value is supplied.
+	// Optional
+	NodeManagerUserName string `json:"nodeManagerUserName,omitempty"`
+	// Name of the pluggable database for Oracle Database 12c. If not specified, the pluggable database name configured when the database was created will be used.
+	// Note: This value does not apply to Oracle Database 11g.
+	// Optional
+	PDBServiceName string `json:"pdbServiceName,omitempty"`
+	//Desired compute shape for the nodes in the cluster. A shape defines the number of Oracle Compute Units
+	// (OCPUs) and amount of memory (RAM).
+	// Required.
+	Shape ServiceInstanceShape `json:"shape"`
+	// This attribute is not available on Oracle Cloud Infrastructure.
+	// This attribute is required only if you are provisioning an Oracle Java Cloud Service instance for an Oracle Fusion
+	// Middleware product.
+	// The Oracle Fusion Middleware product installer to add to this Oracle Java Cloud Service instance. Valid values are:
+	// ODI - Oracle Data Integrator
+	// WCP - Oracle WebCenter Portal
+	// To use upperStackProductName, you must specify 12cRelease212 as the WebLogic Server software serviceVersion, EE or
+	// SUITE as the edition, and PAAS as the serviceLevel.
+	// After the service instance is provisioned, the specified Fusion Middleware product installer is available in
+	// /u01/zips/upperstack on the Administration Server virtual machine. To install the product over the provisioned domain,
+	// follow the instructions provided by the Oracle product's installation and configuration documentation.
+	// Optional
+	UpperStackProductName ServiceInstanceUpperStackProductName `json:"upperStackProductName,omitempty"`
+	// Port for accessing WebLogic Server using HTTP. The default value is 7001.
+	// Note that the adminPort, contentPort, securedAdminPort, securedContentPort, and nodeManagerPort
+	// values must be unique.
+	// Optional
+	AdminPort int `json:"adminPort,omitempty"`
+	// Port for accessing the deployed applications using HTTP.
+	// This value is overridden by privilegedContentPort unless its value is set to 0.
+	// If a local load balancer is configured and enabled, this value has no effect.
+	// Note that the adminPort, contentPort, securedAdminPort, securedContentPort, and nodeManagerPort values must be unique.
+	// The default value is 8001.
+	// Optional.
+	ContentPort int `json:"contentPort,omitempty"`
+	// Port for accessing the WebLogic Administration Server using WLST.
+	// The default value is 9001.
+	// Optional
+	DeploymentChannelPort int `json:"deploymentChannelPort,omitempty"`
 	// Number of Managed Servers in the WebLogic Server application cluster.
 	// This attribute is ignored if clusters array is used.
 	// Valid values include: 1, 2, 4, and 8. The default value is 1.
@@ -1124,15 +1273,6 @@ type CreateWLS struct {
 	// and msPermMB. In addition, msInitialHeapMB must be less than msMaxHeapMB, and msPermMB must be less than msMaxPermMB.
 	// Optional
 	MSInitialHeapMB int `json:"msInitialHeapMB,omitempty"`
-	// One or more Managed Server JVM arguments separated by a space.
-	// You cannot specify any arguments that are related to JVM heap sizes and PermGen spaces (for example, -Xms, -Xmx,
-	// -XX:PermSize, and -XX:MaxPermSize).
-	// A typical use case would be to set Java system properties using -Dname=value (for example,
-	// -Dmyproject.debugDir=/var/myproject/log).
-	// You can overwrite or append the default JVM arguments, which are used to start Managed Server processes.
-	// See overwriteMsJvmArgs for information on how to overwrite or append the server start arguments.
-	// Optional
-	MSJvmArgs string `json:"msJvmArgs,omitempty"`
 	// Maximum Java heap size (-Xmx) for a Managed Server JVM, specified in megabytes. The value must be greater than -1.
 	// If you specify this maximum value, a value greater than 0 (zero) must also be specified for msInitialHeapMB,
 	// msMaxPermMB, and msPermMB. In addition, msInitialHeapMB must be less than msMaxHeapMB, and msPermMB must be less
@@ -1155,17 +1295,6 @@ type CreateWLS struct {
 	// than msMaxPermMB.
 	// Optional
 	MSPermMB int `json:"msPermMB,omitempty"`
-	// Size of the MW_HOME disk volume for the service (/u01/app/oracle/middleware). The value must be a multiple
-	// of GBs. You can specify this value in bytes or GBs. If specified in GBs, use the following format: nG, where n
-	//specifies the number of GBs. For example, you can express 10 GBs as bytes or GBs. For example: 100000000000 or 10G.
-	// This value defaults to the system configured volume size.
-	// Optional
-	MWVolumeSize string `json:"mwVolumeSize,omitempty"`
-	// Password for Node Manager. This value defaults to the WebLogic administrator password (adminPassword)
-	// if no value is supplied.
-	// Note that the Node Manager password cannot be changed after the Oracle Java Cloud Service instance is provisioned.
-	// Optional
-	NodeManagerPassword string `json:"nodeManagerPassword,omitempty"`
 	// Port for the Node Manager.
 	// Node Manager is a WebLogic Server utility that enables you to start, shut down, and restart Administration Server
 	// and Managed Server instances from a remote location.
@@ -1173,23 +1302,6 @@ type CreateWLS struct {
 	// The default value is 5556.
 	// Optional
 	NodeManagerPort int `json:"nodeManagerPort,omitempty"`
-	// User name for Node Manager. This value defaults to the WebLogic administrator user name (adminUserName)
-	// if no value is supplied.
-	// Optional
-	NodeManagerUserName string `json:"nodeManagerUserName,omitempty"`
-	// Flag that determines whether the user defined Managed Server JVM arguments specified in msJvmArgs should replace the
-	// server start arguments (true), or append the server start arguments (false).
-	// The server start arguments are calculated automatically by Oracle Java Cloud Service from site default values.
-	// If you append (that is, overwriteMsJvmArgs is false or is not set), the user defined arguments specified in msJvmArgs
-	// are added to the end of the server start arguments. If you overwrite (that is, set overwriteMsJvmArgs to true), the
-	// calculated server start arguments are replaced.
-	// Default is false.
-	// Optional
-	OverwriteMsJvmArgs bool `json:"overwriteMsJvmArgs,omitempty"`
-	// Name of the pluggable database for Oracle Database 12c. If not specified, the pluggable database name configured when the database was created will be used.
-	// Note: This value does not apply to Oracle Database 11g.
-	// Optional
-	PDBServiceName string `json:"pdbServiceName,omitempty"`
 	// Privileged content port for accessing the deployed applications using HTTP.
 	// If a local load balancer is configured and enabled, this value has no effect.
 	// To disable the privileged content port, set the value to 0. In this case, if a local load balancer is not
@@ -1204,11 +1316,6 @@ type CreateWLS struct {
 	// The default value is 443.
 	// Optional
 	PrivilegedSecuredContentPort int `json:"privilegedSecuredContentPort,omitempty"`
-	// Flag that specifies whether to automatically deploy and start the sample application, sample-app.war,
-	// to the default Managed Server in your service instance.
-	// The default value is false
-	// Optional
-	SampleAppDeploymentRequested bool `json:"sampleAppDeploymentRequested,omitempty"`
 	// Port for accessing the WebLogic Administration Server using HTTPS.
 	// The adminPort, contentPort, securedAdminPort, securedContentPort, and nodeManagerPort values must be unique.
 	// The default value is 7002.
@@ -1220,25 +1327,23 @@ type CreateWLS struct {
 	// The adminPort, contentPort, securedAdminPort, securedContentPort, and nodeManagerPort values must be unique.
 	// Optional
 	SecuredContentPort int `json:"securedContentPort,omitempty"`
-	//Desired compute shape for the nodes in the cluster. A shape defines the number of Oracle Compute Units
-	// (OCPUs) and amount of memory (RAM).
-	// Required.
-	Shape ServiceInstanceShape `json:"shape"`
-	// This attribute is not available on Oracle Cloud Infrastructure.
-	// This attribute is required only if you are provisioning an Oracle Java Cloud Service instance for an Oracle Fusion
-	// Middleware product.
-	// The Oracle Fusion Middleware product installer to add to this Oracle Java Cloud Service instance. Valid values are:
-	// ODI - Oracle Data Integrator
-	// WCP - Oracle WebCenter Portal
-	// To use upperStackProductName, you must specify 12cRelease212 as the WebLogic Server software serviceVersion, EE or
-	// SUITE as the edition, and PAAS as the serviceLevel.
-	// After the service instance is provisioned, the specified Fusion Middleware product installer is available in
-	// /u01/zips/upperstack on the Administration Server virtual machine. To install the product over the provisioned domain,
-	// follow the instructions provided by the Oracle product's installation and configuration documentation.
+	// Flag that determines whether the user defined Managed Server JVM arguments specified in msJvmArgs should replace the
+	// server start arguments (true), or append the server start arguments (false).
+	// The server start arguments are calculated automatically by Oracle Java Cloud Service from site default values.
+	// If you append (that is, overwriteMsJvmArgs is false or is not set), the user defined arguments specified in msJvmArgs
+	// are added to the end of the server start arguments. If you overwrite (that is, set overwriteMsJvmArgs to true), the
+	// calculated server start arguments are replaced.
+	// Default is false.
 	// Optional
-	UpperStackProductName ServiceInstanceUpperStackProductName `json:"upperStackProductName,omitempty"`
+	OverwriteMsJvmArgs bool `json:"overwriteMsJvmArgs,omitempty"`
+	// Flag that specifies whether to automatically deploy and start the sample application, sample-app.war,
+	// to the default Managed Server in your service instance.
+	// The default value is false
+	// Optional
+	SampleAppDeploymentRequested bool `json:"sampleAppDeploymentRequested,omitempty"`
 }
 
+// CreateCluster specifies the attributes of the cluster to create
 type CreateCluster struct {
 	// Name of the cluster to create.
 	// The cluster name:
@@ -1287,6 +1392,7 @@ type CreateCluster struct {
 	Type ServiceInstanceClusterType `json:"type,omitempty"`
 }
 
+// AppDB specifies the configuration of the application databases
 type AppDB struct {
 	// User name for the database administrator.
 	// For service instances based on Oracle WebLogic Server 11g (10.3.6), this value must
@@ -1315,17 +1421,17 @@ type AppDB struct {
 // CreateServiceInstance creates a new ServiceInstace.
 func (c *ServiceInstanceClient) CreateServiceInstance(input *CreateServiceInstanceInput) (*ServiceInstance, error) {
 	if c.PollInterval == 0 {
-		c.PollInterval = WaitForServiceInstanceReadyPollInterval
+		c.PollInterval = waitForServiceInstanceReadyPollInterval
 	}
 	if c.Timeout == 0 {
-		c.Timeout = WaitForServiceInstanceReadyTimeout
+		c.Timeout = waitForServiceInstanceReadyTimeout
 	}
 
 	// Since these CloudStorageUsername and CloudStoragePassword are sensitive we'll read them
 	// from the environment if they aren't passed in.
 	if input.CloudStorageContainer != "" && input.CloudStorageUsername == "" && input.CloudStoragePassword == "" {
-		input.CloudStorageUsername = *c.ResourceClient.JavaClient.client.UserName
-		input.CloudStoragePassword = *c.ResourceClient.JavaClient.client.Password
+		input.CloudStorageUsername = *c.ResourceClient.Client.client.UserName
+		input.CloudStoragePassword = *c.ResourceClient.Client.client.Password
 	}
 
 	// The JCS API errors if an ssh key has trailing content; we'll trim that here.
@@ -1353,7 +1459,7 @@ func (c *ServiceInstanceClient) startServiceInstance(name string, input *CreateS
 
 	// Wait for the service instance to be running and return the result
 	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that
-	serviceInstance, err := c.WaitForServiceInstanceRunning(getInput, c.PollInterval, c.Timeout)
+	serviceInstance, err := c.WaitForServiceInstanceState(getInput, ServiceInstanceLifecycleStateStart, c.PollInterval, c.Timeout)
 	// If the service instance is returned as nil if it enters a terminating state.
 	if err != nil || serviceInstance == nil {
 		return nil, fmt.Errorf("error creating service instance %q: %+v", name, err)
@@ -1361,8 +1467,8 @@ func (c *ServiceInstanceClient) startServiceInstance(name string, input *CreateS
 	return serviceInstance, nil
 }
 
-// WaitForServiceInstanceRunning waits for a service instance to be completely initialized and available.
-func (c *ServiceInstanceClient) WaitForServiceInstanceRunning(input *GetServiceInstanceInput, pollInterval, timeoutSeconds time.Duration) (*ServiceInstance, error) {
+// WaitForServiceInstanceState waits for a service instance to be in the desired state
+func (c *ServiceInstanceClient) WaitForServiceInstanceState(input *GetServiceInstanceInput, desiredState ServiceInstanceLifecycleState, pollInterval, timeoutSeconds time.Duration) (*ServiceInstance, error) {
 	var info *ServiceInstance
 	var getErr error
 	err := c.client.WaitFor("service instance to be ready", pollInterval, timeoutSeconds, func() (bool, error) {
@@ -1374,17 +1480,29 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceRunning(input *GetServiceI
 		switch s := info.State; s {
 		case ServiceInstanceStatusReady: // Target State
 			c.client.DebugLogString("Service Instance Ready")
-			return true, nil
+			if desiredState == ServiceInstanceLifecycleStateStart || desiredState == ServiceInstanceLifecycleStateRestart {
+				return true, nil
+			}
+			return false, nil
 		case ServiceInstanceStatusConfiguring:
 			c.client.DebugLogString("Service Instance is being created")
 			return false, nil
 		case ServiceInstanceStatusInitializing:
 			c.client.DebugLogString("Service Instance is being initialized")
 			return false, nil
+		case ServiceInstanceStatusStopping:
+			c.client.DebugLogString("ServiceInstance is stopping")
+			return false, nil
+		case ServiceInstanceStatusStopped:
+			c.client.DebugLogString("ServiceInstance is stopped")
+			if desiredState == ServiceInstanceLifecycleStateStop {
+				return true, nil
+			}
+			return false, nil
 		case ServiceInstanceStatusTerminating:
 			c.client.DebugLogString("Service Instance creation failed, terminating")
 			// The Service Instance creation failed. Wait for the instance to be deleted.
-			return false, c.WaitForServiceInstanceDeleted(input, pollInterval, timeoutSeconds)
+			return false, c.waitForServiceInstanceDeleted(input, pollInterval, timeoutSeconds)
 		default:
 			c.client.DebugLogString(fmt.Sprintf("Unknown instance state: %s, waiting", s))
 			return false, nil
@@ -1393,6 +1511,7 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceRunning(input *GetServiceI
 	return info, err
 }
 
+// GetServiceInstanceInput specifies which service instance to retrieve
 type GetServiceInstanceInput struct {
 	// Name of the Java Cloud Service instance.
 	// Required.
@@ -1409,6 +1528,7 @@ func (c *ServiceInstanceClient) GetServiceInstance(getInput *GetServiceInstanceI
 	return &serviceInstance, nil
 }
 
+// DeleteServiceInstanceInput specifies which service instance to delete
 type DeleteServiceInstanceInput struct {
 	// Name of the Java Cloud Service instance.
 	// Required.
@@ -1433,17 +1553,30 @@ type DeleteServiceInstanceInput struct {
 	SkipBackupOnTerminate bool `json:"skipBackupOnTerminate,omitempty"`
 }
 
+// DeleteServiceInstance deletes the specified service instance
 func (c *ServiceInstanceClient) DeleteServiceInstance(deleteInput *DeleteServiceInstanceInput) error {
 	if c.PollInterval == 0 {
-		c.PollInterval = WaitForServiceInstanceDeletePollInterval
+		c.PollInterval = waitForServiceInstanceDeletePollInterval
 	}
 	if c.Timeout == 0 {
-		c.Timeout = WaitForServiceInstanceDeleteTimeout
+		c.Timeout = waitForServiceInstanceDeleteTimeout
 	}
 
-	deleteErr := c.deleteInstanceResource(deleteInput.Name, deleteInput)
+	// There are times when the service instance isn't in a state to be deleted even though the api returns a ready
+	// instance. We'll wait a set amount of time for it to be ready to delete before erroring out.
+	var deleteErr error
+	for i := 0; i < deleteMaxRetries; i++ {
+		c.client.DebugLogString(fmt.Sprintf("(Iteration: %d of %d) Deleting instance with name %s", i, *c.Client.client.MaxRetries, deleteInput.Name))
+
+		deleteErr = c.deleteInstanceResource(deleteInput.Name, deleteInput)
+		if deleteErr == nil {
+			c.client.DebugLogString(fmt.Sprintf("(Iteration: %d of %d) Finished deleting instance with name %s", i, *c.Client.client.MaxRetries, deleteInput.Name))
+			break
+		}
+		time.Sleep(1 * time.Minute)
+	}
 	if deleteErr != nil {
-		return deleteErr
+		return fmt.Errorf("error submitting delete request for java service instance %q", deleteInput.Name)
 	}
 
 	// Call wait for instance deleted now, as deleting the instance is an eventually consistent operation
@@ -1452,11 +1585,11 @@ func (c *ServiceInstanceClient) DeleteServiceInstance(deleteInput *DeleteService
 	}
 
 	// Wait for instance to be deleted
-	return c.WaitForServiceInstanceDeleted(getInput, c.PollInterval, c.Timeout)
+	return c.waitForServiceInstanceDeleted(getInput, c.PollInterval, c.Timeout)
 }
 
 // WaitForServiceInstanceDeleted waits for a service instance to be fully deleted.
-func (c *ServiceInstanceClient) WaitForServiceInstanceDeleted(input *GetServiceInstanceInput, pollInterval, timeoutSeconds time.Duration) error {
+func (c *ServiceInstanceClient) waitForServiceInstanceDeleted(input *GetServiceInstanceInput, pollInterval, timeoutSeconds time.Duration) error {
 	return c.client.WaitFor("service instance to be deleted", pollInterval, timeoutSeconds, func() (bool, error) {
 		info, err := c.GetServiceInstance(input)
 		if err != nil {
@@ -1476,4 +1609,135 @@ func (c *ServiceInstanceClient) WaitForServiceInstanceDeleted(input *GetServiceI
 			return false, nil
 		}
 	})
+}
+
+// ScaleUpDownServiceInstanceInput defines the attributes for how to scale up or down the java service instance.
+type ScaleUpDownServiceInstanceInput struct {
+	// Groups properties for the Oracle WebLogic Server component (WLS).
+	// Required
+	Components ScaleUpDownComponent `json:"components"`
+	// Name of the Java Cloud Service instance.
+	// Required.
+	Name string `json:"-"`
+}
+
+// ScaleUpDownComponent defines the attributes for the WebLogic Server components when scaling up and down
+// the service instance.
+type ScaleUpDownComponent struct {
+	// Properties for the Oracle WebLogic Server (WLS) component.
+	// Required
+	WLS ScaleUpDownWLS `json:"WLS"`
+}
+
+// ScaleUpDownWLS defines the properties for the Oracle WebLogic Server (WLS) component.
+type ScaleUpDownWLS struct {
+	// A single host name. Only application cluster hosts can be specified.
+	// Required
+	Hosts []string `json:"hosts"`
+	// Flag that indicates whether to ignore Managed Server heap validation (true) or perform heap
+	// validation (false) before a scale down request is accepted. Default is false.
+	// When the flag is not set or is false, heap validation is performed before scaling.
+	// If a validation error is not generated, the Managed Server JVM is restarted with the new shape
+	// after scaling down.
+	// When the flag is true, heap validation is not performed. Before you set the flag to true,
+	// make sure the -Xms value is low enough for the Managed Server JVM to restart on the new shape
+	// after scaling down. The -Xms value should be lower than one-fourth the size of the memory
+	// associated with the shape. Use the WebLogic Server Administration Console to edit the value in
+	// the server start arguments, if necessary.
+	// Optional
+	IgnoreManagedServerHeapError bool `json:"ignoreManagedServerHeapError,omitempty"`
+	// Desired compute shape for the target host.
+	// Required
+	Shape ServiceInstanceShape `json:"shape"`
+}
+
+// ScaleUpDownServiceInstance scales the service instance up or down depending on the shape passed in.
+func (c *ServiceInstanceClient) ScaleUpDownServiceInstance(input *ScaleUpDownServiceInstanceInput) error {
+	if c.PollInterval == 0 {
+		c.PollInterval = waitForServiceInstanceReadyPollInterval
+	}
+	if c.Timeout == 0 {
+		c.Timeout = waitForServiceInstanceReadyTimeout
+	}
+
+	if err := c.updateResource(input.Name, serviceInstanceScaleUpDownPath, "POST", input); err != nil {
+		return fmt.Errorf("unable to update Java Service Instance %q: %+v", input.Name, err)
+	}
+
+	// Call wait for instance ready now, as updating the instance is an eventually consistent operation.
+	getInput := &GetServiceInstanceInput{
+		Name: input.Name,
+	}
+
+	// Wait for the service instance to be running and return the result
+	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that.
+	serviceInstance, err := c.WaitForServiceInstanceState(getInput, ServiceInstanceLifecycleStateStart, c.PollInterval, c.Timeout)
+	// The service instance is returned as nil if it enters a terminating state.
+	if err != nil || serviceInstance == nil {
+		return fmt.Errorf("error creating service instance %q: %+v", input.Name, err)
+	}
+
+	return nil
+}
+
+// DesiredStateInput defines the attributes for how to set the desired state of a java service instance.
+type DesiredStateInput struct {
+	// Flag that specifies whether to control the entire service instance.
+	// This attribute is not applicable to the restart command.
+	// Optional
+	AllServiceHosts bool `json:"allServiceHosts,omitemtpy"`
+	// Groups properties for the Oracle WebLogic Server component (WLS).
+	// Optional
+	Components *DesiredStateComponent `json:"components,omitempty"`
+	// Name of the Java Cloud Service instance.
+	// Required.
+	Name string `json:"-"`
+	// Type of the request.
+	// Required
+	LifecycleState ServiceInstanceLifecycleState `json:"-"`
+}
+
+// DesiredStateComponent groups properties for the Oracle WebLogic Server component (WLS) or the Oracle
+// Traffice Director (OTD) component.
+type DesiredStateComponent struct {
+	// Properties for the Oracle Traffic Director (OTD) component.
+	// Optional
+	OTD *DesiredStateHost `json:"OTD,omitempty"`
+	// Properties for the Oracle WebLogic Server (WLS) component.
+	// Optional
+	WLS *DesiredStateHost `json:"WLS,omitempty"`
+}
+
+// DesiredStateHost defines the properties of the hosts
+type DesiredStateHost struct {
+	// A single host name. Only application cluster hosts can be specified.
+	// Required
+	Hosts []string `json:"hosts"`
+}
+
+// UpdateDesiredState updates the specified desired state of a service instance
+func (c *ServiceInstanceClient) UpdateDesiredState(input *DesiredStateInput) error {
+	if c.PollInterval == 0 {
+		c.PollInterval = waitForServiceInstanceReadyPollInterval
+	}
+	if c.Timeout == 0 {
+		c.Timeout = waitForServiceInstanceReadyTimeout
+	}
+
+	if err := c.updateResource(input.Name, fmt.Sprintf(serviceInstanceDesiredStatePath, input.LifecycleState), "POST", input); err != nil {
+		return err
+	}
+
+	// Call wait for instance running now, as updating the instance is an eventually consistent operation
+	getInput := &GetServiceInstanceInput{
+		Name: input.Name,
+	}
+
+	// Wait for the service instance to be running and return the result
+	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that
+	_, err := c.WaitForServiceInstanceState(getInput, input.LifecycleState, c.PollInterval, c.Timeout)
+	if err != nil {
+		return fmt.Errorf("Error updating Service Instance %q: %+v", input.Name, err)
+	}
+	return nil
 }
