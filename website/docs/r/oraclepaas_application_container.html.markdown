@@ -14,21 +14,16 @@ The `oraclepaas_application_container` resource creates and manages an Applicati
 ## Example Usage
 
 ```hcl
-resource "oraclepaas_application_container" "default" {
-    name        = "defaultappcontainer"
-	manifest_attributes {
-		runtime {
-			major_version = 7
-		}
-		command = "sh target/bin/start"
-		release {
-			build = 150520.1154
-			commit = "d8c2596364d9584050461"
-			version = "15.1.0"
-		}
-		notes = "notes related to release"
-		mode =  "rolling"
-	}
+resource "oraclepaas_application_container" "example-app" {
+  name               = "ExampleWebApp"
+  runtime            = "java"
+  archive_url        = "my-accs-apps/example-web-app.zip"
+  subscription_type  = "HOURLY"
+
+  deployment_attributes {
+    memory = "1G"
+    instances = 2
+  }
 }
 ```
 
@@ -60,7 +55,7 @@ deployment information. Deployment Attributes is documented below.
 
 * `repository` (Optional) Repository of the application. The only allowed value is 'dockerhub'.
 
-* `runtime` - (Optional) The allowed runtime environment variables. The allowed variables are `java`, `node`, `php`, `python`, or `ruby`. The default is `java`.
+* `runtime` - (Optional) The allowed runtime environment variables. The allowed variables are `java`, `node`, `php`, `python`, `golang`, `dotnet`, or `ruby`. The default is `java`.
 
 * `subscription_type` - (Optional) Whether the subscription type is `hourly` or `monthly`. The default is `hourly`.
 
