@@ -612,6 +612,11 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"assign_public_ip": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
 			"bring_your_own_license": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -669,6 +674,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 		BackupDestination:  java.ServiceInstanceBackupDestination(d.Get("backup_destination").(string)),
 		EnableAdminConsole: d.Get("enable_admin_console").(bool),
 		UseIdentityService: d.Get("use_identity_service").(bool),
+		ProvisionOTD:       false, // force default to false, but may be overridden below in expandOTDConfig
 	}
 
 	if val, ok := d.GetOk("service_version"); ok {
@@ -684,6 +690,9 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	}
 	if val, ok := d.GetOk("ip_network"); ok {
 		input.IPNetwork = val.(string)
+	}
+	if val, ok := d.GetOk("assign_public_ip"); ok {
+		input.AssignPublicIP = val.(bool)
 	}
 	if val, ok := d.GetOk("region"); ok {
 		input.Region = val.(string)
@@ -760,6 +769,10 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 	d.Set("version", result.ServiceVersion)
 	d.Set("metering_frequency", result.MeteringFrequency)
 	d.Set("force_delete", d.Get("force_delete"))
+
+	if val, ok := d.GetOk("assign_public_ip"); ok {
+		d.Set("assign_public_ip", val)
+	}
 
 	wlsConfig, err := flattenWebLogicConfig(d, result.Components.WLS, result.WLSRoot)
 	if err != nil {
