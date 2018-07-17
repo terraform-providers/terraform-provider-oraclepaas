@@ -687,6 +687,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 		BackupDestination:  java.ServiceInstanceBackupDestination(d.Get("backup_destination").(string)),
 		EnableAdminConsole: d.Get("enable_admin_console").(bool),
 		UseIdentityService: d.Get("use_identity_service").(bool),
+		ProvisionOTD:       false, // force default to false, but may be overridden below in expandOTDConfig
 	}
 
 	if val, ok := d.GetOk("service_version"); ok {

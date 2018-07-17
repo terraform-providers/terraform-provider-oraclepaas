@@ -947,7 +947,7 @@ type CreateServiceInstanceInput struct {
 	// The default value is true when you configure more than one Managed Server for the Oracle
 	// Java Cloud Service instance. Otherwise, the default value is false
 	// Optional.
-	ProvisionOTD bool `json:"provisionOTD,omitempty"`
+	ProvisionOTD bool `json:"provisionOTD"`
 	// This attribute is not available in Oracle Cloud Infrastructure.
 	// This attribute is applicable only to accounts that include Oracle Identity Cloud Service.
 	// Flag that specifies whether to use Oracle Identity Cloud Service (true) or the local WebLogic identity store
@@ -1653,6 +1653,7 @@ type ScaleUpDownWLS struct {
 
 // ScaleUpDownServiceInstance scales the service instance up or down depending on the shape passed in.
 func (c *ServiceInstanceClient) ScaleUpDownServiceInstance(input *ScaleUpDownServiceInstanceInput) error {
+	var jobResponse JobResponse
 	if c.PollInterval == 0 {
 		c.PollInterval = waitForServiceInstanceReadyPollInterval
 	}
@@ -1660,21 +1661,17 @@ func (c *ServiceInstanceClient) ScaleUpDownServiceInstance(input *ScaleUpDownSer
 		c.Timeout = waitForServiceInstanceReadyTimeout
 	}
 
-	if err := c.updateResource(input.Name, serviceInstanceScaleUpDownPath, "POST", input); err != nil {
+	if err := c.updateResource(input.Name, serviceInstanceScaleUpDownPath, "POST", input, &jobResponse); err != nil {
 		return fmt.Errorf("unable to update Java Service Instance %q: %+v", input.Name, err)
 	}
 
-	// Call wait for instance ready now, as updating the instance is an eventually consistent operation.
-	getInput := &GetServiceInstanceInput{
-		Name: input.Name,
+	getJobInput := &GetJobInput{
+		ID: jobResponse.Details.JobID,
 	}
 
-	// Wait for the service instance to be running and return the result
-	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that.
-	serviceInstance, err := c.WaitForServiceInstanceState(getInput, ServiceInstanceLifecycleStateStart, c.PollInterval, c.Timeout)
-	// The service instance is returned as nil if it enters a terminating state.
-	if err != nil || serviceInstance == nil {
-		return fmt.Errorf("error creating service instance %q: %+v", input.Name, err)
+	err := c.Client.Jobs().WaitForJobCompletion(getJobInput, c.PollInterval, c.Timeout)
+	if err != nil {
+		return fmt.Errorf("error updating service instance %q: %+v", input.Name, err)
 	}
 
 	return nil
@@ -1717,6 +1714,7 @@ type DesiredStateHost struct {
 
 // UpdateDesiredState updates the specified desired state of a service instance
 func (c *ServiceInstanceClient) UpdateDesiredState(input *DesiredStateInput) error {
+	var jobResponse JobResponse
 	if c.PollInterval == 0 {
 		c.PollInterval = waitForServiceInstanceReadyPollInterval
 	}
@@ -1724,20 +1722,18 @@ func (c *ServiceInstanceClient) UpdateDesiredState(input *DesiredStateInput) err
 		c.Timeout = waitForServiceInstanceReadyTimeout
 	}
 
-	if err := c.updateResource(input.Name, fmt.Sprintf(serviceInstanceDesiredStatePath, input.LifecycleState), "POST", input); err != nil {
+	if err := c.updateResource(input.Name, fmt.Sprintf(serviceInstanceDesiredStatePath, input.LifecycleState), "POST", input, &jobResponse); err != nil {
 		return err
 	}
 
-	// Call wait for instance running now, as updating the instance is an eventually consistent operation
-	getInput := &GetServiceInstanceInput{
-		Name: input.Name,
+	getJobInput := &GetJobInput{
+		ID: jobResponse.Details.JobID,
 	}
 
-	// Wait for the service instance to be running and return the result
-	// Don't have to unqualify any objects, as the GetServiceInstance method will handle that
-	_, err := c.WaitForServiceInstanceState(getInput, input.LifecycleState, c.PollInterval, c.Timeout)
+	err := c.Client.Jobs().WaitForJobCompletion(getJobInput, c.PollInterval, c.Timeout)
 	if err != nil {
-		return fmt.Errorf("Error updating Service Instance %q: %+v", input.Name, err)
+		return fmt.Errorf("error updating service instance %q: %+v", input.Name, err)
 	}
+
 	return nil
 }
