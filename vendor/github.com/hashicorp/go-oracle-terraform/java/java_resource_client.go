@@ -36,9 +36,12 @@ func (c *ResourceClient) getResource(name string, responseBody interface{}) erro
 	return c.unmarshalResponseBody(resp, responseBody)
 }
 
-func (c *ResourceClient) updateResource(name, path, method string, requestBody interface{}) error {
-	_, err := c.executeRequest(method, fmt.Sprintf("%s%s", c.getObjectPath(c.ResourceRootPath, name), path), requestBody)
-	return err
+func (c *ResourceClient) updateResource(name, path, method string, requestBody interface{}, responseBody interface{}) error {
+	resp, err := c.executeRequest(method, fmt.Sprintf("%s%s", c.getObjectPath(c.ResourceRootPath, name), path), requestBody)
+	if err != nil {
+		return err
+	}
+	return c.unmarshalResponseBody(resp, responseBody)
 }
 
 // ServiceInstance needs a PUT and a body to be destroyed
