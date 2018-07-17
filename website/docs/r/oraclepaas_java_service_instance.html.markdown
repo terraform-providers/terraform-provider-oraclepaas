@@ -119,7 +119,7 @@ value is false.
 * `weblogic_server` - (Required) The attributes required to create a WebLogic server alongside the java service instance.
 WebLogic Server is documented below.
 
-* `otd` - (Optional) The attributes required to create an Oracle Traffic Director (Load balancer). OTD is
+* `oracle_traffic_director` - (Optional) The attributes required to create an Oracle Traffic Director (Load balancer). OTD is
 documented below.
 
 * `level` - (Optional) Service level for the service instance. Possible values are `BASIC` or `PAAS`. Default
