@@ -256,12 +256,12 @@ type CreateServiceInstanceInput struct {
 	ServiceParameters ServiceParameters `json:"serviceParameters"`
 }
 
-// MySQL Component parameters used for creating the MySQL Service Instance. This wraps the MySQLParamters.
+// ComponentParameters used for creating the MySQL Service Instance. This wraps the MySQLParamters.
 type ComponentParameters struct {
 	Mysql MySQLParameters `json:"mysql"`
 }
 
-// MySQL Parameters used for create the MySQL Service Instance.
+// MySQLParameters used for create the MySQL Service Instance.
 type MySQLParameters struct {
 	// The name of the MySQL Database. This defaults to mydatabase if the value is omitted or blank.
 	DBName string `json:"dbName,omitempty"`
@@ -307,7 +307,7 @@ type MySQLParameters struct {
 	Subnet string `json:"subnet,omitempty"`
 }
 
-// The service parameters for the create instance operation
+// ServiceParameters details the service parameters for the create instance operation
 type ServiceParameters struct {
 	// ONLY FOR OCI. Name of the data center location for the OCI Region. e.g. FQCn:US-ASHBURN-AD1"
 	AvailabilityDomain string `json:"availabilityDomain,omitempty"`
@@ -323,13 +323,13 @@ type ServiceParameters struct {
 	// User name for the object storage user. The user name must be specified if cloudStorageContainer is set.
 	CloudStorageUsername string `json:"cloudStorageUser,omitempty"`
 	// Flag that specifies whether to enable (true) or disable (false) notifications by email. If this property is set to true, you must specify a value in notificationEmail.
-	EnableNotifications bool `json:"enableNotifications,omitempty"`
+	EnableNotification bool `json:"enableNotification,omitempty"`
 	// The three-part name of a custom IP network to attach this service instance to. For example: /Compute-identity_domain/user/object. This attribute is applicable only to accounts where regions are supported. This is not applicable to OCI
 	IPNetwork string `json:"ipNetwork"`
 	// The billing frequency of the service instance; either MONTHLY or HOURLY. Default: MONTHLY
 	MeteringFrequency string `json:"meteringFrequency,omitempty"`
 	// The email that will be used to send notifications to.
-	//	NotificationEmail string `json:"notificationEmail,omitEmpty"`
+	NotificationEmail string `json:"notificationEmail,omitempty"`
 	// Name of the region where the MySQL Service instance is to be provisioned. This attribute is applicable only to accounts where regions are supported
 	Region string `json:"region,omitempty"`
 	// Text that provides addition information about the service instance.
