@@ -39,9 +39,9 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 			"manifest_file": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"manifest_attributes"},
+				ConflictsWith: []string{"manifest"},
 			},
-			"manifest_attributes": {
+			"manifest": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				ConflictsWith: []string{"manifest_file"},
@@ -68,7 +68,6 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 								string(application.ManifestTypeWorker),
 								string(application.ManifestTypeWeb),
 							}, false),
-							Default: string(application.ManifestTypeWorker),
 						},
 						"command": {
 							Type:     schema.TypeString,
@@ -99,13 +98,12 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							ValidateFunc: validation.IntBetween(10, 600),
-							Default:      30,
 						},
 						"shutdown_time": {
 							Type:         schema.TypeInt,
 							Optional:     true,
-							ValidateFunc: validation.IntBetween(0, 600),
-							Default:      0,
+							ValidateFunc: validation.IntBetween(-1, 600),
+							Default:      -1,
 						},
 						"notes": {
 							Type:     schema.TypeString,
@@ -136,9 +134,9 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 			"deployment_file": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"manifest_attributes"},
+				ConflictsWith: []string{"deployment"},
 			},
-			"deployment_attributes": {
+			"deployment": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				ConflictsWith: []string{"deployment_file"},
@@ -353,7 +351,7 @@ func resourceOraclePAASApplicationContainerCreate(d *schema.ResourceData, meta i
 		input.Manifest = v.(string)
 	}
 
-	if v, ok := d.GetOk("manifest_attributes"); ok {
+	if v, ok := d.GetOk("manifest"); ok {
 		manifestAttrs, err := expandManifestAttributes(v.([]interface{})[0].(map[string]interface{}))
 		if err != nil {
 			return err
@@ -365,7 +363,7 @@ func resourceOraclePAASApplicationContainerCreate(d *schema.ResourceData, meta i
 		input.Deployment = v.(string)
 	}
 
-	if v, ok := d.GetOk("deployment_attributes"); ok {
+	if v, ok := d.GetOk("deployment"); ok {
 		deploymentAttr, err := expandDeploymentAttributes(d, v.([]interface{})[0].(map[string]interface{}))
 		if err != nil {
 			return err
@@ -470,7 +468,7 @@ func resourceOraclePAASApplicationContainerUpdate(d *schema.ResourceData, meta i
 		input.Manifest = v.(string)
 	}
 
-	if v, ok := d.GetOk("manifest_attributes"); ok {
+	if v, ok := d.GetOk("manifest"); ok {
 		manifestAttrs, err := expandManifestAttributes(v.([]interface{})[0].(map[string]interface{}))
 		if err != nil {
 			return err
@@ -482,7 +480,7 @@ func resourceOraclePAASApplicationContainerUpdate(d *schema.ResourceData, meta i
 		input.Deployment = v.(string)
 	}
 
-	if v, ok := d.GetOk("deployment_attributes"); ok {
+	if v, ok := d.GetOk("deployment"); ok {
 		deploymentAttr, err := expandDeploymentAttributes(d, v.([]interface{})[0].(map[string]interface{}))
 		if err != nil {
 			return err
@@ -500,10 +498,10 @@ func resourceOraclePAASApplicationContainerUpdate(d *schema.ResourceData, meta i
 }
 
 func expandManifestAttributes(attrs map[string]interface{}) (*application.ManifestAttributes, error) {
-	manifestAttributes := &application.ManifestAttributes{
-		Type:         application.ManifestType(attrs["type"].(string)),
-		StartupTime:  strconv.Itoa(attrs["startup_time"].(int)),
-		ShutdownTime: strconv.Itoa(attrs["shutdown_time"].(int)),
+	manifestAttributes := &application.ManifestAttributes{}
+
+	if v := attrs["type"]; v != nil {
+		manifestAttributes.Type = application.ManifestType(v.(string))
 	}
 	if v := attrs["runtime"]; v != nil {
 		runtimeAttrs := application.Runtime{}
@@ -535,6 +533,12 @@ func expandManifestAttributes(attrs map[string]interface{}) (*application.Manife
 	}
 	if v := attrs["health_check"]; v != nil {
 		manifestAttributes.HealthCheck = application.HealthCheck{HTTPEndpoint: v.(string)}
+	}
+	if v := attrs["startup_time"].(int); v != 0 {
+		manifestAttributes.StartupTime = strconv.Itoa(v)
+	}
+	if v := attrs["shutdown_time"].(int); v != -1 {
+		manifestAttributes.ShutdownTime = strconv.Itoa(v)
 	}
 
 	return manifestAttributes, nil

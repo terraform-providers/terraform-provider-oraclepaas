@@ -20,7 +20,7 @@ resource "oraclepaas_application_container" "example-app" {
   archive_url        = "my-accs-apps/example-web-app.zip"
   subscription_type  = "HOURLY"
 
-  deployment_attributes {
+  deployment {
     memory = "1G"
     instances = 2
   }
@@ -36,18 +36,24 @@ The following arguments are supported:
 * `manifest_file` - (Optional) The json manifest file containing the attributes related to launching an application. Use either `manifest_file` or `manifest_attributes` when specifying 
 launch information.
 
-* `manifest_attributes` - (Optional) The manifest attributes related to launching an application. Use either `manifest_file` or `manifest_attributes` when specifying 
-launch information. Manifest Attributes is documented below.
+* `manifest` - (Optional) The manifest attributes related to launching an application. Use either `manifest_file` or `manifest` when specifying 
+launch information. Manifest attributes is documented below.
 
 * `deployment_file` - (Optional) The json deployment file containing the attributes related to deploying an application. Use either `deployment_file` or `deployment_attributes` when specifying
 deployment information. 
 
-* `deployment_attributes` - (Optional) The deployment attributes related to deploying an application. Use either `deployment_file` or `deployment_attributes` when specifying
-deployment information. Deployment Attributes is documented below.
+* `deployment` - (Optional) The deployment attributes related to deploying an application. Use either `deployment_file` or `deployment` when specifying
+deployment information. Deployment attributes is documented below.
 
 * `archive_url` - (Optional) Location of the application archive file in Oracle Storage Cloud Service, in the format app-name/file-name.
 
 * `auth_type` - (Optional) Uses Oracle Identity Cloud Service to control who can access your Java SE 7 or 8, Node.js, or PHP application. Allowed values are `basic` and `oauth`.
+
+* `git_repository` - (Optional) The URL of the git repository to use the application container.
+
+* `git_username` - (Optional) The username of a user with access to the git respository if the repository is private.
+
+* `git_password` - (Optional) The password for the user with access to the git repository if the repository is private.
 
 * `notes` - (Optional) Comments about the application deployment.
 
@@ -59,7 +65,9 @@ deployment information. Deployment Attributes is documented below.
 
 * `subscription_type` - (Optional) Whether the subscription type is `hourly` or `monthly`. The default is `hourly`.
 
-Manifest Attributes supports the following: 
+* `tags` - (Optional) A map of tags for the application container.
+
+Manifest attributes supports the following: 
 
 * `runtime` - (Optional) Details the availble runtime attributes. Runtime is documented below.
 
@@ -69,9 +77,9 @@ Manifest Attributes supports the following:
 
 * `release` - (Optional) Details the release attributes of a specific build. Release is documented below.
 
-* `startup_time` - (Optional) The maximum time in seconds to wait for an application to start. The default is `30`.
+* `startup_time` - (Optional) The maximum time in seconds to wait for an application to start.
 
-* `shutdown_time` - (Optional) The maximum time in seconds to wait for an application to stop. The default is `0`. 
+* `shutdown_time` - (Optional) The maximum time in seconds to wait for an application to stop.
 
 * `notes` - (Optional) Comments about the launch configuration.
 
@@ -83,7 +91,7 @@ Manifest Attributes supports the following:
 
 * `health_check_endpoint` - (Optional) The URL that the application uses for health checks.
 
-Deployment Attributes supports the following: 
+Deployment attributes supports the following: 
 
 * `memory` - (Optional) The amount of memory in gigabytes made available to the application. The default is `2G`. 
 

@@ -70,6 +70,8 @@ func TestAccOraclePAASApplicationContainer_ManifestAttr(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckApplicationContainerExists,
 					resource.TestCheckResourceAttrSet(
+						resourceName, "web_url"),
+					resource.TestCheckResourceAttrSet(
 						resourceName, "app_url"),
 				),
 			},
@@ -136,6 +138,8 @@ func TestAccOraclePAASApplicationContainer_ManifestDeploymentAttr(t *testing.T) 
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckApplicationContainerExists,
+					resource.TestCheckResourceAttrSet(
+						resourceName, "web_url"),
 					resource.TestCheckResourceAttrSet(
 						resourceName, "app_url"),
 				),
@@ -210,7 +214,7 @@ func testAccApplicationContainerManifest(rInt int) string {
 func testAccApplicationContainerManifestAttr(rInt int) string {
 	return fmt.Sprintf(`resource "oraclepaas_application_container" "test" {
     name        = "testappcontainer%d"
-	manifest_attributes {
+	manifest {
 		runtime {
 			major_version = 7
 		}
@@ -237,7 +241,7 @@ func testAccApplicationContainerDeploymentAttr(rInt int) string {
 	return fmt.Sprintf(`
 resource "oraclepaas_application_container" "test" {
 	name        = "testappcontainer%d"
-	deployment_attributes {
+	deployment {
 		memory = "2G"
     	instances = 1
     	environment {
@@ -252,7 +256,7 @@ func testAccApplicationContainerManifestDeploymentAttr(rInt int) string {
 	return fmt.Sprintf(`
 resource "oraclepaas_application_container" "test" {
 	name        = "testappcontainer%d"
-	manifest_attributes {
+	manifest {
 		runtime {
 			major_version = 7
 		}
@@ -265,7 +269,7 @@ resource "oraclepaas_application_container" "test" {
 		notes = "notes related to release"
 		mode =  "rolling"
 	}
-	deployment_attributes {
+	deployment {
 		memory = "2G"
     	instances = 1
     	environment {
