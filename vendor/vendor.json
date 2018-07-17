@@ -260,6 +260,14 @@
 			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
 		},
 		{
+			"checksumSHA1": "S60FKgC7D7vsym10YyQaAdPoj3g=",
+			"path": "github.com/hashicorp/go-oracle-terraform/application",
+			"revision": "267cd1957aac3990025de350264b26d7d6c736dc",
+			"revisionTime": "2018-07-17T19:37:11Z",
+			"version": "v0.12.0",
+			"versionExact": "v0.12.0"
+		},
+		{
 			"checksumSHA1": "3iLFdjGP7gJ/MYI1NzphMmDNYJY=",
 			"path": "github.com/hashicorp/go-oracle-terraform/client",
 			"revision": "267cd1957aac3990025de350264b26d7d6c736dc",

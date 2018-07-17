@@ -22,6 +22,15 @@ func javaServiceInstanceShapes() []string {
 		string(java.ServiceInstanceShapeBMStandard1_36), string(java.ServiceInstanceShapeBMStandard2_52)}
 }
 
+func contains(s string, stringArray []string) bool {
+	for _, val := range stringArray {
+		if s == val {
+			return true
+		}
+	}
+	return false
+}
+
 // Helper function to get a string list from the schema, and alpha-sort it
 func getStringList(d *schema.ResourceData, key string) []string {
 	if _, ok := d.GetOk(key); !ok {

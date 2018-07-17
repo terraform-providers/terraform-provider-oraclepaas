@@ -12,6 +12,9 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 )
 
+var dockerhubRuntimes = []string{"python", "ruby", "dotnet", "golang"}
+var runtimes = []string{"java", "node", "php", "python", "ruby", "golang", "dotnet"}
+
 func resourceOraclePAASApplicationContainer() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceOraclePAASApplicationContainerCreate,
@@ -231,26 +234,12 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"repository": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					"dockerhub",
-				}, false),
-			},
 			"runtime": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "java",
-				ValidateFunc: validation.StringInSlice([]string{
-					"java",
-					"node",
-					"php",
-					"python",
-					"ruby",
-				}, false),
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Default:      "java",
+				ValidateFunc: validation.StringInSlice(runtimes, false),
 			},
 			"subscription_type": {
 				Type:     schema.TypeString,
@@ -261,6 +250,27 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 					string(application.SubscriptionTypeHourly),
 					string(application.SubscriptionTypeMonthly),
 				}, false),
+			},
+			"tags": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
+			"git_repository": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"git_username": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"git_password": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				ForceNew:  true,
+				Sensitive: true,
 			},
 			"app_url": {
 				Type:     schema.TypeString,
@@ -285,11 +295,14 @@ func resourceOraclePAASApplicationContainerCreate(d *schema.ResourceData, meta i
 	}
 	client := aClient.ContainerClient()
 
+	runtime := d.Get("runtime").(string)
 	additionalFields := application.CreateApplicationContainerAdditionalFields{
 		Name:             d.Get("name").(string),
 		SubscriptionType: d.Get("subscription_type").(string),
-		Repository:       d.Get("repository").(string),
-		Runtime:          d.Get("runtime").(string),
+		Runtime:          runtime,
+	}
+	if contains(runtime, dockerhubRuntimes) {
+		additionalFields.Repository = "dockerhub"
 	}
 
 	if v, ok := d.GetOk("archive_url"); ok {
@@ -306,6 +319,30 @@ func resourceOraclePAASApplicationContainerCreate(d *schema.ResourceData, meta i
 
 	if v, ok := d.GetOk("auth_type"); ok {
 		additionalFields.AuthType = v.(string)
+	}
+
+	if v, ok := d.GetOk("git_repository"); ok {
+		additionalFields.GitRepoURL = v.(string)
+	}
+
+	if v, ok := d.GetOk("git_username"); ok {
+		additionalFields.GitUsername = v.(string)
+	}
+
+	if v, ok := d.GetOk("git_password"); ok {
+		additionalFields.GitPassword = v.(string)
+	}
+
+	if v, ok := d.GetOk("tags"); ok {
+		tags := make([]application.Tag, 0)
+		for key, value := range v.(map[string]interface{}) {
+			tag := application.Tag{
+				Key:   key,
+				Value: value.(string),
+			}
+			tags = append(tags, tag)
+		}
+		additionalFields.Tags = tags
 	}
 
 	input := application.CreateApplicationContainerInput{
@@ -553,4 +590,18 @@ func expandServices(attrs []interface{}) []application.Service {
 		services[i] = service
 	}
 	return services
+}
+
+func expandTags(attrs []interface{}) []application.Tag {
+	tags := make([]application.Tag, 0, len(attrs))
+
+	for i, tagAttr := range attrs {
+		tagConfig := tagAttr.(map[string]interface{})
+		tag := application.Tag{
+			Key:   tagConfig["key"].(string),
+			Value: tagConfig["value"].(string),
+		}
+		tags[i] = tag
+	}
+	return tags
 }

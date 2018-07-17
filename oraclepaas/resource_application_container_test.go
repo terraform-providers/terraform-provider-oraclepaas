@@ -192,7 +192,11 @@ func testAccCheckApplicationContainerDestroy(s *terraform.State) error {
 
 func testAccApplicationContainerBasic(rInt int) string {
 	return fmt.Sprintf(`resource "oraclepaas_application_container" "test" {
-    name        = "testappcontainer%d"
+	name        = "testappcontainer%d"
+	tags {
+		"test" = "test123"
+		"test1" = "test234"
+	}
   }`, rInt)
 }
 

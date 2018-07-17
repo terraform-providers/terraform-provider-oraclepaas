@@ -203,31 +203,40 @@ type CreateApplicationContainerInput struct {
 type CreateApplicationContainerAdditionalFields struct {
 	// Location of the application archive file in Oracle Storage Cloud Service, in the format app-name/file-name
 	// Optional
-	ArchiveURL string
+	ArchiveURL string `json:"archiveURL"`
 	// Uses Oracle Identity Cloud Service to control who can access your Java SE 7 or 8, Node.js, or PHP application.
 	// This should be ApplicationContainerAuthType but because of how we need to translate this strut to a map[string]string we are keeping it as a string
 	// Allowed values are 'basic' and 'oauth'.
 	// Optional
-	AuthType string // ApplicationContainerAuthType
+	AuthType string `json:"authType"`
+	// The password of your GitHub repository, required if your repository is private.
+	// Optional
+	GitPassword string `json:"gitPassword"`
+	// URL of your GitHub repository.
+	GitRepoURL string `json:"gitRepoURL"`
+	// The user name of your GitHub repository, required if your repository is private.
+	GitUsername string `json:"gitUserName"`
 	// Name of the application
 	// Required
-	Name string
+	Name string `json:"name"`
 	// Comments on the application deployment
-	Notes string
+	Notes string `json:"notes"`
 	// Email address to which application deployment status updates are sent.
-	NotificationEmail string
+	NotificationEmail string `json:"notifcationEmail"`
 	// Repository of the application. The only allowed value is 'dockerhub'.
 	// This should be ApplicationRepository but because of how we need to translate this strut to a map[string]string we are keeping it as a string
 	// Optional
-	Repository string // ApplicationRepository
+	Repository string `json:"repository"`
 	// Runtime environment: java (the default), node, php, python, or ruby
 	// This should be ApplicationRuntime but because of how we need to translate this strut to a map[string]string we are keeping it as a string
 	// Required
-	Runtime string // ApplicationRuntime
+	Runtime string `json:"runtime"`
 	// Subscription, either hourly (the default) or monthly
 	// This should be ApplicationSubscriptionType but because of how we need to translate this strut to a map[string]string we are keeping it as a string
 	// Optional
-	SubscriptionType string //ApplicationSubscriptionType
+	SubscriptionType string `json:"subscription"`
+	// List of tags that can be associated with the application.
+	Tags []Tag `json:"tags"`
 }
 
 // ManifestAttributes details the available attributes in a manifest file
@@ -346,12 +355,17 @@ type Service struct {
 	Password string `json:"password"`
 }
 
+// Tag defines the attributes related to a tag
+type Tag struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 // CreateApplicationContainer creates a new Application Container from an ApplicationClient and an input struct.
 // Returns a populated ApplicationContainer struct for the Application, and any errors
 func (c *ContainerClient) CreateApplicationContainer(input *CreateApplicationContainerInput) (*Container, error) {
 
 	var applicationContainer *Container
-	additionalFields := structs.Map(input.AdditionalFields)
 
 	if input.Manifest != "" && input.ManifestAttributes != nil {
 		return nil, fmt.Errorf("Cannot specify both a manifest file and manifest attributes")
@@ -374,6 +388,23 @@ func (c *ContainerClient) CreateApplicationContainer(input *CreateApplicationCon
 			return nil, fmt.Errorf("Error reading manifest file: %+v", err)
 		}
 		files["manifest"] = fileContents
+	}
+
+	additionalFields := make(map[string]interface{})
+	additionalFieldsStruct := structs.New(input.AdditionalFields)
+	additionalFieldsValues := additionalFieldsStruct.Values()
+	for i, v := range additionalFieldsValues {
+		key := additionalFieldsStruct.Fields()[i]
+		if key.Name() == "Tags" {
+			modifiedTags := make([]string, 0)
+			tags := v.([]Tag)
+			for _, tag := range tags {
+				modifiedTags = append(modifiedTags, fmt.Sprintf("{'key': %q, 'value': %q}", tag.Key, tag.Value))
+			}
+			additionalFields[key.Tag("json")] = fmt.Sprintf("[%s]", strings.Join(modifiedTags, ","))
+		} else {
+			additionalFields[key.Tag("json")] = v
+		}
 	}
 
 	if input.ManifestAttributes != nil {
@@ -506,7 +537,12 @@ func (c *ContainerClient) UpdateApplicationContainer(input *UpdateApplicationCon
 		return nil, fmt.Errorf("Cannot specify both a deployment file and deployment attributes")
 	}
 
-	additionalFields := structs.Map(input.AdditionalFields)
+	additionalFields := make(map[string]interface{})
+	additionalFieldsStruct := structs.New(input.AdditionalFields)
+	additionalFieldsValues := additionalFieldsStruct.Values()
+	for i, v := range additionalFieldsValues {
+		additionalFields[additionalFieldsStruct.Fields()[i].Tag("json")] = v
+	}
 
 	files := make(map[string][]byte)
 	if input.Deployment != "" {
