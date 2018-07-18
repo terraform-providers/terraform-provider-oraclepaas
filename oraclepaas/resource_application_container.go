@@ -81,15 +81,15 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"build": {
 										Type:     schema.TypeString,
-										Required: true,
+										Optional: true,
 									},
 									"commit": {
 										Type:     schema.TypeString,
-										Required: true,
+										Optional: true,
 									},
 									"version": {
 										Type:     schema.TypeString,
-										Required: true,
+										Optional: true,
 									},
 								},
 							},
@@ -514,9 +514,16 @@ func expandManifestAttributes(attrs map[string]interface{}) (*application.Manife
 	if v := attrs["release"]; v != nil {
 		releaseAttrs := application.Release{}
 		releaseConfig := v.([]interface{})[0].(map[string]interface{})
-		releaseAttrs.Build = releaseConfig["build"].(string)
-		releaseAttrs.Commit = releaseConfig["commit"].(string)
-		releaseAttrs.Version = releaseConfig["version"].(string)
+
+		if build := releaseConfig["build"]; build != nil {
+			releaseAttrs.Build = build.(string)
+		}
+		if commit := releaseConfig["commit"]; v != nil {
+			releaseAttrs.Commit = commit.(string)
+		}
+		if version := releaseConfig["version"]; v != nil {
+			releaseAttrs.Version = version.(string)
+		}
 		manifestAttributes.Release = releaseAttrs
 	}
 	if v := attrs["notes"]; v != nil {

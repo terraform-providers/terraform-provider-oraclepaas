@@ -113,11 +113,11 @@ Runtime supports the following:
 
 Release supports the following:
 
-* `build` - (Required) The value for a specific build.
+* `build` - (Optional) The value for a specific build.
 
-* `commit` - (Required) The value for a specific commit.
+* `commit` - (Optional) The value for a specific commit.
 
-* `version` - (Required) The value for a specific version.
+* `version` - (Optional) The value for a specific version.
 
 Services supports the following:
 

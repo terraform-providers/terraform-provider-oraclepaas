@@ -213,7 +213,7 @@ type CreateApplicationContainerAdditionalFields struct {
 	// Optional
 	GitPassword string `json:"gitPassword"`
 	// URL of your GitHub repository.
-	GitRepoURL string `json:"gitRepoURL"`
+	GitRepoURL string `json:"gitRepoUrl"`
 	// The user name of your GitHub repository, required if your repository is private.
 	GitUsername string `json:"gitUserName"`
 	// Name of the application
