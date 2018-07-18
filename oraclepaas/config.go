@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-oracle-terraform/application"
 	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/go-oracle-terraform/java"
 	"github.com/hashicorp/go-oracle-terraform/mysql"
@@ -17,20 +18,22 @@ import (
 )
 
 type Config struct {
-	User             string
-	Password         string
-	IdentityDomain   string
-	MaxRetries       int
-	Insecure         bool
-	MySQLEndpoint    string
-	DatabaseEndpoint string
-	JavaEndpoint     string
+	User                string
+	Password            string
+	IdentityDomain      string
+	MaxRetries          int
+	Insecure            bool
+	DatabaseEndpoint    string
+	JavaEndpoint        string
+	ApplicationEndpoint string
+	MySQLEndpoint       string
 }
 
 type OPAASClient struct {
-	databaseClient *database.Client
-	javaClient     *java.Client
-	mysqlClient    *mysql.MySQLClient
+	databaseClient    *database.Client
+	javaClient        *java.Client
+	applicationClient *application.Client
+	mysqlClient       *mysql.MySQLClient
 }
 
 func (c *Config) Client() (*OPAASClient, error) {
@@ -88,6 +91,19 @@ func (c *Config) Client() (*OPAASClient, error) {
 			return nil, err
 		}
 		oraclepaasClient.javaClient = javaClient
+	}
+
+	if c.ApplicationEndpoint != "" {
+		applicationEndpoint, err := url.ParseRequestURI(c.ApplicationEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid application endpoint URI: %+v", err)
+		}
+		config.APIEndpoint = applicationEndpoint
+		applicationClient, err := application.NewClient(&config)
+		if err != nil {
+			return nil, err
+		}
+		oraclepaasClient.applicationClient = applicationClient
 	}
 
 	if c.MySQLEndpoint != "" {
