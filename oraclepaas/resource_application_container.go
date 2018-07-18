@@ -503,28 +503,33 @@ func expandManifestAttributes(attrs map[string]interface{}) (*application.Manife
 	if v := attrs["type"]; v != nil {
 		manifestAttributes.Type = application.ManifestType(v.(string))
 	}
-	if v := attrs["runtime"]; v != nil {
-		runtimeAttrs := application.Runtime{}
-		runtimeAttrs.MajorVersion = v.([]interface{})[0].(map[string]interface{})["major_version"].(string)
-		manifestAttributes.Runtime = runtimeAttrs
+	if v := attrs["runtime"].([]interface{}); v != nil {
+		if len(v) > 0 && v[0] != nil {
+			runtimeAttrs := &application.Runtime{}
+			runtimeAttrs.MajorVersion = v[0].(map[string]interface{})["major_version"].(string)
+			manifestAttributes.Runtime = runtimeAttrs
+		}
 	}
 	if v := attrs["command"]; v != nil {
 		manifestAttributes.Command = v.(string)
 	}
-	if v := attrs["release"]; v != nil {
-		releaseAttrs := application.Release{}
-		releaseConfig := v.([]interface{})[0].(map[string]interface{})
+	if v := attrs["release"].([]interface{}); v != nil {
+		if len(v) > 0 && v[0] != nil {
+			releaseAttrs := &application.Release{}
 
-		if build := releaseConfig["build"]; build != nil {
-			releaseAttrs.Build = build.(string)
+			releaseConfig := v[0].(map[string]interface{})
+
+			if build := releaseConfig["build"]; build != nil {
+				releaseAttrs.Build = build.(string)
+			}
+			if commit := releaseConfig["commit"]; v != nil {
+				releaseAttrs.Commit = commit.(string)
+			}
+			if version := releaseConfig["version"]; v != nil {
+				releaseAttrs.Version = version.(string)
+			}
+			manifestAttributes.Release = releaseAttrs
 		}
-		if commit := releaseConfig["commit"]; v != nil {
-			releaseAttrs.Commit = commit.(string)
-		}
-		if version := releaseConfig["version"]; v != nil {
-			releaseAttrs.Version = version.(string)
-		}
-		manifestAttributes.Release = releaseAttrs
 	}
 	if v := attrs["notes"]; v != nil {
 		manifestAttributes.Notes = v.(string)

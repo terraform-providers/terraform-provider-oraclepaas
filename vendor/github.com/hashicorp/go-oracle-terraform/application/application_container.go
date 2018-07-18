@@ -242,7 +242,7 @@ type CreateApplicationContainerAdditionalFields struct {
 // ManifestAttributes details the available attributes in a manifest file
 type ManifestAttributes struct {
 	// Optional
-	Runtime Runtime `json:"runtime,omitempty"`
+	Runtime *Runtime `json:"runtime,omitempty"`
 	// Determines whether an application is public or private
 	// Default is `worker`
 	// Optional
@@ -252,7 +252,7 @@ type ManifestAttributes struct {
 	Command string `json:"command,omitempty"`
 	// Release attributes of a specific build.
 	// Optional
-	Release Release `json:"release,omitempty"`
+	Release *Release `json:"release,omitempty"`
 	// Maximum time in seconds to wait for the application to start. Allowed values are between 10 and 600. The default is 30.
 	// If the application doesn’t start in the time specified, the application is deemed to have failed to start and is terminated.
 	// For example, if your application takes two minutes to start, set startupTime to at least 120.
