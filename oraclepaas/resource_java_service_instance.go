@@ -847,7 +847,7 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 	if d.HasChange("desired_state") {
 		desiredState := java.ServiceInstanceLifecycleStateStart
 		if d.Get("desired_state").(string) == "shutdown" {
-			desiredState = java.ServiceInstanceLifecycleStateStart
+			desiredState = java.ServiceInstanceLifecycleStateStop
 		}
 		updateInput := &java.DesiredStateInput{
 			Name:            d.Id(),

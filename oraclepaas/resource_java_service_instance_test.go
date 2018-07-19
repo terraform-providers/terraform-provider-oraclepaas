@@ -62,7 +62,7 @@ func TestAccOraclePAASJavaServiceInstance_Stopped(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckJavaServiceInstanceExists,
 					resource.TestCheckResourceAttr(
-						resourceName, "status", "RUNNING"),
+						resourceName, "status", "READY"),
 				),
 			},
 		},
