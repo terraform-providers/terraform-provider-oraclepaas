@@ -300,7 +300,7 @@ resource "oraclepaas_java_service_instance" "test" {
         auto_generate = true
     }
 
-    desired_state = "stop"
+    desired_state = "shutdown"
 }`, rInt, os.Getenv("OPC_STORAGE_URL"), rInt, rInt, os.Getenv("OPC_STORAGE_URL"), rInt)
 }
 
