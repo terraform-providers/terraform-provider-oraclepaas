@@ -7,7 +7,6 @@ import (
 	"time"
 
 	opcClient "github.com/hashicorp/go-oracle-terraform/client"
-	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/go-oracle-terraform/java"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -655,9 +654,10 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 			"desired_state": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "running",
 				ValidateFunc: validation.StringInSlice([]string{
-					string(database.ServiceInstanceLifecycleStateStop),
-					string(database.ServiceInstanceLifecycleStateStart),
+					"running",
+					"shutdown",
 				}, true),
 			},
 			"status": {
@@ -845,9 +845,13 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 	client := jClient.ServiceInstanceClient()
 
 	if d.HasChange("desired_state") {
+		desiredState := java.ServiceInstanceLifecycleStateStart
+		if d.Get("desired_state").(string) == "shutdown" {
+			desiredState = java.ServiceInstanceLifecycleStateStart
+		}
 		updateInput := &java.DesiredStateInput{
 			Name:            d.Id(),
-			LifecycleState:  java.ServiceInstanceLifecycleState(d.Get("desired_state").(string)),
+			LifecycleState:  desiredState,
 			AllServiceHosts: true,
 		}
 
