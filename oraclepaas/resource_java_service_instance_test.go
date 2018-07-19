@@ -41,6 +41,8 @@ func TestAccOraclePAASJavaServiceInstance_Basic(t *testing.T) {
 func TestAccOraclePAASJavaServiceInstance_Stopped(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccJavaServiceInstanceStop(ri)
+	config2 := testAccJavaServiceInstanceBasic(ri)
+
 	resourceName := "oraclepaas_java_service_instance.test"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -53,6 +55,14 @@ func TestAccOraclePAASJavaServiceInstance_Stopped(t *testing.T) {
 					testAccCheckJavaServiceInstanceExists,
 					resource.TestCheckResourceAttr(
 						resourceName, "status", "STOPPED"),
+				),
+			},
+			{
+				Config: config2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckJavaServiceInstanceExists,
+					resource.TestCheckResourceAttr(
+						resourceName, "status", "RUNNING"),
 				),
 			},
 		},
