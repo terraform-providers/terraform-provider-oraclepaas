@@ -1,16 +1,16 @@
-## 1.3.0 (Unreleased)
+## 1.3.0 (July 20, 2018)
 
 FEATURES:
 
-* **New Resource:** `oraclepaas_application_container` [GH-36]
+* **New Resource:** `oraclepaas_application_container` ([#36](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/36))
 
-* oraclepaas_java_service_instance - Ability to set `desired_state`. [GH-33]
+* oraclepaas_java_service_instance - Ability to set `desired_state`. ([#33](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/33))
 
-* oraclepaas_java_service_instance - Ability to set `assign_public_ip` [GH-28]
+* oraclepaas_java_service_instance - Ability to set `assign_public_ip` ([#28](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/28))
 
 BUG FIXES: 
 
-* oraclepaas_java_service_instance: Oracle Traffic Director will not be provisioned unless an `oracle_traffic_director` block has been specified [GH-38]
+* oraclepaas_java_service_instance: Oracle Traffic Director will not be provisioned unless an `oracle_traffic_director` block has been specified ([#38](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/38))
 
 ## 1.2.1 (June 21, 2018)
 
