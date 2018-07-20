@@ -651,6 +651,19 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Default:  true,
 				ForceNew: true,
 			},
+			"desired_state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "running",
+				ValidateFunc: validation.StringInSlice([]string{
+					"running",
+					"shutdown",
+				}, true),
+			},
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -730,7 +743,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	}
 
 	d.SetId(info.ServiceName)
-	return resourceOraclePAASJavaServiceInstanceRead(d, meta)
+	return resourceOraclePAASJavaServiceInstanceUpdate(d, meta)
 }
 
 func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta interface{}) error {
@@ -769,6 +782,8 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 	d.Set("version", result.ServiceVersion)
 	d.Set("metering_frequency", result.MeteringFrequency)
 	d.Set("force_delete", d.Get("force_delete"))
+	d.Set("desired_state", d.Get("desired_state"))
+	d.Set("status", result.State)
 
 	if val, ok := d.GetOk("assign_public_ip"); ok {
 		d.Set("assign_public_ip", val)
@@ -828,6 +843,23 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 		return err
 	}
 	client := jClient.ServiceInstanceClient()
+
+	if d.HasChange("desired_state") {
+		desiredState := java.ServiceInstanceLifecycleStateStart
+		if d.Get("desired_state").(string) == "shutdown" {
+			desiredState = java.ServiceInstanceLifecycleStateStop
+		}
+		updateInput := &java.DesiredStateInput{
+			Name:            d.Id(),
+			LifecycleState:  desiredState,
+			AllServiceHosts: true,
+		}
+
+		err := client.UpdateDesiredState(updateInput)
+		if err != nil {
+			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
+		}
+	}
 
 	// Updating the shape refers to changing the shape of the admin cluster for the weblogic server
 	if old, new := d.GetChange("weblogic_server.0.shape"); old.(string) != "" && old.(string) != new.(string) {
