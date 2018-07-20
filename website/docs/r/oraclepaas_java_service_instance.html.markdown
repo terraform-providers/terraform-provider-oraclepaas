@@ -128,7 +128,8 @@ value is `PAAS`.
 * `backup_destination` - (Optional) Specifies whether to enable backups for this Oracle Java Cloud Service instance.
 Valid values are `BOTH` or `NONE`. Defaults to `BOTH`.
 
-* `desired_state` - (Optional) Specifies the desired state of the service instance. Allowed values are `start` or `stop`.
+* `desired_state` - (Optional) Specifies the desired state of the service instance. Allowed values are `running` or `shutdown`.
+The default is `running`.
 
 * `description` - (Optional) Provides additional on the java service instance.
 
