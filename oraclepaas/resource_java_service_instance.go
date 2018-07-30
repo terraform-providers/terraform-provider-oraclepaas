@@ -17,6 +17,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 		Create: resourceOraclePAASJavaServiceInstanceCreate,
 		Read:   resourceOraclePAASJavaServiceInstanceRead,
 		Delete: resourceOraclePAASJavaServiceInstanceDelete,
+		Update: resourceOraclePAASJavaServiceInstanceUpdate,
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(90 * time.Minute),
@@ -117,7 +118,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 			"weblogic_server": {
 				Type:     schema.TypeList,
 				Required: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -455,7 +455,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 						"shape": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ForceNew:     true,
 							ValidateFunc: validation.StringInSlice(javaServiceInstanceShapes(), false),
 						},
 						"upper_stack_product_name": {
@@ -613,6 +612,11 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"assign_public_ip": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
 			"bring_your_own_license": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -670,6 +674,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 		BackupDestination:  java.ServiceInstanceBackupDestination(d.Get("backup_destination").(string)),
 		EnableAdminConsole: d.Get("enable_admin_console").(bool),
 		UseIdentityService: d.Get("use_identity_service").(bool),
+		ProvisionOTD:       false, // force default to false, but may be overridden below in expandOTDConfig
 	}
 
 	if val, ok := d.GetOk("service_version"); ok {
@@ -685,6 +690,9 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	}
 	if val, ok := d.GetOk("ip_network"); ok {
 		input.IPNetwork = val.(string)
+	}
+	if val, ok := d.GetOk("assign_public_ip"); ok {
+		input.AssignPublicIP = val.(bool)
 	}
 	if val, ok := d.GetOk("region"); ok {
 		input.Region = val.(string)
@@ -762,6 +770,10 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 	d.Set("metering_frequency", result.MeteringFrequency)
 	d.Set("force_delete", d.Get("force_delete"))
 
+	if val, ok := d.GetOk("assign_public_ip"); ok {
+		d.Set("assign_public_ip", val)
+	}
+
 	wlsConfig, err := flattenWebLogicConfig(d, result.Components.WLS, result.WLSRoot)
 	if err != nil {
 		return err
@@ -807,6 +819,34 @@ func resourceOraclePAASJavaServiceInstanceDelete(d *schema.ResourceData, meta in
 		return fmt.Errorf("Error deleting JavaServiceInstance: %+v", err)
 	}
 	return nil
+}
+
+func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] Resource state: %#v", d.State())
+	jClient, err := getJavaClient(meta)
+	if err != nil {
+		return err
+	}
+	client := jClient.ServiceInstanceClient()
+
+	// Updating the shape refers to changing the shape of the admin cluster for the weblogic server
+	if old, new := d.GetChange("weblogic_server.0.shape"); old.(string) != "" && old.(string) != new.(string) {
+		wlsComponent := java.ScaleUpDownWLS{
+			Hosts: []string{d.Get("weblogic_server.0.admin.0.hostname").(string)},
+			Shape: java.ServiceInstanceShape(new.(string)),
+		}
+		updateInput := &java.ScaleUpDownServiceInstanceInput{
+			Name:       d.Id(),
+			Components: java.ScaleUpDownComponent{WLS: wlsComponent},
+		}
+
+		err := client.ScaleUpDownServiceInstance(updateInput)
+		if err != nil {
+			return err
+		}
+	}
+
+	return resourceOraclePAASJavaServiceInstanceRead(d, meta)
 }
 
 func expandWebLogicConfig(d *schema.ResourceData, input *java.CreateServiceInstanceInput) {
@@ -866,6 +906,7 @@ func expandOTDConfig(d *schema.ResourceData, input *java.CreateServiceInstanceIn
 		otdInfo.LoadBalancingPolicy = java.ServiceInstanceLoadBalancingPolicy(v.(string))
 	}
 
+	input.ProvisionOTD = true
 	input.Components.OTD = otdInfo
 }
 

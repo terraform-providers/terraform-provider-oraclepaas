@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/hashicorp/go-oracle-terraform/application"
 	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/go-oracle-terraform/java"
+	"github.com/hashicorp/go-oracle-terraform/mysql"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -18,6 +20,15 @@ func javaServiceInstanceShapes() []string {
 		string(java.ServiceInstanceShapeVMStandard2_2), string(java.ServiceInstanceShapeVMStandard2_2), string(java.ServiceInstanceShapeVMStandard2_4),
 		string(java.ServiceInstanceShapeVMStandard2_8), string(java.ServiceInstanceShapeVMStandard2_16), string(java.ServiceInstanceShapeVMStandard2_24),
 		string(java.ServiceInstanceShapeBMStandard1_36), string(java.ServiceInstanceShapeBMStandard2_52)}
+}
+
+func contains(s string, stringArray []string) bool {
+	for _, val := range stringArray {
+		if s == val {
+			return true
+		}
+	}
+	return false
 }
 
 // Helper function to get a string list from the schema, and alpha-sort it
@@ -76,6 +87,27 @@ func getJavaClient(meta interface{}) (*java.Client, error) {
 	client := meta.(*OPAASClient).javaClient
 	if client == nil {
 		return nil, fmt.Errorf("Java Client is not initialized. Make sure to use `java_endpoint` variable or `ORACLEPAAS_JAVA_ENDPOINT` env variable")
+	}
+	return client, nil
+}
+
+// A user may inadvertently call the application cloud without passing in the required parameters to use that service
+// (because it's optional) so we check to make sure that the application client has been initialized
+func getApplicationClient(meta interface{}) (*application.Client, error) {
+	client := meta.(*OPAASClient).applicationClient
+	if client == nil {
+		return nil, fmt.Errorf("Application Client is not initialized. Make sure to use `application_endpoint` variable or `ORACLEPAAS_APPLICAITON_ENDPOINT` env variable")
+	}
+	return client, nil
+}
+
+// A user may inadvertently call the mysql without passing in the required parameters to use that service
+// (because it's optional) so we check to make sure that the mysql client has been initialized
+func getMySQLClient(meta interface{}) (*mysql.MySQLClient, error) {
+	client := meta.(*OPAASClient).mysqlClient
+
+	if client == nil {
+		return nil, fmt.Errorf("MySQL Client is not initialized. Make sure to use `mysql_endpoint` variable or `ORACLEPAAS_MYSQL_ENDPOINT` env variable")
 	}
 	return client, nil
 }
