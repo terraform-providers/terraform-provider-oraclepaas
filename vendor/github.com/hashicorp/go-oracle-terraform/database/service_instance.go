@@ -291,7 +291,7 @@ type ServiceInstance struct {
 	// The national character set of the database.
 	NCharSet string `json:"ncharset"`
 	// List of compute nodes that host database instances for the database deployment.
-	NodeList []string `json:"nodelist,omitempty"`
+	NodeList string `json:"nodelist"`
 	// The number of Oracle Compute Service IP reservations assigned to the service instance.
 	NumIPReservations int `json:"num_ip_reservations"`
 	// The number of compute nodes in the service instance.
@@ -404,7 +404,7 @@ type CreateServiceInstanceInput struct {
 	// Specifies the list of compute nodes that host database instances for the database deployment.
 	// Separate compute node names with a comma. If nodelist is not specified the database is deployed across all compute nodes
 	// Optional. Exadata Cloud Service only.
-	NodeList []string `json:"nodelist,omitempty"`
+	NodeList string `json:"nodelist,omitempty"`
 	// Required if enableNotification is set to true.
 	// The email address to send completion notifications to.
 	// This parameter is not available on Oracle Cloud at Customer.
@@ -417,7 +417,7 @@ type CreateServiceInstanceInput struct {
 	// Desired compute shape. A shape defines the number of Oracle Compute Units (OCPUs) and amount
 	// of memory (RAM).
 	// Required.
-	Shape ServiceInstanceShape `json:"shape"`
+	Shape ServiceInstanceShape `json:"shape,omitempty"`
 	// Required if region is an Oracle Cloud Infrastructure region.
 	// Name of the subnet within the region where the Oracle Database Cloud Service instance is to be provisioned.
 	// Optional
@@ -429,7 +429,7 @@ type CreateServiceInstanceInput struct {
 	SubscriptionType ServiceInstanceSubscriptionType `json:"subscriptionType"`
 	// Applicable only in Oracle Cloud Infrastructure regions.
 	// Array of one JSON object that specifies configuration details of the standby database when failoverDatabase is set to true. disasterRecovery must be set to true.
-	Standbys []StandBy `json:"standbys"`
+	Standbys []StandBy `json:"standbys,omitempty"`
 	// Specify if high performance storage should be used for the Database Cloud Service instance. Default data storage will allocate your database
 	// block storage on spinning devices. By checking this box, your block storage will be allocated on solid state devices. Valid values are true and false.
 	// Default value is false.
@@ -600,8 +600,8 @@ type ParameterInput struct {
 	// Storage size for data (in GB). Minimum value is 15. Maximum value depends on the backup
 	// destination: if BOTH is specified, the maximum value is 1200; if OSS or NONE is specified,
 	// the maximum value is 2048.
-	// Required.
-	UsableStorage string `json:"usableStorage"`
+	// Optional.
+	UsableStorage string `json:"usableStorage,omitempty"`
 	// Specify if the given cloudStorageContainer is to be created if it does not already exist.
 	// Default value is false.
 	// Optional.

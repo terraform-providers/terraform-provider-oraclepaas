@@ -203,7 +203,7 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 						},
 						"usable_storage": {
 							Type:         schema.TypeInt,
-							Required:     true,
+							Optional:     true,
 							ForceNew:     true,
 							ValidateFunc: validation.IntBetween(15, 2048),
 						},
@@ -843,9 +843,11 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 		SID:               attrs["sid"].(string),
 		Timezone:          attrs["timezone"].(string),
 		Type:              database.ServiceInstanceType(attrs["type"].(string)),
-		UsableStorage:     strconv.Itoa(attrs["usable_storage"].(int)),
 	}
 
+	if val, ok := attrs["usable_storage"].(int); ok && val != 0 {
+		parameter.UsableStorage = strconv.Itoa(val)
+	}
 	if val, ok := attrs["snapshot_name"].(string); ok && val != "" {
 		parameter.SnapshotName = val
 	}
@@ -861,7 +863,7 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	if val, ok := attrs["pdb_name"].(string); ok && val != "" {
 		parameter.PDBName = val
 	}
-	if val, ok := attrs["db_demo"].(string); ok {
+	if val, ok := attrs["db_demo"].(string); ok && val != "" {
 		addParam := database.AdditionalParameters{
 			DBDemo: val,
 		}
