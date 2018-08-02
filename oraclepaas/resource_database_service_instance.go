@@ -99,7 +99,7 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 			},
 			"ssh_public_key": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"database_configuration": {
@@ -547,11 +547,14 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		SubscriptionType:          database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
 		UseHighPerformanceStorage: d.Get("high_performance_storage").(bool),
 		Version:                   database.ServiceInstanceVersion(d.Get("version").(string)),
-		VMPublicKey:               d.Get("ssh_public_key").(string),
 	}
 
 	if v, ok := d.GetOk("shape"); ok {
 		input.Shape = database.ServiceInstanceShape(v.(string))
+	}
+
+	if v, ok := d.GetOk("ssh_public_key"); ok {
+		input.VMPublicKey = v.(string)
 	}
 
 	if v, ok := d.GetOk("exadata_system_name"); ok {

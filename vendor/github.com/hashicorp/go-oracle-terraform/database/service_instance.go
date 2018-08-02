@@ -442,8 +442,8 @@ type CreateServiceInstanceInput struct {
 	// connecting to the Database Cloud Service instance using an SSH client. You generate an
 	// SSH public-private key pair using a standard SSH key generation tool. See Connecting to
 	// a Compute Node Through Secure Shell (SSH) in Using Oracle Database Cloud Service.
-	// Required.
-	VMPublicKey string `json:"vmPublicKeyText"`
+	// Required. (Not required for Exadata)
+	VMPublicKey string `json:"vmPublicKeyText,omitempty"`
 }
 
 // StandBy specifies the standby attributes for a database service instance
