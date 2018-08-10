@@ -3,8 +3,11 @@ package oraclepaas
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
+	"unicode"
 
 	opcClient "github.com/hashicorp/go-oracle-terraform/client"
 	"github.com/hashicorp/go-oracle-terraform/database"
@@ -66,23 +69,6 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"exadata_system_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"shape"},
-			},
-			"cluster_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			"node_list": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
 			"subscription_type": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -110,10 +96,11 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"admin_password": {
-							Type:      schema.TypeString,
-							Required:  true,
-							ForceNew:  true,
-							Sensitive: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ForceNew:     true,
+							Sensitive:    true,
+							ValidateFunc: validateAdminPassword,
 						},
 						"backup_destination": {
 							Type:     schema.TypeString,
@@ -179,12 +166,14 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 							ForceNew:      true,
 							Computed:      true,
 							ConflictsWith: []string{"instantiate_from_backup", "hybrid_disaster_recovery"},
+							ValidateFunc:  validatePDBName,
 						},
 						"sid": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  "ORCL",
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     true,
+							Default:      "ORCL",
+							ValidateFunc: validateSID,
 						},
 						"timezone": {
 							Type:     schema.TypeString,
@@ -538,60 +527,78 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	}
 	client := dbClient.ServiceInstanceClient()
 
+	// Database and Exadata Common attributes
 	input := database.CreateServiceInstanceInput{
-		Name:                      d.Get("name").(string),
-		Edition:                   database.ServiceInstanceEdition(d.Get("edition").(string)),
-		IPReservations:            getStringList(d, "ip_reservations"),
-		IsBYOL:                    d.Get("bring_your_own_license").(bool),
-		Level:                     database.ServiceInstanceLevel(d.Get("level").(string)),
-		SubscriptionType:          database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
-		UseHighPerformanceStorage: d.Get("high_performance_storage").(bool),
-		Version:                   database.ServiceInstanceVersion(d.Get("version").(string)),
+		Name:             d.Get("name").(string),
+		Edition:          database.ServiceInstanceEdition(d.Get("edition").(string)),
+		IsBYOL:           d.Get("bring_your_own_license").(bool),
+		Level:            database.ServiceInstanceLevel(d.Get("level").(string)),
+		SubscriptionType: database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
+		Version:          database.ServiceInstanceVersion(d.Get("version").(string)),
 	}
 
-	if v, ok := d.GetOk("shape"); ok {
-		input.Shape = database.ServiceInstanceShape(v.(string))
-	}
-
-	if v, ok := d.GetOk("ssh_public_key"); ok {
-		input.VMPublicKey = v.(string)
-	}
+	// Exadata only attributes
 
 	if v, ok := d.GetOk("exadata_system_name"); ok {
 		input.ExadataSystemName = v.(string)
 	}
-
 	if v, ok := d.GetOk("cluster_name"); ok {
 		input.ClusterName = v.(string)
 	}
-
-	if v, ok := d.GetOk("description"); ok {
-		input.Description = v.(string)
+	if _, ok := d.GetOk("node_list"); ok {
+		// convert list to comma separated string
+		l := d.Get("node_list").([]interface{})
+		nodes := make([]string, len(l))
+		for i, v := range l {
+			nodes[i] = v.(string)
+		}
+		input.NodeList = strings.Join(nodes[:], ",")
 	}
 
-	if v, ok := d.GetOk("notification_email"); ok {
-		input.EnableNotification = true
-		input.NotificationEmail = v.(string)
-	}
-
-	if v, ok := d.GetOk("ip_network"); ok {
-		input.IPNetwork = v.(string)
-	}
-
-	if _, ok := d.GetOk("ip_reservations"); ok {
-		input.IPReservations = getStringList(d, "ip_reservations")
-	}
-
-	if v, ok := d.GetOk("region"); ok {
-		input.Region = v.(string)
-	}
+	// Database Cloud Service only attributes
 
 	if v, ok := d.GetOk("availability_domain"); ok {
 		input.AvailabilityDomain = v.(string)
 	}
-
+	if v, ok := d.GetOk("high_performance_storage"); ok {
+		input.UseHighPerformanceStorage = v.(bool)
+	}
+	if v, ok := d.GetOk("ip_network"); ok {
+		input.IPNetwork = v.(string)
+	}
+	if _, ok := d.GetOk("ip_reservations"); ok {
+		input.IPReservations = getStringList(d, "ip_reservations")
+	}
+	if v, ok := d.GetOk("region"); ok {
+		input.Region = v.(string)
+	}
+	if v, ok := d.GetOk("shape"); ok {
+		input.Shape = database.ServiceInstanceShape(v.(string))
+	}
+	if v, ok := d.GetOk("ssh_public_key"); ok {
+		input.VMPublicKey = v.(string)
+	}
 	if v, ok := d.GetOk("subnet"); ok {
 		input.Subnet = v.(string)
+	}
+	if _, ok := d.GetOk("standby"); ok {
+		if input.Parameter.FailoverDatabase != true || input.Parameter.DisasterRecovery != true {
+			return fmt.Errorf("Error creating Database Service Instance: `failover_database` and `disaster_recovery` must be set to true inside the `database_configuration` block to use `standby`")
+		}
+		input.Standbys = expandStandby(d)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Common attributes
+
+	if v, ok := d.GetOk("description"); ok {
+		input.Description = v.(string)
+	}
+	if v, ok := d.GetOk("notification_email"); ok {
+		input.EnableNotification = true
+		input.NotificationEmail = v.(string)
 	}
 
 	// Only the PaaS levels can have a parameter.
@@ -600,15 +607,9 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		if err != nil {
 			return err
 		}
-	}
 
-	if _, ok := d.GetOk("standby"); ok {
-		if input.Parameter.FailoverDatabase != true || input.Parameter.DisasterRecovery != true {
-			return fmt.Errorf("Error creating Database Service Instance: `failover_database` and `disaster_recovery` must be set to true inside the `database_configuration` block to use `standby`")
-		}
-		input.Standbys = expandStandby(d)
-		if err != nil {
-			return err
+		if _, ok := d.GetOk("hybrid_disaster_recovery"); ok {
+			expandHDG(d, &input.Parameter)
 		}
 	}
 
@@ -629,7 +630,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	}
 	client := dbClient.ServiceInstanceClient()
 
-	log.Printf("[DEBUG] Reading state of ip reservation %s", d.Id())
+	log.Printf("[DEBUG] Reading state of database service instance %s", d.Id())
 	getInput := database.GetServiceInstanceInput{
 		Name: d.Id(),
 	}
@@ -680,22 +681,27 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("subscription_type", result.SubscriptionType)
 	d.Set("timezone", result.Timezone)
 	d.Set("version", result.Version)
-	d.Set("exadata_system_name", result.SubscriptionName)
+
+	// Exadata attributes
 	d.Set("cluster_name", result.ClusterName)
-	d.Set("node_list", result.NodeList)
+	d.Set("exadata_system_name", result.SubscriptionName)
+	d.Set("oracle_home", result.OracleHomeName)
 
 	setAttributesFromConfig(d)
 
 	// Obtain and set the default Access Rules
-	getDefaultAccessRulesInput := &database.GetDefaultAccessRuleInput{
-		ServiceInstanceID: d.Id(),
-	}
-	defaultAccessRules, err := dbClient.AccessRules().GetDefaultAccessRules(getDefaultAccessRulesInput)
-	if err != nil {
-		return err
-	}
-	if err = d.Set("default_access_rules", flattenDefaultAccessRules(defaultAccessRules)); err != nil {
-		return fmt.Errorf("Error setting Database Default Access Rules: %+v", err)
+	// default_access_rule are not supported for Exadata Cloud Service
+	if result.Level != database.ServiceInstanceLevelEXADATA {
+		getDefaultAccessRulesInput := &database.GetDefaultAccessRuleInput{
+			ServiceInstanceID: d.Id(),
+		}
+		defaultAccessRules, err := dbClient.AccessRules().GetDefaultAccessRules(getDefaultAccessRulesInput)
+		if err != nil {
+			return err
+		}
+		if err = d.Set("default_access_rules", flattenDefaultAccessRules(defaultAccessRules)); err != nil {
+			return fmt.Errorf("Error setting Database Default Access Rules: %+v", err)
+		}
 	}
 
 	return nil
@@ -704,7 +710,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 // Certain values aren't received from the get call and need to be specified from the config
 func setAttributesFromConfig(d *schema.ResourceData) {
 	d.Set("disaster_recovery", d.Get("disaster_recovery"))
-
+	d.Set("node_list", d.Get("node_list"))
 }
 
 func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -778,6 +784,11 @@ func updateDefaultAccessRules(d *schema.ResourceData, meta interface{}) error {
 	if len(defaultAccessRuleConfig) == 0 {
 		return nil
 	}
+
+	if database.ServiceInstanceLevel(d.Get("level").(string)) == database.ServiceInstanceLevelEXADATA {
+		return fmt.Errorf("`default_access_rules` are not supported for Exadata Cloud Service ")
+	}
+
 	updateDefaultAccessRuleInput := &database.DefaultAccessRuleInfo{
 		ServiceInstanceID: d.Id(),
 	}
@@ -836,27 +847,41 @@ func expandStandby(d *schema.ResourceData) []database.StandBy {
 func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	databaseConfigInfo := d.Get("database_configuration").([]interface{})
 	attrs := databaseConfigInfo[0].(map[string]interface{})
+
+	// Database and Exadata Cloud Service common attributes
 	parameter := database.ParameterInput{
 		AdminPassword:     attrs["admin_password"].(string),
 		BackupDestination: database.ServiceInstanceBackupDestination(attrs["backup_destination"].(string)),
-		DisasterRecovery:  attrs["disaster_recovery"].(bool),
 		FailoverDatabase:  attrs["failover_database"].(bool),
 		GoldenGate:        attrs["golden_gate"].(bool),
 		IsRAC:             attrs["is_rac"].(bool),
 		SID:               attrs["sid"].(string),
-		Timezone:          attrs["timezone"].(string),
 		Type:              database.ServiceInstanceType(attrs["type"].(string)),
 	}
 
+	// Exadata Cloud Service only attributes
+	if val, ok := attrs["oracle_home"].(string); ok && val != "" {
+		parameter.OracleHomeName = val
+	}
+
+	// Database Cloud Service only attributes
+	if val, ok := attrs["disaster_recovery"].(bool); ok {
+		parameter.DisasterRecovery = val
+	}
+	if val, ok := attrs["timezone"].(string); ok && val != "" {
+		parameter.Timezone = val
+	}
 	if val, ok := attrs["usable_storage"].(int); ok && val != 0 {
 		parameter.UsableStorage = strconv.Itoa(val)
 	}
-	if val, ok := attrs["snapshot_name"].(string); ok && val != "" {
-		parameter.SnapshotName = val
+	if val, ok := attrs["db_demo"].(string); ok && val != "" {
+		addParam := database.AdditionalParameters{
+			DBDemo: val,
+		}
+		parameter.AdditionalParameters = addParam
 	}
-	if val, ok := attrs["source_service_name"].(string); ok && val != "" {
-		parameter.SourceServiceName = val
-	}
+
+	// Common attributes
 	if val, ok := attrs["character_set"].(string); ok && val != "" {
 		parameter.CharSet = val
 	}
@@ -866,18 +891,18 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	if val, ok := attrs["pdb_name"].(string); ok && val != "" {
 		parameter.PDBName = val
 	}
-	if val, ok := attrs["db_demo"].(string); ok && val != "" {
-		addParam := database.AdditionalParameters{
-			DBDemo: val,
-		}
-		parameter.AdditionalParameters = addParam
+	if val, ok := attrs["snapshot_name"].(string); ok && val != "" {
+		parameter.SnapshotName = val
 	}
+	if val, ok := attrs["source_service_name"].(string); ok && val != "" {
+		parameter.SourceServiceName = val
+	}
+
 	expandIbkup(d, &parameter)
 	err := expandBackups(d, &parameter)
 	if err != nil {
 		return parameter, err
 	}
-	expandHDG(d, &parameter)
 
 	return parameter, nil
 }
@@ -991,4 +1016,92 @@ func flattenDefaultAccessRules(defaultAccessRules *database.DefaultAccessRuleInf
 		result["enable_rac_ons"] = *defaultAccessRules.EnableRACOns
 	}
 	return []interface{}{result}
+}
+
+// Validate the Oracle Home name.
+// up to 64 characters; must start with a letter and can contain only letters, numbers and underscores (_); can not end with an underscore (_).
+func validateOracleHomeName(v interface{}, k string) (ws []string, errors []error) {
+	if len(v.(string)) > 64 {
+		errors = append(errors, fmt.Errorf(
+			"%q must not exceed 64 characters", k))
+	}
+	if match, _ := regexp.MatchString("^([a-zA-Z])((([a-zA-Z0-9_]*)([a-zA-Z0-9]+))?)$", v.(string)); match != true {
+		errors = append(errors, fmt.Errorf(
+			"%q must start with a letter and can contain only letters, numbers and underscores (_); can not end with an underscore (_)", k))
+	}
+	return
+}
+
+// Validate the PDB name
+// up to 30 characters; must begin with a letter and can contain only letters and numbers
+func validatePDBName(v interface{}, k string) (ws []string, errors []error) {
+	if len(v.(string)) > 30 {
+		errors = append(errors, fmt.Errorf(
+			"%q must not exceed 30 characters", k))
+	}
+	if match, _ := regexp.MatchString("^([a-zA-Z])([a-zA-Z0-9]*)$", v.(string)); match != true {
+		errors = append(errors, fmt.Errorf(
+			"%q must start with a letter and can contain only letters, numbers and underscores (_); can not end with an underscore (_)", k))
+	}
+	return
+}
+
+// Validate the SID
+// up to 8 characters; must begin with a letter and can contain only letters and numbers
+func validateSID(v interface{}, k string) (ws []string, errors []error) {
+	if len(v.(string)) > 8 {
+		errors = append(errors, fmt.Errorf(
+			"%q must not exceed 8 characters", k))
+	}
+	if match, _ := regexp.MatchString("^([a-zA-Z])([a-zA-Z0-9]*)$", v.(string)); match != true {
+		errors = append(errors, fmt.Errorf(
+			"%q must start with a letter and can contain only letters, numbers and underscores (_); can not end with an underscore (_)", k))
+	}
+	return
+}
+
+// Validate Admin Password
+// must be between 8 and 30 characters with at least one lower case letter, one upper case letter, one number, one special character (_,-,#) and no white space character. It must also not contain the following keywords or their reversed form: root, sys, system, dbsnmp, oracle or your cloud storage username
+func validateAdminPassword(v interface{}, k string) (ws []string, errors []error) {
+
+	val := v.(string)
+
+	// must be between 8 and 30 characters
+	if len(val) < 8 || len(val) > 30 {
+		errors = append(errors, fmt.Errorf(
+			"%q must be between 8 and 30 characters", k))
+	}
+
+	// at least one lower case letter, one upper case letter, one number, one special character (_,-,#) and no white space character
+	var has_lower, has_upper, has_number, has_special, has_whitespace bool
+	for _, s := range val {
+		switch {
+		case unicode.IsNumber(s):
+			has_number = true
+		case unicode.IsUpper(s):
+			has_upper = true
+		case unicode.IsLower(s):
+			has_lower = true
+		case unicode.IsPunct(s) || unicode.IsSymbol(s):
+			has_special = true
+		case unicode.IsSpace(s):
+			has_whitespace = true
+		}
+	}
+	if !(has_lower && has_upper && has_number && has_special) || has_whitespace {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain at least one lower case letter, one upper case letter, one number, one special character (_,-,#) and no white space character", k))
+	}
+
+	// must not contain the following keywords or their reversed form: root, sys, system, dbsnmp, oracle
+	has_keyword := strings.Contains(val, "sys") ||
+		strings.Contains(val, "root") || strings.Contains(val, "toor") ||
+		strings.Contains(val, "system") || strings.Contains(val, "metsys") ||
+		strings.Contains(val, "dbsnmp") || strings.Contains(val, "pmnsbd") ||
+		strings.Contains(val, "oracle") || strings.Contains(val, "elcaro")
+	if has_keyword {
+		errors = append(errors, fmt.Errorf(
+			"%q must not contain the following keywords or their reversed form: root, sys, system, dbsnmp, oracle or your cloud storage username", k))
+	}
+	return
 }

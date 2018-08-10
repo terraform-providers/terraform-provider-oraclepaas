@@ -395,3 +395,129 @@ resource "oraclepaas_database_service_instance" "test" {
   	}
 }`, rInt, os.Getenv("OPC_IDENTITY_DOMAIN"))
 } */
+
+func TestValidateSID(t *testing.T) {
+	validPrefixes := []string{
+		"ORCL",
+		"MYsid01",
+		"ABCDEFGH",
+		"A1234567",
+	}
+
+	for _, v := range validPrefixes {
+		_, errors := validateSID(v, "sid")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid SID: %q", v, errors)
+		}
+	}
+
+	invalidPrefixes := []string{
+		"",
+		"12345678",
+		"ThisSIDisTooLong",
+		"NO_CHAR",
+	}
+
+	for _, v := range invalidPrefixes {
+		_, errors := validateSID(v, "sid")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid SID", v)
+		}
+	}
+}
+
+func TestValidatePDBName(t *testing.T) {
+	validPrefixes := []string{
+		"pdb1",
+		"MyPDBExample",
+		"ABCDEFGHIJKLMabcdefghijklm1234", // 30 chars
+	}
+
+	for _, v := range validPrefixes {
+		_, errors := validatePDBName(v, "pdb_name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid PDB Name: %q", v, errors)
+		}
+	}
+
+	invalidPrefixes := []string{
+		"",
+		"12345678",
+		"ABCDEFGHIJKLMabcdefghijklm12345", // 31 chars
+		"no_underscore",
+	}
+
+	for _, v := range invalidPrefixes {
+		_, errors := validatePDBName(v, "pdb_name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid PDB Name", v)
+		}
+	}
+}
+
+func TestValidateOracleHome(t *testing.T) {
+	validPrefixes := []string{
+		"OracleHome",
+		"MyOracleHome",
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456789012", // 64 chars
+	}
+
+	for _, v := range validPrefixes {
+		_, errors := validateOracleHomeName(v, "pdb_name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid PDB Name: %q", v, errors)
+		}
+	}
+
+	invalidPrefixes := []string{
+		"",
+		"12345678",
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890123", // 65 chars
+		"no_underscore_at_end_",
+	}
+
+	for _, v := range invalidPrefixes {
+		_, errors := validateOracleHomeName(v, "pdb_name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid PDB Name", v)
+		}
+	}
+}
+
+func TestValidateAdminPassword(t *testing.T) {
+	validPrefixes := []string{
+		"Pa55_Word",
+		"Eight8_8",                       // 8 chars
+		"Thirty_30_Thirty_30_Thirty_30_", // 30 chars
+	}
+
+	for _, v := range validPrefixes {
+		_, errors := validateAdminPassword(v, "admin_password")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Admin Password: %q", v, errors)
+		}
+	}
+
+	invalidPrefixes := []string{
+		"",
+		"Seven_7",                         // 7 chars
+		"ThirtyOne_31_ThirtyOne_31_Thirt", // 31 chars
+		"NoSpecial1",
+		"nouppercase_1",
+		"NOLOWERCASE_1",
+		"No_Number",
+		"Has Whitespace_1",
+		"Containssys_1",
+		"Containssystem_1",
+		"Containsroot_1",
+		"Containsoracle_1",
+		"Containsdbsnmp_1",
+	}
+
+	for _, v := range invalidPrefixes {
+		_, errors := validateAdminPassword(v, "admin_password")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Admin Password", v)
+		}
+	}
+}

@@ -79,6 +79,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"oraclepaas_java_access_rule":          resourceOraclePAASJavaAccessRule(),
 			"oraclepaas_database_service_instance": resourceOraclePAASDatabaseServiceInstance(),
+			"oraclepaas_exadata_service_instance":  resourceOraclePAASExadataServiceInstance(),
 			"oraclepaas_java_service_instance":     resourceOraclePAASJavaServiceInstance(),
 			"oraclepaas_database_access_rule":      resourceOraclePAASDatabaseAccessRule(),
 			"oraclepaas_application_container":     resourceOraclePAASApplicationContainer(),
