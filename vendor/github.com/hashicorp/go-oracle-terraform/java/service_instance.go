@@ -1025,7 +1025,7 @@ type CreateOTD struct {
 	// IP reservations. See the My Oracle Support document titled How to Request Authorized IPs for Provisioning
 	// a Java Cloud Service with Database Exadata Cloud Service (MOS Note 2163568.1).
 	// Optional.
-	IPReservations []string `json:"ipReservations,omitempty"`
+	IPReservations string `json:"ipReservations,omitempty"`
 	// Policy to use for routing requests to the load balancer. Valid policies include:
 	// Optional.
 	LoadBalancingPolicy ServiceInstanceLoadBalancingPolicy `json:"loadBalancingPolicy,omitempty"`
@@ -1201,7 +1201,7 @@ type CreateWLS struct {
 	// Support document titled How to Request Authorized IPs for Provisioning a Java Cloud Service with Database Exadata
 	// Cloud Service (MOS Note 2163568.1).
 	// Optional
-	IPReservations []string `json:"ipReservations,omitempty"`
+	IPReservations string `json:"ipReservations,omitempty"`
 	// One or more Managed Server JVM arguments separated by a space.
 	// You cannot specify any arguments that are related to JVM heap sizes and PermGen spaces (for example, -Xms, -Xmx,
 	// -XX:PermSize, and -XX:MaxPermSize).

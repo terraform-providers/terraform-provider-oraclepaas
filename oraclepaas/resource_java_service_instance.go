@@ -903,7 +903,7 @@ func expandWebLogicConfig(d *schema.ResourceData, input *java.CreateServiceInsta
 		webLogicServer.ClusterName = v.(string)
 	}
 	if v := attrs["ip_reservations"]; v != nil {
-		webLogicServer.IPReservations = getStringList(d, "weblogic_server.0.ip_reservations")
+		webLogicServer.IPReservations = strings.Join(getStringList(d, "weblogic_server.0.ip_reservations"), ",")
 	}
 	if v := attrs["middleware_volume_size"]; v != nil {
 		webLogicServer.MWVolumeSize = v.(string)
@@ -932,7 +932,7 @@ func expandOTDConfig(d *schema.ResourceData, input *java.CreateServiceInstanceIn
 		otdInfo.HAEnabled = v.(bool)
 	}
 	if v := attrs["ip_reservations"]; v != nil {
-		otdInfo.IPReservations = getStringList(d, "oracle_traffic_director.0.ip_reservations")
+		otdInfo.IPReservations = strings.Join(getStringList(d, "oracle_traffic_director.0.ip_reservations"), ",")
 	}
 	if v := attrs["load_balancing_policy"]; v != nil {
 		otdInfo.LoadBalancingPolicy = java.ServiceInstanceLoadBalancingPolicy(v.(string))
