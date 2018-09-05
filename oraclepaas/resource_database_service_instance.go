@@ -671,10 +671,10 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	if err = d.Set("default_access_rules", flattenDefaultAccessRules(defaultAccessRules)); err != nil {
 		return fmt.Errorf("Error setting Database Default Access Rules: %+v", err)
 	}
-	/*
-		if err = d.Set("database_configuration", flattenDatabaseConfig(d)); err != nil {
-			return fmt.Errorf("Error setting Database Configuration: %+v", err)
-		}*/
+
+	if err = d.Set("database_configuration", flattenDatabaseConfig(d)); err != nil {
+		return fmt.Errorf("Error setting Database Configuration: %+v", err)
+	}
 
 	return nil
 }
