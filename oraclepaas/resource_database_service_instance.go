@@ -1013,7 +1013,7 @@ func flattenDatabaseConfig(d *schema.ResourceData) []interface{} {
 	result["db_demo"] = d.Get("database_configuration.0.db_demo")
 	result["disaster_recovery"] = d.Get("database_configuration.0.disaster_recovery")
 	result["failover_database"] = d.Get("database_configuration.0.failover_database")
-	result["gloden_gate"] = d.Get("database_configuration.0.golden_gate")
+	result["golden_gate"] = d.Get("database_configuration.0.golden_gate")
 	result["is_rac"] = d.Get("database_configuration.0.is_rac")
 	result["national_character_set"] = d.Get("database_configuration.0.national_character_set")
 	result["pdb_name"] = d.Get("database_configuration.0.pdb_name")
