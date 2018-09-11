@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-oracle-terraform/application"
@@ -270,6 +271,22 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 				ForceNew:  true,
 				Sensitive: true,
 			},
+			"availability_domain": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"load_balancer_subnets": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"region": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"app_url": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -330,6 +347,36 @@ func resourceOraclePAASApplicationContainerCreate(d *schema.ResourceData, meta i
 	if v, ok := d.GetOk("git_password"); ok {
 		additionalFields.GitPassword = v.(string)
 	}
+
+	if v, ok := d.GetOk("availability_domain"); ok {
+		additionalFields.AvailabilityDomain = v.(string)
+	}
+
+	if _, ok := d.GetOk("load_balancer_subnets"); ok {
+		additionalFields.LoadBalancerSubnets = strings.Join(getStringList(d, "load_balancer_subnets"), ",")
+	}
+
+	if v, ok := d.GetOk("region"); ok {
+		additionalFields.Region = v.(string)
+	}
+
+	/*
+		availability_domain": {
+			Type:     schema.TypeString,
+			Optional: true,
+			ForceNew: true,
+		},
+		"load_balancer_subnets": {
+			Type:     schema.TypeList,
+			Optional: true,
+			ForceNew: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
+		"region": {
+			Type:     schema.TypeString,
+			Optional: true,
+			ForceNew: true,
+		},*/
 
 	if v, ok := d.GetOk("tags"); ok {
 		tags := make([]application.Tag, 0)

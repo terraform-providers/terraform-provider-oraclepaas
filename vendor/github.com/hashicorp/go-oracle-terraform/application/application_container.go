@@ -209,6 +209,10 @@ type CreateApplicationContainerAdditionalFields struct {
 	// Allowed values are 'basic' and 'oauth'.
 	// Optional
 	AuthType string `json:"authType"`
+	// Comma separated name of one or more data center locations in the Oracle Cloud Infrastructure region.
+	// A region is a localized geographic area, composed of one or more availability domains (data centers).
+	// Optional. Required only on Oracle Cloud Infrastructure
+	AvailabilityDomain string `json:availabilityDomain`
 	// The password of your GitHub repository, required if your repository is private.
 	// Optional
 	GitPassword string `json:"gitPassword"`
@@ -216,6 +220,9 @@ type CreateApplicationContainerAdditionalFields struct {
 	GitRepoURL string `json:"gitRepoUrl"`
 	// The user name of your GitHub repository, required if your repository is private.
 	GitUsername string `json:"gitUserName"`
+	// Two comma separated load balancer subnets.
+	// Optional. Required only on Oracle Cloud Infrastructure.
+	LoadBalancerSubnets string `json:"lbsubnet"`
 	// Name of the application
 	// Required
 	Name string `json:"name"`
@@ -223,6 +230,9 @@ type CreateApplicationContainerAdditionalFields struct {
 	Notes string `json:"notes"`
 	// Email address to which application deployment status updates are sent.
 	NotificationEmail string `json:"notifcationEmail"`
+	// Name of the region where the application is to be provisioned.
+	// Optional. Required only on Oracle Cloud Infrastructure.
+	Region string `json:"region"`
 	// Repository of the application. The only allowed value is 'dockerhub'.
 	// This should be ApplicationRepository but because of how we need to translate this strut to a map[string]string we are keeping it as a string
 	// Optional

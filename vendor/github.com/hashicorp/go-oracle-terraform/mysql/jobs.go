@@ -1,4 +1,4 @@
-package java
+package mysql
 
 import (
 	"fmt"
@@ -21,10 +21,10 @@ type JobClient struct {
 }
 
 // Jobs returns a JobClient for checking job status
-func (c *Client) Jobs() *JobClient {
+func (c *MySQLClient) Jobs() *JobClient {
 	return &JobClient{
 		ResourceClient: ResourceClient{
-			Client:           c,
+			MySQLClient:      c,
 			ResourceRootPath: JobRootPath,
 		},
 	}
