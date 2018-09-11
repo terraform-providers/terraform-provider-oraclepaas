@@ -527,7 +527,7 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	}
 	client := dbClient.ServiceInstanceClient()
 
-	// Database and Exadata Common attributes
+	// Database Common attributes
 	input := database.CreateServiceInstanceInput{
 		Name:             d.Get("name").(string),
 		Edition:          database.ServiceInstanceEdition(d.Get("edition").(string)),
@@ -535,24 +535,6 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		Level:            database.ServiceInstanceLevel(d.Get("level").(string)),
 		SubscriptionType: database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
 		Version:          database.ServiceInstanceVersion(d.Get("version").(string)),
-	}
-
-	// Exadata only attributes
-
-	if v, ok := d.GetOk("exadata_system_name"); ok {
-		input.ExadataSystemName = v.(string)
-	}
-	if v, ok := d.GetOk("cluster_name"); ok {
-		input.ClusterName = v.(string)
-	}
-	if _, ok := d.GetOk("node_list"); ok {
-		// convert list to comma separated string
-		l := d.Get("node_list").([]interface{})
-		nodes := make([]string, len(l))
-		for i, v := range l {
-			nodes[i] = v.(string)
-		}
-		input.NodeList = strings.Join(nodes[:], ",")
 	}
 
 	// Database Cloud Service only attributes
@@ -682,26 +664,18 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("timezone", result.Timezone)
 	d.Set("version", result.Version)
 
-	// Exadata attributes
-	d.Set("cluster_name", result.ClusterName)
-	d.Set("exadata_system_name", result.SubscriptionName)
-	d.Set("oracle_home", result.OracleHomeName)
-
 	setAttributesFromConfig(d)
 
 	// Obtain and set the default Access Rules
-	// default_access_rule are not supported for Exadata Cloud Service
-	if result.Level != database.ServiceInstanceLevelEXADATA {
-		getDefaultAccessRulesInput := &database.GetDefaultAccessRuleInput{
-			ServiceInstanceID: d.Id(),
-		}
-		defaultAccessRules, err := dbClient.AccessRules().GetDefaultAccessRules(getDefaultAccessRulesInput)
-		if err != nil {
-			return err
-		}
-		if err = d.Set("default_access_rules", flattenDefaultAccessRules(defaultAccessRules)); err != nil {
-			return fmt.Errorf("Error setting Database Default Access Rules: %+v", err)
-		}
+	getDefaultAccessRulesInput := &database.GetDefaultAccessRuleInput{
+		ServiceInstanceID: d.Id(),
+	}
+	defaultAccessRules, err := dbClient.AccessRules().GetDefaultAccessRules(getDefaultAccessRulesInput)
+	if err != nil {
+		return err
+	}
+	if err = d.Set("default_access_rules", flattenDefaultAccessRules(defaultAccessRules)); err != nil {
+		return fmt.Errorf("Error setting Database Default Access Rules: %+v", err)
 	}
 
 	return nil
@@ -710,7 +684,6 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 // Certain values aren't received from the get call and need to be specified from the config
 func setAttributesFromConfig(d *schema.ResourceData) {
 	d.Set("disaster_recovery", d.Get("disaster_recovery"))
-	d.Set("node_list", d.Get("node_list"))
 }
 
 func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -848,7 +821,7 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	databaseConfigInfo := d.Get("database_configuration").([]interface{})
 	attrs := databaseConfigInfo[0].(map[string]interface{})
 
-	// Database and Exadata Cloud Service common attributes
+	// Database Cloud Service common attributes
 	parameter := database.ParameterInput{
 		AdminPassword:     attrs["admin_password"].(string),
 		BackupDestination: database.ServiceInstanceBackupDestination(attrs["backup_destination"].(string)),
@@ -857,11 +830,6 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 		IsRAC:             attrs["is_rac"].(bool),
 		SID:               attrs["sid"].(string),
 		Type:              database.ServiceInstanceType(attrs["type"].(string)),
-	}
-
-	// Exadata Cloud Service only attributes
-	if val, ok := attrs["oracle_home"].(string); ok && val != "" {
-		parameter.OracleHomeName = val
 	}
 
 	// Database Cloud Service only attributes
@@ -1016,20 +984,6 @@ func flattenDefaultAccessRules(defaultAccessRules *database.DefaultAccessRuleInf
 		result["enable_rac_ons"] = *defaultAccessRules.EnableRACOns
 	}
 	return []interface{}{result}
-}
-
-// Validate the Oracle Home name.
-// up to 64 characters; must start with a letter and can contain only letters, numbers and underscores (_); can not end with an underscore (_).
-func validateOracleHomeName(v interface{}, k string) (ws []string, errors []error) {
-	if len(v.(string)) > 64 {
-		errors = append(errors, fmt.Errorf(
-			"%q must not exceed 64 characters", k))
-	}
-	if match, _ := regexp.MatchString("^([a-zA-Z])((([a-zA-Z0-9_]*)([a-zA-Z0-9]+))?)$", v.(string)); match != true {
-		errors = append(errors, fmt.Errorf(
-			"%q must start with a letter and can contain only letters, numbers and underscores (_); can not end with an underscore (_)", k))
-	}
-	return
 }
 
 // Validate the PDB name
