@@ -272,12 +272,15 @@ func resourceOraclePAASApplicationContainer() *schema.Resource {
 				Sensitive: true,
 			},
 			"availability_domain": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"load_balancer_subnets": {
 				Type:     schema.TypeList,
+				MaxItems: 2,
+				MinItems: 2,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -348,8 +351,8 @@ func resourceOraclePAASApplicationContainerCreate(d *schema.ResourceData, meta i
 		additionalFields.GitPassword = v.(string)
 	}
 
-	if v, ok := d.GetOk("availability_domain"); ok {
-		additionalFields.AvailabilityDomain = v.(string)
+	if _, ok := d.GetOk("availability_domain"); ok {
+		additionalFields.AvailabilityDomain = strings.Join(getStringList(d, "availability_domain"), ",")
 	}
 
 	if _, ok := d.GetOk("load_balancer_subnets"); ok {
@@ -359,24 +362,6 @@ func resourceOraclePAASApplicationContainerCreate(d *schema.ResourceData, meta i
 	if v, ok := d.GetOk("region"); ok {
 		additionalFields.Region = v.(string)
 	}
-
-	/*
-		availability_domain": {
-			Type:     schema.TypeString,
-			Optional: true,
-			ForceNew: true,
-		},
-		"load_balancer_subnets": {
-			Type:     schema.TypeList,
-			Optional: true,
-			ForceNew: true,
-			Elem:     &schema.Schema{Type: schema.TypeString},
-		},
-		"region": {
-			Type:     schema.TypeString,
-			Optional: true,
-			ForceNew: true,
-		},*/
 
 	if v, ok := d.GetOk("tags"); ok {
 		tags := make([]application.Tag, 0)
