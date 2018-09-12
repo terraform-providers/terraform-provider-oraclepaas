@@ -204,6 +204,10 @@ func resourceOraclePAASExadataServiceInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"connect_descriptor_with_public_ip": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"listener_port": {
 							Type:     schema.TypeInt,
 							Computed: true,
@@ -369,6 +373,56 @@ func resourceOraclePAASExadataServiceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"networking_info": {
+				Type:     schema.TypeList,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"admin_network": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"backup_network": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"client_network": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"computes": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"admin_ip": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"client_ip": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"hostname": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"virtual_ip": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"scan_ips": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -501,12 +555,14 @@ func resourceOPAASExadataServiceInstanceRead(d *schema.ResourceData, meta interf
 		return fmt.Errorf("Error setting Exadata Service Instance database configuration: %+v", err)
 	}
 
-	backups, err := flattenBackupConfig(d, result)
-	if err != nil {
-		return err
-	}
-	if err := d.Set("backups", backups); err != nil {
-		return fmt.Errorf("Error setting Exadata Service Instance backup configuration: %+v", err)
+	if _, ok := d.GetOk("backups"); ok {
+		backups, err := flattenBackupConfig(d, result)
+		if err != nil {
+			return err
+		}
+		if err := d.Set("backups", backups); err != nil {
+			return fmt.Errorf("Error setting Exadata Service Instance backup configuration: %+v", err)
+		}
 	}
 
 	// TODO standby configuration
@@ -517,6 +573,14 @@ func resourceOPAASExadataServiceInstanceRead(d *schema.ResourceData, meta interf
 	// if err := d.Set("standbys", standbys); err != nil {
 	// 	return fmt.Errorf("Error setting Exadata Service Instance standby configuration: %+v", err)
 	// }
+
+	networking, err := flattenExadataNetworkingInfo(d, &result.NetworkingInfo)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("networking_info", networking); err != nil {
+		return fmt.Errorf("Error setting Exadata Service Instance Networking Info configuration: %+v", err)
+	}
 
 	return nil
 }
@@ -601,7 +665,7 @@ func flattenExadataConfig(d *schema.ResourceData, result *database.ServiceInstan
 	dbConfig := make(map[string]interface{})
 	dbConfig["backup_destination"] = result.BackupDestination
 	dbConfig["connect_descriptor"] = result.ConnectDescriptor
-	// result["connect_descriptor_with_public_ip] = result.ConnectDescriptorWithPublicIp // TODO add to SDK
+	dbConfig["connect_descriptor_with_public_ip"] = result.ConnectDescriptorWithPublicIP
 	dbConfig["pdb_name"] = result.PDBName
 	dbConfig["sid"] = result.SID
 	dbConfig["is_rac"] = result.RACDatabase
@@ -623,6 +687,36 @@ func flattenBackupConfig(d *schema.ResourceData, result *database.ServiceInstanc
 	backupsConfig["cloud_storage_container"] = result.CloudStorageContainer
 
 	return []interface{}{backupsConfig}, nil
+}
+
+func flattenExadataNetworkingInfo(d *schema.ResourceData, result *database.NetworkingInfo) ([]interface{}, error) {
+	networkConfig := make(map[string]interface{})
+	networkConfig["admin_network"] = result.AdminNetwork
+	networkConfig["backup_network"] = result.BackupNetwork
+	networkConfig["client_network"] = result.ClientNetwork
+	networkConfig["scan_ips"] = result.ScanIPs
+
+	computes, err := flattenExadataComputes(d, &result.Computes)
+	if err != nil {
+		return nil, err
+	}
+	networkConfig["computes"] = computes
+
+	return []interface{}{networkConfig}, nil
+}
+
+func flattenExadataComputes(d *schema.ResourceData, result *[]database.ComputesInfo) ([]interface{}, error) {
+	flattenedComputes := make([]interface{}, 0)
+
+	for _, info := range *result {
+		compute := make(map[string]interface{})
+		compute["admin_ip"] = info.AdminIP
+		compute["client_ip"] = info.ClientIP
+		compute["hostname"] = info.Hostname
+		compute["virtual_ip"] = info.VirtualIP
+		flattenedComputes = append(flattenedComputes, compute)
+	}
+	return flattenedComputes, nil
 }
 
 // Validate the Oracle Home name.

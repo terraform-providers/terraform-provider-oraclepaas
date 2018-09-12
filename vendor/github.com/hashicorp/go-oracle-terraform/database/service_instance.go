@@ -249,7 +249,7 @@ type ServiceInstance struct {
 	// The connection descriptor for Oracle Net Services (SQL*Net).
 	ConnectDescriptor string `json:"connect_descriptor"`
 	// The connection descriptor for Oracle Net Services (SQL*Net) with IP addresses instead of host names.
-	ConnectorDescriptorWithPublicIP string `json:"connect_descriptor_with_public_ip"`
+	ConnectDescriptorWithPublicIP string `json:"connect_descriptor_with_public_ip"`
 	// The user name of the Oracle Cloud user who created the service instance.
 	CreatedBy string `json:"created_by"`
 	// The job id of the job that created the service instance.
@@ -333,10 +333,12 @@ type ServiceInstance struct {
 	// Indicates whether the service instance was provisioned with high performance storage.
 	UseHighPerformanceStorage bool `json:"useHighPerformanceStorage"`
 	// The listener port for Oracle Net Services (SQL*Net) connections.
-	ListenerPort int `json:"listener_port"`
+	ListenerPort int `json:"listenerPort"`
 	// For service instances hosting an Oracle RAC database, the size in GB of the storage shared
 	// and accessed by the nodes of the RAC database.
 	TotalSharedStorage int `json:"total_shared_storage"`
+	// Exadata networking info
+	NetworkingInfo NetworkingInfo `json:"networking_info"`
 }
 
 // CreateServiceInstanceInput specifies the create request for a database service instance
@@ -669,6 +671,23 @@ type AdditionalParameters struct {
 	// Indicates whether to include the Demos PDB
 	// Optional
 	DBDemo string `json:"db_demo,omitempty"`
+}
+
+// NetworkingInfo returned for Exadata Service Instances
+type NetworkingInfo struct {
+	AdminNetwork  string         `json:"admin_network"`
+	BackupNetwork string         `json:"backup_network"`
+	ClientNetwork string         `json:"client_network"`
+	Computes      []ComputesInfo `json:"computes"`
+	ScanIPs       []string       `json:"scan_ips"`
+}
+
+// ComputesInfo for the Exadata Service Instance Compute Nodes
+type ComputesInfo struct {
+	AdminIP   string `json:"admin_ip"`
+	ClientIP  string `json:"client_ip"`
+	Hostname  string `json:"hostname"`
+	VirtualIP string `json:"virtual_ip"`
 }
 
 // CreateServiceInstance creates a new ServiceInstace.
