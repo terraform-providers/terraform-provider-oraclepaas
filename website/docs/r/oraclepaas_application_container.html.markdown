@@ -49,15 +49,21 @@ deployment information. Deployment attributes is documented below.
 
 * `auth_type` - (Optional) Uses Oracle Identity Cloud Service to control who can access your Java SE 7 or 8, Node.js, or PHP application. Allowed values are `basic` and `oauth`.
 
+* `availability_domain` - (Optional) A list of one or more datacenter locations in the OCI region. Required on OCI.
+
 * `git_repository` - (Optional) The URL of the git repository to use the application container.
 
 * `git_username` - (Optional) The username of a user with access to the git respository if the repository is private.
 
 * `git_password` - (Optional) The password for the user with access to the git repository if the repository is private.
 
+* `load_balancer_subnets` - (Optional) Two load balancer subnets. Required on OCI.
+
 * `notes` - (Optional) Comments about the application deployment.
 
 * `notification_email` - (Optional) Email address to which application deployment status updates are sent.
+
+* `region` - (Optional) The name of the region where the application container will be deployed. Required on OCI.
 
 * `repository` (Optional) Repository of the application. The only allowed value is 'dockerhub'.
 

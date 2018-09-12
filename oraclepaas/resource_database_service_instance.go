@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	opcClient "github.com/hashicorp/go-oracle-terraform/client"
@@ -530,11 +531,12 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	}
 	client := dbClient.ServiceInstanceClient()
 
+	isBYOL := d.Get("bring_your_own_license").(bool)
+
 	input := database.CreateServiceInstanceInput{
 		Name:                      d.Get("name").(string),
 		Edition:                   database.ServiceInstanceEdition(d.Get("edition").(string)),
-		IPReservations:            getStringList(d, "ip_reservations"),
-		IsBYOL:                    d.Get("bring_your_own_license").(bool),
+		IsBYOL:                    &isBYOL,
 		Level:                     database.ServiceInstanceLevel(d.Get("level").(string)),
 		Shape:                     database.ServiceInstanceShape(d.Get("shape").(string)),
 		SubscriptionType:          database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
@@ -556,7 +558,7 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	}
 
 	if _, ok := d.GetOk("ip_reservations"); ok {
-		input.IPReservations = getStringList(d, "ip_reservations")
+		input.IPReservations = strings.Join(getStringList(d, "ip_reservations"), ",")
 	}
 
 	if v, ok := d.GetOk("region"); ok {

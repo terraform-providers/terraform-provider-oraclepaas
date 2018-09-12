@@ -942,7 +942,7 @@ type CreateServiceInstanceInput struct {
 	// If this property is set to true, you must have a Universal Credits subscription in order to use your existing license.
 	// You are responsible for ensuring that you have the required licenses for BYOL instances in Oracle Java Cloud Service.
 	// Optional
-	IsBYOL bool `json:"isBYOL,omitempty"`
+	IsBYOL *bool `json:"isBYOL,omitempty"`
 	// Flag that specifies whether to enable the load balancer.
 	// The default value is true when you configure more than one Managed Server for the Oracle
 	// Java Cloud Service instance. Otherwise, the default value is false
@@ -1025,7 +1025,7 @@ type CreateOTD struct {
 	// IP reservations. See the My Oracle Support document titled How to Request Authorized IPs for Provisioning
 	// a Java Cloud Service with Database Exadata Cloud Service (MOS Note 2163568.1).
 	// Optional.
-	IPReservations []string `json:"ipReservations,omitempty"`
+	IPReservations string `json:"ipReservations,omitempty"`
 	// Policy to use for routing requests to the load balancer. Valid policies include:
 	// Optional.
 	LoadBalancingPolicy ServiceInstanceLoadBalancingPolicy `json:"loadBalancingPolicy,omitempty"`
@@ -1201,7 +1201,7 @@ type CreateWLS struct {
 	// Support document titled How to Request Authorized IPs for Provisioning a Java Cloud Service with Database Exadata
 	// Cloud Service (MOS Note 2163568.1).
 	// Optional
-	IPReservations []string `json:"ipReservations,omitempty"`
+	IPReservations string `json:"ipReservations,omitempty"`
 	// One or more Managed Server JVM arguments separated by a space.
 	// You cannot specify any arguments that are related to JVM heap sizes and PermGen spaces (for example, -Xms, -Xmx,
 	// -XX:PermSize, and -XX:MaxPermSize).
