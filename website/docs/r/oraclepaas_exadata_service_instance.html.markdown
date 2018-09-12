@@ -67,6 +67,14 @@ stored in an existing cloud backup that was created using Oracle Database Backup
 
 * `subscription_type` - (Optional) Billing unit. For Exadata only `MONTHLY` is supported.
 
+* `em_url` - (Read only) Enterprise Manager URL.
+
+* `identity_domain` - (Read only) Identity domain of the deployed database instance.
+
+* `status` - (Read only) Status of the database service instance.
+
+* `uri` - (Read only) URI of the database service instance.
+
 
 Database Configuration supports the following:
 
@@ -89,7 +97,7 @@ Default value is `true`.
 
 * `national_character_set` - (Optional) National Character Set for the Database Cloud Service instance. Valid values are `AL16UTF16` and `UTF8`.
 
-* `oracle_home_name` - (Optional) Name for the Oracle Home directory location that you want to use for the database deployment. If you specify the name for an existing Oracle Home directory location, then the database deployment shares the existing Oracle Database binaries at that location. Otherwise a new Oracle Home is created.
+* `oracle_home` - (Optional) Name for the Oracle Home directory location that you want to use for the database deployment. If you specify the name for an existing Oracle Home directory location, then the database deployment shares the existing Oracle Database binaries at that location. Otherwise a new Oracle Home is created.
 
 * `pdb_name` - (Optional) This attribute is valid when Database Cloud Service instance is configured with version 12c. Pluggable Database Name for the Database Cloud Service instance. Default value is `pdb1`.
 
@@ -100,6 +108,14 @@ Default value is `true`.
 * `snapshot_name` - (Optional) The name of the snapshot of the service instance specified by sourceServiceName that is to be used to create a "snapshot clone". This parameter is valid only if source_service_name is specified.
 
 * `type` - (Optional) Component type to which the set of parameters applies. Defaults to `db`
+
+* `connect_descriptor` - (Read only) Database instance connect descriptor.
+
+* `connect_descriptor_with_public_ip` - (Read only) Database instance connect descriptor with public IP address.
+
+* `listener_port` - (Read only) Database instance listener port.
+
+* `oracle_home_name` - (Read only) Full Oracle Home nam
 
 
 Standby supports the following:
@@ -142,3 +158,24 @@ Use the following format to specify the container name: `<storageservicename>-<s
 * `cloud_storage_password` - (Required) Password for the Oracle Storage Cloud Service administrator.
 
 * `create_if_missing` - (Optional) Specify if the given cloud_storage_container is to be created if it does not already exist. Default value is `false`.
+
+
+Networking Info:
+
+* `admin_network` - Exadata admin network CIDR.
+
+* `backup_network` - Exadata backup network CIDR.
+
+* `client_network` - Exadata client network CIDR.
+
+* `computes` -  List of compute nodes hosting the database.
+
+  * `admin_ip` - Compute node admin IP.
+
+  * `client_ip` - Compute name compute IP.
+
+  * `hostname` - Compute name hostname.
+
+  * `virtual_ip` - Compute node virtual IP.
+
+* `scan_ips` - List of database scan IPs.
