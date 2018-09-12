@@ -1,4 +1,18 @@
 ## 1.3.1 (Unreleased)
+
+IMPROVEMNTS: 
+
+* oraclepaas_application_container - Additional oci attributes now available [GH-49]
+
+* oraclepaas_database_service_instance - Ability to set volume size for data and backup [GH-48]
+
+
+BUG FIXES: 
+
+* oraclepaas_database_service_instance - `bring_your_own_license` is now set correctly [GH-49]
+
+* ip_reservations - now sent correctly to the sdk [GH-49]
+
 ## 1.3.0 (July 20, 2018)
 
 FEATURES:
