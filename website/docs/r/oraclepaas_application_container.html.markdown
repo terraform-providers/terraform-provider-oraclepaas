@@ -57,7 +57,7 @@ deployment information. Deployment attributes is documented below.
 
 * `git_password` - (Optional) The password for the user with access to the git repository if the repository is private.
 
-* `lb_subnet` - (Optional) Two load balancer subnets. Required on OCI.
+* `load_balancer_subnets` - (Optional) Two load balancer subnets. Required on OCI.
 
 * `notes` - (Optional) Comments about the application deployment.
 
