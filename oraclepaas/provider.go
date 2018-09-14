@@ -74,6 +74,7 @@ func Provider() terraform.ResourceProvider {
 
 		DataSourcesMap: map[string]*schema.Resource{
 			"oraclepaas_database_service_instance": dataSourceOraclePAASDatabaseServiceInstance(),
+			"oraclepaas_database_compute_nodes":    dataSourceOraclePAASDatabaseComputeNodes(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
