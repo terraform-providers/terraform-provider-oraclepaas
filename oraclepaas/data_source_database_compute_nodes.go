@@ -2,7 +2,6 @@ package oraclepaas
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -22,10 +21,6 @@ func dataSourceOraclePAASDatabaseComputeNodes() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"availability_domain": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
 						"connect_descriptor": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -70,10 +65,6 @@ func dataSourceOraclePAASDatabaseComputeNodes() *schema.Resource {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"subnet": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
 					},
 				},
 			},
@@ -110,8 +101,6 @@ func dataSourceOraclePAASDatabaseComputeNodesRead(d *schema.ResourceData, meta i
 	d.Set("name", name)
 
 	computeNodes, err := flattenComputeNodes(d, result.Nodes)
-	// TODO not working!
-	log.Printf(">>> computeNodes: %+v", computeNodes) // TODO remove
 	if err != nil {
 		return err
 	}
@@ -127,7 +116,6 @@ func flattenComputeNodes(d *schema.ResourceData, result []database.ComputeNodeIn
 
 	for _, info := range result {
 		node := make(map[string]interface{})
-		node["availability_domain"] = info.AvailabilityDomain
 		node["connect_descriptor"] = info.ConnectDescriptor
 		node["connect_descriptor_with_public_ip"] = info.ConnectDescriptorWithPublicIP
 		node["hostname"] = info.Hostname
@@ -135,12 +123,11 @@ func flattenComputeNodes(d *schema.ResourceData, result []database.ComputeNodeIn
 		node["listener_port"] = info.ListenerPort
 		node["pdb_name"] = info.PDBName
 		node["reserved_ip"] = info.ReservedIP
+		node["shape"] = info.Shape
 		node["sid"] = info.SID
 		node["status"] = info.Status
 		node["storage_allocated"] = info.StorageAllocated
-		node["subnet"] = info.Subnet
 		flattenedComputeNodes = append(flattenedComputeNodes, node)
-		log.Printf(">>> flattenedComputeNodes: %+v", flattenedComputeNodes) // TODO remove
 	}
 
 	return flattenedComputeNodes, nil

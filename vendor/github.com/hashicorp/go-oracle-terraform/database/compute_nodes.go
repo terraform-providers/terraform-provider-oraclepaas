@@ -54,7 +54,7 @@ type ComputeNodeInfo struct {
 	// The SID of the database on the compute node.
 	SID string `json:"sid"`
 	// The status of the compute node.
-	Status string `json:"string"`
+	Status string `json:"status"`
 	// The size in GB of the storage allocated to the compute node.
 	// For compute nodes of a service instance hosting an Oracle RAC database, this number does not
 	// include the storage shared by the nodes
