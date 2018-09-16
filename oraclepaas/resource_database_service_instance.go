@@ -60,14 +60,12 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Default:  string(database.ServiceInstanceLevelPAAS),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(database.ServiceInstanceLevelPAAS),
-					string(database.ServiceInstanceLevelEXADATA),
 					string(database.ServiceInstanceLevelBasic),
 				}, true),
 			},
 			"shape": {
 				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Required: true,
 			},
 			"subscription_type": {
 				Type:     schema.TypeString,
@@ -85,7 +83,7 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 			},
 			"ssh_public_key": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
 			},
 			"database_configuration": {
@@ -192,7 +190,7 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 						},
 						"usable_storage": {
 							Type:         schema.TypeInt,
-							Optional:     true,
+							Required:     true,
 							ForceNew:     true,
 							ValidateFunc: validation.IntBetween(15, 2048),
 						},
@@ -527,64 +525,48 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	}
 	client := dbClient.ServiceInstanceClient()
 
-	// Database Common attributes
 	input := database.CreateServiceInstanceInput{
-		Name:             d.Get("name").(string),
-		Edition:          database.ServiceInstanceEdition(d.Get("edition").(string)),
-		IsBYOL:           d.Get("bring_your_own_license").(bool),
-		Level:            database.ServiceInstanceLevel(d.Get("level").(string)),
-		SubscriptionType: database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
-		Version:          database.ServiceInstanceVersion(d.Get("version").(string)),
+		Name:                      d.Get("name").(string),
+		Edition:                   database.ServiceInstanceEdition(d.Get("edition").(string)),
+		IsBYOL:                    d.Get("bring_your_own_license").(bool),
+		Level:                     database.ServiceInstanceLevel(d.Get("level").(string)),
+		Shape:                     database.ServiceInstanceShape(d.Get("shape").(string)),
+		SubscriptionType:          database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
+		UseHighPerformanceStorage: d.Get("high_performance_storage").(bool),
+		Version:                   database.ServiceInstanceVersion(d.Get("version").(string)),
+		VMPublicKey:               d.Get("ssh_public_key").(string),
 	}
-
-	// Database Cloud Service only attributes
-
-	if v, ok := d.GetOk("availability_domain"); ok {
-		input.AvailabilityDomain = v.(string)
-	}
-	if v, ok := d.GetOk("high_performance_storage"); ok {
-		input.UseHighPerformanceStorage = v.(bool)
-	}
-	if v, ok := d.GetOk("ip_network"); ok {
-		input.IPNetwork = v.(string)
-	}
-	if _, ok := d.GetOk("ip_reservations"); ok {
-		input.IPReservations = getStringList(d, "ip_reservations")
-	}
-	if v, ok := d.GetOk("region"); ok {
-		input.Region = v.(string)
-	}
-	if v, ok := d.GetOk("shape"); ok {
-		input.Shape = database.ServiceInstanceShape(v.(string))
-	}
-	if v, ok := d.GetOk("ssh_public_key"); ok {
-		input.VMPublicKey = v.(string)
-	}
-	if v, ok := d.GetOk("subnet"); ok {
-		input.Subnet = v.(string)
-	}
-	if _, ok := d.GetOk("standby"); ok {
-		if input.Parameter.FailoverDatabase != true || input.Parameter.DisasterRecovery != true {
-			return fmt.Errorf("Error creating Database Service Instance: `failover_database` and `disaster_recovery` must be set to true inside the `database_configuration` block to use `standby`")
-		}
-		input.Standbys = expandStandby(d)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Common attributes
-
 	if v, ok := d.GetOk("description"); ok {
 		input.Description = v.(string)
 	}
+
 	if v, ok := d.GetOk("notification_email"); ok {
 		input.EnableNotification = true
 		input.NotificationEmail = v.(string)
 	}
 
-	// Only the PaaS levels can have a parameter.
-	if input.Level != database.ServiceInstanceLevelBasic {
+	if v, ok := d.GetOk("ip_network"); ok {
+		input.IPNetwork = v.(string)
+	}
+
+	if _, ok := d.GetOk("ip_reservations"); ok {
+		input.IPReservations = getStringList(d, "ip_reservations")
+	}
+
+	if v, ok := d.GetOk("region"); ok {
+		input.Region = v.(string)
+	}
+
+	if v, ok := d.GetOk("availability_domain"); ok {
+		input.AvailabilityDomain = v.(string)
+	}
+
+	if v, ok := d.GetOk("subnet"); ok {
+		input.Subnet = v.(string)
+	}
+
+	// Only the PaaS level can have a parameter.
+	if input.Level == database.ServiceInstanceLevelPAAS {
 		input.Parameter, err = expandParameter(d)
 		if err != nil {
 			return err
@@ -592,6 +574,16 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 
 		if _, ok := d.GetOk("hybrid_disaster_recovery"); ok {
 			expandHDG(d, &input.Parameter)
+		}
+	}
+
+	if _, ok := d.GetOk("standby"); ok {
+		if input.Parameter.FailoverDatabase != true || input.Parameter.DisasterRecovery != true {
+			return fmt.Errorf("Error creating Database Service Instance: `failover_database` and `disaster_recovery` must be set to true inside the `database_configuration` block to use `standby`")
+		}
+		input.Standbys = expandStandby(d)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -684,6 +676,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 // Certain values aren't received from the get call and need to be specified from the config
 func setAttributesFromConfig(d *schema.ResourceData) {
 	d.Set("disaster_recovery", d.Get("disaster_recovery"))
+
 }
 
 func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -757,11 +750,6 @@ func updateDefaultAccessRules(d *schema.ResourceData, meta interface{}) error {
 	if len(defaultAccessRuleConfig) == 0 {
 		return nil
 	}
-
-	if database.ServiceInstanceLevel(d.Get("level").(string)) == database.ServiceInstanceLevelEXADATA {
-		return fmt.Errorf("`default_access_rules` are not supported for Exadata Cloud Service ")
-	}
-
 	updateDefaultAccessRuleInput := &database.DefaultAccessRuleInfo{
 		ServiceInstanceID: d.Id(),
 	}
@@ -820,36 +808,25 @@ func expandStandby(d *schema.ResourceData) []database.StandBy {
 func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	databaseConfigInfo := d.Get("database_configuration").([]interface{})
 	attrs := databaseConfigInfo[0].(map[string]interface{})
-
-	// Database Cloud Service common attributes
 	parameter := database.ParameterInput{
 		AdminPassword:     attrs["admin_password"].(string),
 		BackupDestination: database.ServiceInstanceBackupDestination(attrs["backup_destination"].(string)),
+		DisasterRecovery:  attrs["disaster_recovery"].(bool),
 		FailoverDatabase:  attrs["failover_database"].(bool),
 		GoldenGate:        attrs["golden_gate"].(bool),
 		IsRAC:             attrs["is_rac"].(bool),
 		SID:               attrs["sid"].(string),
+		Timezone:          attrs["timezone"].(string),
 		Type:              database.ServiceInstanceType(attrs["type"].(string)),
+		UsableStorage:     strconv.Itoa(attrs["usable_storage"].(int)),
 	}
 
-	// Database Cloud Service only attributes
-	if val, ok := attrs["disaster_recovery"].(bool); ok {
-		parameter.DisasterRecovery = val
+	if val, ok := attrs["snapshot_name"].(string); ok && val != "" {
+		parameter.SnapshotName = val
 	}
-	if val, ok := attrs["timezone"].(string); ok && val != "" {
-		parameter.Timezone = val
+	if val, ok := attrs["source_service_name"].(string); ok && val != "" {
+		parameter.SourceServiceName = val
 	}
-	if val, ok := attrs["usable_storage"].(int); ok && val != 0 {
-		parameter.UsableStorage = strconv.Itoa(val)
-	}
-	if val, ok := attrs["db_demo"].(string); ok && val != "" {
-		addParam := database.AdditionalParameters{
-			DBDemo: val,
-		}
-		parameter.AdditionalParameters = addParam
-	}
-
-	// Common attributes
 	if val, ok := attrs["character_set"].(string); ok && val != "" {
 		parameter.CharSet = val
 	}
@@ -859,13 +836,12 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	if val, ok := attrs["pdb_name"].(string); ok && val != "" {
 		parameter.PDBName = val
 	}
-	if val, ok := attrs["snapshot_name"].(string); ok && val != "" {
-		parameter.SnapshotName = val
+	if val, ok := attrs["db_demo"].(string); ok && val != "" {
+		addParam := database.AdditionalParameters{
+			DBDemo: val,
+		}
+		parameter.AdditionalParameters = addParam
 	}
-	if val, ok := attrs["source_service_name"].(string); ok && val != "" {
-		parameter.SourceServiceName = val
-	}
-
 	expandIbkup(d, &parameter)
 	err := expandBackups(d, &parameter)
 	if err != nil {
