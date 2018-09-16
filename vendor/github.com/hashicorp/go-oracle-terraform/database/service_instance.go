@@ -327,7 +327,7 @@ type ServiceInstance struct {
 	// Indicates whether the service instance hosts an Oracle Data Guard configuration.
 	FailoverDatabase bool `json:"failover_database"`
 	// Indicates whether service instance was provisioned with the 'Bring Your Own License' (BYOL) option.
-	IsBYOL bool `json:"isBYOL"`
+	IsBYOL *bool `json:"isBYOL"`
 	// Indicates whether the service instance hosts an Oracle RAC database.
 	RACDatabase bool `json:"rac_database"`
 	// Indicates whether the service instance was provisioned with high performance storage.
@@ -375,7 +375,7 @@ type CreateServiceInstanceInput struct {
 	// When true, your Oracle Cloud account will be charged a lesser amount for the new instance because the right to use Oracle Database is covered by your perpetual license agreement.
 	// Valid values are true and false. Default value is false.
 	// Optional
-	IsBYOL bool `json:"isBYOL,omitempty"`
+	IsBYOL *bool `json:"isBYOL,omitempty"`
 	// This parameter is not available on Oracle Cloud at Customer.
 	// Applicable only if region is an Oracle Cloud Infrastructure Classic region.
 	// The three-part name of a custom IP network to use. For example: /Compute-identity_domain/user/object.
@@ -387,7 +387,7 @@ type CreateServiceInstanceInput struct {
 	// A single IP reservation name or multiple IP reservation names separated by commas. Only IP reservations created in the specified region can be used.
 	// When IP reservations are used, all compute nodes of an instance must be provisioned with IP reservations, so the number of names in ipReservations must match the number of compute nodes in the service instance.
 	// Optional
-	IPReservations []string `json:"ipReservations,omitempty"`
+	IPReservations string `json:"ipReservations,omitempty"`
 	// Service level for the service instance
 	// Required.
 	Level ServiceInstanceLevel `json:"level"`

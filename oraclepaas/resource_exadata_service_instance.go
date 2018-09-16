@@ -435,11 +435,13 @@ func resourceOPAASExadataServiceInstanceCreate(d *schema.ResourceData, meta inte
 	}
 	client := dbClient.ServiceInstanceClient()
 
+	isBYOL := d.Get("bring_your_own_license").(bool)
+
 	// Database and Exadata Common attributes
 	input := database.CreateServiceInstanceInput{
 		Name:             d.Get("name").(string),
 		Edition:          database.ServiceInstanceEdition(d.Get("edition").(string)),
-		IsBYOL:           d.Get("bring_your_own_license").(bool),
+		IsBYOL:           &isBYOL,
 		Level:            database.ServiceInstanceLevel(d.Get("level").(string)),
 		SubscriptionType: database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
 		Version:          database.ServiceInstanceVersion(d.Get("version").(string)),

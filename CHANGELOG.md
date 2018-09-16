@@ -1,4 +1,19 @@
-## 1.3.1 (Unreleased)
+## 1.3.2 (Unreleased)
+## 1.3.1 (September 12, 2018)
+
+IMPROVEMNTS: 
+
+* oraclepaas_application_container - Additional oci attributes now available ([#49](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/49))
+
+* oraclepaas_database_service_instance - Ability to set volume size for data and backup ([#48](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/48))
+
+
+BUG FIXES: 
+
+* oraclepaas_database_service_instance - `bring_your_own_license` is now set correctly ([#49](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/49))
+
+* ip_reservations - now sent correctly to the sdk ([#49](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/49))
+
 ## 1.3.0 (July 20, 2018)
 
 FEATURES:

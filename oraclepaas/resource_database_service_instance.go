@@ -16,6 +16,9 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 )
 
+const dbaasVolumeNameData = "data"
+const dbaasVolumeNameBackup = "fra"
+
 func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceOPAASDatabaseServiceInstanceCreate,
@@ -204,6 +207,14 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
+						},
+						"data_storage_volume_size": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"backup_storage_volume_size": {
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 					},
 				},
@@ -525,10 +536,12 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	}
 	client := dbClient.ServiceInstanceClient()
 
+	isBYOL := d.Get("bring_your_own_license").(bool)
+
 	input := database.CreateServiceInstanceInput{
 		Name:                      d.Get("name").(string),
 		Edition:                   database.ServiceInstanceEdition(d.Get("edition").(string)),
-		IsBYOL:                    d.Get("bring_your_own_license").(bool),
+		IsBYOL:                    &isBYOL,
 		Level:                     database.ServiceInstanceLevel(d.Get("level").(string)),
 		Shape:                     database.ServiceInstanceShape(d.Get("shape").(string)),
 		SubscriptionType:          database.ServiceInstanceSubscriptionType(d.Get("subscription_type").(string)),
@@ -550,7 +563,7 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 	}
 
 	if _, ok := d.GetOk("ip_reservations"); ok {
-		input.IPReservations = getStringList(d, "ip_reservations")
+		input.IPReservations = strings.Join(getStringList(d, "ip_reservations"), ",")
 	}
 
 	if v, ok := d.GetOk("region"); ok {
@@ -656,7 +669,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	d.Set("timezone", result.Timezone)
 	d.Set("version", result.Version)
 
-	setAttributesFromConfig(d)
+	flattenAttributesFromConfig(d)
 
 	// Obtain and set the default Access Rules
 	getDefaultAccessRulesInput := &database.GetDefaultAccessRuleInput{
@@ -670,13 +683,16 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 		return fmt.Errorf("Error setting Database Default Access Rules: %+v", err)
 	}
 
+	if err = d.Set("database_configuration", flattenDatabaseConfig(d)); err != nil {
+		return fmt.Errorf("Error setting Database Configuration: %+v", err)
+	}
+
 	return nil
 }
 
 // Certain values aren't received from the get call and need to be specified from the config
-func setAttributesFromConfig(d *schema.ResourceData) {
+func flattenAttributesFromConfig(d *schema.ResourceData) {
 	d.Set("disaster_recovery", d.Get("disaster_recovery"))
-
 }
 
 func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -729,6 +745,42 @@ func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta int
 		_, err := client.UpdateServiceInstance(updateInput)
 		if err != nil {
 			return fmt.Errorf("Unable to update Service Instance %q: %+v", d.Id(), err)
+		}
+	}
+
+	if o, n := d.GetChange("database_configuration.0.data_storage_volume_size"); o.(int) != n.(int) {
+		newVolumeSize := n.(int) - o.(int)
+
+		if (newVolumeSize) < 0 {
+			return fmt.Errorf("cannot reduce data storage volume from %dGB to %dGB for %q", o.(int), n.(int), d.Id())
+		}
+
+		updateInput := &database.UpdateServiceInstanceInput{
+			Name:              d.Id(),
+			AdditionalStorage: strconv.Itoa(newVolumeSize),
+			Usage:             dbaasVolumeNameData,
+		}
+		_, err := client.UpdateServiceInstance(updateInput)
+		if err != nil {
+			return fmt.Errorf("Unable to update Data Volume for Service Instance %q: %+v", d.Id(), err)
+		}
+	}
+
+	if o, n := d.GetChange("database_configuration.0.backup_storage_volume_size"); o.(int) != n.(int) {
+		newVolumeSize := n.(int) - o.(int)
+
+		if (newVolumeSize) <= 0 {
+			return fmt.Errorf("cannot reduce backup storage volume from %dGB to %dGB for %q", o.(int), n.(int), d.Id())
+		}
+
+		updateInput := &database.UpdateServiceInstanceInput{
+			Name:              d.Id(),
+			AdditionalStorage: strconv.Itoa(newVolumeSize),
+			Usage:             dbaasVolumeNameBackup,
+		}
+		_, err := client.UpdateServiceInstance(updateInput)
+		if err != nil {
+			return fmt.Errorf("Unable to update Backup Volume for Service Instance %q: %+v", d.Id(), err)
 		}
 	}
 
@@ -962,6 +1014,31 @@ func flattenDefaultAccessRules(defaultAccessRules *database.DefaultAccessRuleInf
 	return []interface{}{result}
 }
 
+func flattenDatabaseConfig(d *schema.ResourceData) []interface{} {
+	result := make(map[string]interface{})
+
+	result["admin_password"] = d.Get("database_configuration.0.admin_password")
+	result["backup_destination"] = d.Get("database_configuration.0.backup_destination")
+	result["character_set"] = d.Get("database_configuration.0.character_set")
+	result["db_demo"] = d.Get("database_configuration.0.db_demo")
+	result["disaster_recovery"] = d.Get("database_configuration.0.disaster_recovery")
+	result["failover_database"] = d.Get("database_configuration.0.failover_database")
+	result["golden_gate"] = d.Get("database_configuration.0.golden_gate")
+	result["is_rac"] = d.Get("database_configuration.0.is_rac")
+	result["national_character_set"] = d.Get("database_configuration.0.national_character_set")
+	result["pdb_name"] = d.Get("database_configuration.0.pdb_name")
+	result["sid"] = d.Get("database_configuration.0.sid")
+	result["timezone"] = d.Get("database_configuration.0.timezone")
+	result["type"] = d.Get("database_configuration.0.type")
+	result["usable_storage"] = d.Get("database_configuration.0.usable_storage")
+	result["snapshot_name"] = d.Get("database_configuration.0.snapshot_name")
+	result["source_service_name"] = d.Get("database_configuration.0.source_service_name")
+	result["data_storage_volume_size"] = d.Get("database_configuration.0.data_storage_volume_size")
+	result["backup_storage_volume_size"] = d.Get("database_configuration.0.backup_storage_volume_size")
+
+	return []interface{}{result}
+}
+
 // Validate the PDB name
 // up to 30 characters; must begin with a letter and can contain only letters and numbers
 func validatePDBName(v interface{}, k string) (ws []string, errors []error) {
@@ -1034,4 +1111,5 @@ func validateAdminPassword(v interface{}, k string) (ws []string, errors []error
 			"%q must not contain the following keywords or their reversed form: root, sys, system, dbsnmp, oracle or your cloud storage username", k))
 	}
 	return
+
 }
