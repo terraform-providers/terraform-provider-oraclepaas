@@ -679,6 +679,8 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	}
 	client := jClient.ServiceInstanceClient()
 
+	isBYOL := d.Get("bring_your_own_license").(bool)
+
 	input := java.CreateServiceInstanceInput{
 		ServiceName:        d.Get("name").(string),
 		ServiceLevel:       java.ServiceInstanceLevel(d.Get("level").(string)),
@@ -686,6 +688,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 		Edition:            java.ServiceInstanceEdition(d.Get("edition").(string)),
 		BackupDestination:  java.ServiceInstanceBackupDestination(d.Get("backup_destination").(string)),
 		EnableAdminConsole: d.Get("enable_admin_console").(bool),
+		IsBYOL:             &isBYOL,
 		UseIdentityService: d.Get("use_identity_service").(bool),
 		ProvisionOTD:       false, // force default to false, but may be overridden below in expandOTDConfig
 	}
@@ -709,10 +712,6 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	}
 	if val, ok := d.GetOk("region"); ok {
 		input.Region = val.(string)
-	}
-	if val, ok := d.GetOk("bring_your_own_license"); ok {
-		isBYOL := val.(bool)
-		input.IsBYOL = &isBYOL
 	}
 	if val, ok := d.GetOk("notification_email"); ok {
 		input.EnableNotification = true
