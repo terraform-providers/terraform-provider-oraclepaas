@@ -1,6 +1,6 @@
-## 1.3.2 (Unreleased)
+## 1.3.2 (September 26, 2018)
 
-* oraclepaas_java_service_instance -  `bring_your_own_license` is now set correctly [GH-51]
+* oraclepaas_java_service_instance -  `bring_your_own_license` is now set correctly ([#51](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/51))
 
 ## 1.3.1 (September 12, 2018)
 
