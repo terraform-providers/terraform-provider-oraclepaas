@@ -1,4 +1,7 @@
 ## 1.3.2 (Unreleased)
+
+* oraclepaas_java_service_instance -  `bring_your_own_license` is now set correctly [GH-51]
+
 ## 1.3.1 (September 12, 2018)
 
 IMPROVEMNTS: 
