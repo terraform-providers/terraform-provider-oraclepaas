@@ -276,12 +276,12 @@
 			"versionExact": "v0.13.0"
 		},
 		{
-			"checksumSHA1": "9FX6D92J55zJrzkZOq8kowNpUzk=",
+			"checksumSHA1": "6qqjlC31LVdZEeEK7svUqv2WklI=",
 			"path": "github.com/hashicorp/go-oracle-terraform/database",
-			"revision": "0883d7366b29235ab79f74fe3e9d49edf8d0f796",
-			"revisionTime": "2018-09-07T14:35:30Z",
-			"version": "v0.13.0",
-			"versionExact": "v0.13.0"
+			"revision": "38658ee17daf51e5afcdcd3f402251b0f67ba3fd",
+			"revisionTime": "2018-10-01T21:00:33Z",
+			"version": "v0.14.0",
+			"versionExact": "v0.14.0"
 		},
 		{
 			"checksumSHA1": "HVhKKQ6jpg3W9/MspUD09Xka238=",
