@@ -17,7 +17,7 @@ data "oraclepaas_database_compute_nodes" "foo" {
   name = "database-service-instance-1"
 }
 
-output "region" {
+output "compute_nodes" {
   value = "${data.oraclepaas_database_compute_nodes.foo.compute_nodes}"
 }
 ```
