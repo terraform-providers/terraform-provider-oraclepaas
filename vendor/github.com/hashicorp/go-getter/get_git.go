@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	urlhelper "github.com/hashicorp/go-getter/helper/url"
-	"github.com/hashicorp/go-safetemp"
 	"github.com/hashicorp/go-version"
 )
 
@@ -78,26 +77,6 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 		}
 	}
 
-	// For SSH-style URLs, if they use the SCP syntax of host:path, then
-	// the URL will be mangled. We detect that here and correct the path.
-	// Example: host:path/bar will turn into host/path/bar
-	if u.Scheme == "ssh" {
-		if idx := strings.Index(u.Host, ":"); idx > -1 {
-			// Copy the URL so we don't modify the input
-			var newU url.URL = *u
-			u = &newU
-
-			// Path includes the part after the ':'.
-			u.Path = u.Host[idx+1:] + u.Path
-			if u.Path[0] != '/' {
-				u.Path = "/" + u.Path
-			}
-
-			// Host trims up to the :
-			u.Host = u.Host[:idx]
-		}
-	}
-
 	// Clone or update the repository
 	_, err := os.Stat(dst)
 	if err != nil && !os.IsNotExist(err) {
@@ -126,11 +105,13 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 // GetFile for Git doesn't support updating at this time. It will download
 // the file every time.
 func (g *GitGetter) GetFile(dst string, u *url.URL) error {
-	td, tdcloser, err := safetemp.Dir("", "getter")
+	td, err := ioutil.TempDir("", "getter-git")
 	if err != nil {
 		return err
 	}
-	defer tdcloser.Close()
+	if err := os.RemoveAll(td); err != nil {
+		return err
+	}
 
 	// Get the filename, and strip the filename from the URL so we can
 	// just get the repository directly.
@@ -199,34 +180,17 @@ func (g *GitGetter) fetchSubmodules(dst, sshKeyFile string) error {
 // setupGitEnv sets up the environment for the given command. This is used to
 // pass configuration data to git and ssh and enables advanced cloning methods.
 func setupGitEnv(cmd *exec.Cmd, sshKeyFile string) {
-	const gitSSHCommand = "GIT_SSH_COMMAND="
-	var sshCmd []string
-
-	// If we have an existing GIT_SSH_COMMAND, we need to append our options.
-	// We will also remove our old entry to make sure the behavior is the same
-	// with versions of Go < 1.9.
-	env := os.Environ()
-	for i, v := range env {
-		if strings.HasPrefix(v, gitSSHCommand) {
-			sshCmd = []string{v}
-
-			env[i], env[len(env)-1] = env[len(env)-1], env[i]
-			env = env[:len(env)-1]
-			break
-		}
-	}
-
-	if len(sshCmd) == 0 {
-		sshCmd = []string{gitSSHCommand + "ssh"}
-	}
+	var sshOpts []string
 
 	if sshKeyFile != "" {
 		// We have an SSH key temp file configured, tell ssh about this.
-		sshCmd = append(sshCmd, "-i", sshKeyFile)
+		sshOpts = append(sshOpts, "-i", sshKeyFile)
 	}
 
-	env = append(env, strings.Join(sshCmd, " "))
-	cmd.Env = env
+	cmd.Env = append(os.Environ(),
+		// Set the ssh command to use for clones.
+		"GIT_SSH_COMMAND=ssh "+strings.Join(sshOpts, " "),
+	)
 }
 
 // checkGitVersion is used to check the version of git installed on the system
@@ -244,7 +208,7 @@ func checkGitVersion(min string) error {
 	}
 
 	fields := strings.Fields(string(out))
-	if len(fields) < 3 {
+	if len(fields) != 3 {
 		return fmt.Errorf("Unexpected 'git version' output: %q", string(out))
 	}
 
