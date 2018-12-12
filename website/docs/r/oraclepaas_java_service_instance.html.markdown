@@ -163,6 +163,8 @@ the password for Oracle Public Cloud is used.
 
 * `create_if_missing` - (Optional) Specify if the given cloud_storage_container is to be created if it does not already exist. Default value is `false`.
 
+* `use_oauth_for_storage` - (Optional)  Flag that specifies whether to use the default OAuth protected object storage for instance backups.
+
 WebLogic Server supports the following:
 
 * `database` - (Required) Information about the database deployment on Oracle Database Cloud Service. Database

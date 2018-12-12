@@ -92,6 +92,11 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 							Computed:  true,
 							Sensitive: true,
 						},
+						"use_oauth_for_storage": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
 					},
 				},
 			},
@@ -646,11 +651,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				Default:  false,
 				ForceNew: true,
 			},
-			"use_oauth_for_storage": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-			},
 			"force_delete": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -776,10 +776,6 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	}
 	if val, ok := d.GetOk("subnet"); ok {
 		input.Subnet = val.(string)
-	}
-	if val, ok := d.GetOkExists("use_oauth_for_storage"); ok {
-		useOauthForStorage := val.(bool)
-		input.UseOauthForStorage = &useOauthForStorage
 	}
 
 	expandJavaCloudStorage(d, &input)
@@ -1088,6 +1084,10 @@ func expandJavaCloudStorage(d *schema.ResourceData, input *java.CreateServiceIns
 	if val, ok := attrs["cloud_storage_password"].(string); ok && val != "" {
 		input.CloudStoragePassword = val
 	}
+	if val, ok := attrs["use_oauth_for_storage"]; ok {
+		useOauthForStorage := val.(bool)
+		input.UseOauthForStorage = &useOauthForStorage
+	}
 }
 
 func expandAppDBs(webLogicServer *java.CreateWLS, config map[string]interface{}) {
@@ -1228,7 +1228,7 @@ func expandWLSPorts(webLogicServer *java.CreateWLS, config map[string]interface{
 
 func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBalancerInfo) []interface{} {
 	result := make(map[string]interface{})
-	if loadBalancerInfo != nil {
+	if loadBalancerInfo == nil {
 		return []interface{}{result}
 	}
 
