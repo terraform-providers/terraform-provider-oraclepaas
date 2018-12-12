@@ -839,10 +839,8 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 		d.Set("assign_public_ip", val)
 	}
 
-	if result.LoadBalancer != nil {
-		if err := d.Set("load_balancer", flattenLoadBalancer(d, *result.LoadBalancer)); err != nil {
-			return fmt.Errorf("error setting load balancer information for %q: %+v", result.ServiceName, err)
-		}
+	if err := d.Set("load_balancer", flattenLoadBalancer(d, result.LoadBalancer)); err != nil {
+		return fmt.Errorf("error setting load balancer information for %q: %+v", result.ServiceName, err)
 	}
 
 	wlsConfig, err := flattenWebLogicConfig(d, result.Components.WLS, result.WLSRoot)
@@ -1228,8 +1226,11 @@ func expandWLSPorts(webLogicServer *java.CreateWLS, config map[string]interface{
 	}
 }
 
-func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo java.LoadBalancerInfo) []interface{} {
+func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBalancerInfo) []interface{} {
 	result := make(map[string]interface{})
+	if loadBalancerInfo != nil {
+		return []interface{}{result}
+	}
 
 	if v, ok := d.GetOk("load_balancer.0.load_balancing_policy"); ok {
 		result["load_balancing_policy"] = v
@@ -1239,13 +1240,13 @@ func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo java.LoadBalan
 	}
 
 	if loadBalancerInfo.Public.LoadBalancerAdminURL != "" {
-		result["admin_url"] = loadBalancerInfo.Public.LoadBalancerAdminURL
+		result["admin_url"] = &loadBalancerInfo.Public.LoadBalancerAdminURL
 	}
 	if loadBalancerInfo.Public.LoadBalancerConsoleURL != "" {
-		result["console_url"] = loadBalancerInfo.Public.LoadBalancerConsoleURL
+		result["console_url"] = &loadBalancerInfo.Public.LoadBalancerConsoleURL
 	}
 	if loadBalancerInfo.Public.URL != "" {
-		result["url"] = loadBalancerInfo.Public.URL
+		result["url"] = &loadBalancerInfo.Public.URL
 	}
 
 	return []interface{}{result}
