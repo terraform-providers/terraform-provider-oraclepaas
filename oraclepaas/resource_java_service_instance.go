@@ -92,6 +92,11 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 							Computed:  true,
 							Sensitive: true,
 						},
+						"use_oauth_for_storage": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
 					},
 				},
 			},
@@ -474,10 +479,11 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 				},
 			},
 			"oracle_traffic_director": {
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: true,
-				MaxItems: 1,
+				Type:          schema.TypeList,
+				Optional:      true,
+				ForceNew:      true,
+				MaxItems:      1,
+				ConflictsWith: []string{"load_balancer"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"admin": {
@@ -660,6 +666,47 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 					"shutdown",
 				}, true),
 			},
+			"load_balancer": {
+				Type:          schema.TypeList,
+				MaxItems:      1,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"oracle_traffic_director"},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"load_balancing_policy": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								string(java.ServiceInstanceLoadBalancerLoadBalancingPolicyLC),
+								string(java.ServiceInstanceLoadBalancerLoadBalancingPolicyIPHash),
+								string(java.ServiceInstanceLoadBalancerLoadBalancingPolicyRR),
+							}, false),
+						},
+						"subnets": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							ForceNew: true,
+							MinItems: 2,
+							MaxItems: 2,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"admin_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"console_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -680,6 +727,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	client := jClient.ServiceInstanceClient()
 
 	isBYOL := d.Get("bring_your_own_license").(bool)
+	useIdentityService := d.Get("use_identity_service").(bool)
 
 	input := java.CreateServiceInstanceInput{
 		ServiceName:        d.Get("name").(string),
@@ -689,7 +737,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 		BackupDestination:  java.ServiceInstanceBackupDestination(d.Get("backup_destination").(string)),
 		EnableAdminConsole: d.Get("enable_admin_console").(bool),
 		IsBYOL:             &isBYOL,
-		UseIdentityService: d.Get("use_identity_service").(bool),
+		UseIdentityService: &useIdentityService,
 		ProvisionOTD:       false, // force default to false, but may be overridden below in expandOTDConfig
 	}
 
@@ -726,9 +774,6 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	if val, ok := d.GetOk("source_service_name"); ok {
 		input.SourceServiceName = val.(string)
 	}
-	if val, ok := d.GetOk("use_identity_service"); ok {
-		input.UseIdentityService = val.(bool)
-	}
 	if val, ok := d.GetOk("subnet"); ok {
 		input.Subnet = val.(string)
 	}
@@ -736,6 +781,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 	expandJavaCloudStorage(d, &input)
 	expandWebLogicConfig(d, &input)
 	expandOTDConfig(d, &input)
+	expandLoadBalancer(d, &input)
 
 	info, err := client.CreateServiceInstance(&input)
 	if err != nil {
@@ -787,6 +833,10 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 
 	if val, ok := d.GetOk("assign_public_ip"); ok {
 		d.Set("assign_public_ip", val)
+	}
+
+	if err := d.Set("load_balancer", flattenLoadBalancer(d, result.LoadBalancer)); err != nil {
+		return fmt.Errorf("error setting load balancer information for %q: %+v", result.ServiceName, err)
 	}
 
 	wlsConfig, err := flattenWebLogicConfig(d, result.Components.WLS, result.WLSRoot)
@@ -879,6 +929,26 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 	}
 
 	return resourceOraclePAASJavaServiceInstanceRead(d, meta)
+}
+
+func expandLoadBalancer(d *schema.ResourceData, input *java.CreateServiceInstanceInput) {
+	loadBalancerConfig := d.Get("load_balancer").([]interface{})
+
+	if len(loadBalancerConfig) == 0 {
+		return
+	}
+	input.ConfigureLoadBalancer = true
+	loadBalancer := &java.LoadBalancer{}
+	attrs := loadBalancerConfig[0].(map[string]interface{})
+
+	if v := attrs["load_balancing_policy"]; v != nil {
+		loadBalancer.LoadBalancingPolicy = java.ServiceInstanceLoadBalancerLoadBalancingPolicy(v.(string))
+	}
+	if v := attrs["subnets"]; v != nil {
+		loadBalancer.Subnets = getStringList(d, "load_balancer.0.subnets")
+	}
+
+	input.LoadBalancer = loadBalancer
 }
 
 func expandWebLogicConfig(d *schema.ResourceData, input *java.CreateServiceInstanceInput) {
@@ -1013,6 +1083,10 @@ func expandJavaCloudStorage(d *schema.ResourceData, input *java.CreateServiceIns
 	}
 	if val, ok := attrs["cloud_storage_password"].(string); ok && val != "" {
 		input.CloudStoragePassword = val
+	}
+	if val, ok := attrs["use_oauth_for_storage"]; ok {
+		useOauthForStorage := val.(bool)
+		input.UseOauthForStorage = &useOauthForStorage
 	}
 }
 
@@ -1150,6 +1224,32 @@ func expandWLSPorts(webLogicServer *java.CreateWLS, config map[string]interface{
 	if v := attrs["content_port"]; v != nil {
 		webLogicServer.ContentPort = v.(int)
 	}
+}
+
+func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBalancerInfo) []interface{} {
+	result := make(map[string]interface{})
+	if loadBalancerInfo == nil {
+		return []interface{}{result}
+	}
+
+	if v, ok := d.GetOk("load_balancer.0.load_balancing_policy"); ok {
+		result["load_balancing_policy"] = v
+	}
+	if _, ok := d.GetOk("load_balancer.0.subnets"); ok {
+		result["subnets"] = getStringList(d, "load_balancer.0.subnets")
+	}
+
+	if loadBalancerInfo.Public.LoadBalancerAdminURL != "" {
+		result["admin_url"] = &loadBalancerInfo.Public.LoadBalancerAdminURL
+	}
+	if loadBalancerInfo.Public.LoadBalancerConsoleURL != "" {
+		result["console_url"] = &loadBalancerInfo.Public.LoadBalancerConsoleURL
+	}
+	if loadBalancerInfo.Public.URL != "" {
+		result["url"] = &loadBalancerInfo.Public.URL
+	}
+
+	return []interface{}{result}
 }
 
 func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, rootURL string) ([]interface{}, error) {

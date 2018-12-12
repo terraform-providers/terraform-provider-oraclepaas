@@ -163,6 +163,8 @@ the password for Oracle Public Cloud is used.
 
 * `create_if_missing` - (Optional) Specify if the given cloud_storage_container is to be created if it does not already exist. Default value is `false`.
 
+* `use_oauth_for_storage` - (Optional)  Flag that specifies whether to use the default OAuth protected object storage for instance backups.
+
 WebLogic Server supports the following:
 
 * `database` - (Required) Information about the database deployment on Oracle Database Cloud Service. Database
@@ -195,6 +197,8 @@ of the following formats: host:port:SID, host:port/serviceName.
 * `domain` - (Optional) Information about the WebLogic domain. Domain is documented below.
 
 * `ip_reservations` - (Optional) A list of ip reservation names.
+
+* `load_balancer` - (Optional) Information about the loadbalancer to attach to the java service instance. Load Balancer is specfied below. 
 
 * `managed_servers` - (Optional) Details information about the managed servers the java service instance will
 look after. Managed Servers is documented below.
@@ -351,9 +355,16 @@ The default value is 9001.
 
 * `content_port` - (Optional) Port for accessing the deployed applications using HTTP. The default value is 8001.
 
+Load Balancer supports the following:
+
+* `load_balancing_policy` - (Optional) Policy to use for routing requests to the origin servers of the Oracle managed load balancer. Valid values are `LEAST_CONN`, `IP_HASH`, or `ROUND_ROBIN`.
+
+* `subnets` - (Optional) A list of two OCI-managed load balancer ids.
+
 In addition to the above, the following values are exported:
 
 * `status` - The status of the service instance.
 
 * `uri` - The Uniform Resource Identifier for the Service Instance
 
+For `load_balancer` the `admin_url`, `console_url`, and `url` are exported. (eg. `load_balancer.0.url`)
