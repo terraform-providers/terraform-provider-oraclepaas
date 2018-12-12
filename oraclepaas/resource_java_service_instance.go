@@ -1084,6 +1084,7 @@ func expandJavaCloudStorage(d *schema.ResourceData, input *java.CreateServiceIns
 	if val, ok := attrs["cloud_storage_password"].(string); ok && val != "" {
 		input.CloudStoragePassword = val
 	}
+
 	if val, ok := attrs["use_oauth_for_storage"]; ok {
 		useOauthForStorage := val.(bool)
 		input.UseOauthForStorage = &useOauthForStorage
