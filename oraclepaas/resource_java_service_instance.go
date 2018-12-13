@@ -1230,7 +1230,7 @@ func expandWLSPorts(webLogicServer *java.CreateWLS, config map[string]interface{
 func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBalancerInfo) []interface{} {
 	result := make(map[string]interface{})
 	if loadBalancerInfo == nil {
-		return []interface{}{result}
+		return []interface{}{}
 	}
 
 	if v, ok := d.GetOk("load_balancer.0.load_balancing_policy"); ok {
@@ -1241,13 +1241,13 @@ func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBala
 	}
 
 	if loadBalancerInfo.Public.LoadBalancerAdminURL != "" {
-		result["admin_url"] = &loadBalancerInfo.Public.LoadBalancerAdminURL
+		result["admin_url"] = loadBalancerInfo.Public.LoadBalancerAdminURL
 	}
 	if loadBalancerInfo.Public.LoadBalancerConsoleURL != "" {
-		result["console_url"] = &loadBalancerInfo.Public.LoadBalancerConsoleURL
+		result["console_url"] = loadBalancerInfo.Public.LoadBalancerConsoleURL
 	}
 	if loadBalancerInfo.Public.URL != "" {
-		result["url"] = &loadBalancerInfo.Public.URL
+		result["url"] = loadBalancerInfo.Public.URL
 	}
 
 	return []interface{}{result}
