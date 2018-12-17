@@ -1,11 +1,20 @@
 ## 1.3.3 (Unreleased)
+
+FEATURES: 
+
+* oraclepaas_java_service_instance - `load_balancer` support has been added [GH-54]
+
+BUG FIXES:
+
+* oraclepaas_java_service_instance - Timeout support has been fixed [GH-56]
+
 ## 1.3.2 (September 26, 2018)
 
 * oraclepaas_java_service_instance -  `bring_your_own_license` is now set correctly ([#51](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/51))
 
 ## 1.3.1 (September 12, 2018)
 
-IMPROVEMNTS: 
+IMPROVEMENTS: 
 
 * oraclepaas_application_container - Additional oci attributes now available ([#49](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/49))
 
