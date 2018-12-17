@@ -1,12 +1,12 @@
-## 1.4.0 (Unreleased)
+## 1.4.0 (December 17, 2018)
 
 FEATURES: 
 
-* oraclepaas_java_service_instance - `load_balancer` support has been added [GH-54]
+* oraclepaas_java_service_instance - `load_balancer` support has been added ([#54](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/54))
 
 BUG FIXES:
 
-* oraclepaas_java_service_instance - Timeout support has been fixed [GH-56]
+* oraclepaas_java_service_instance - Timeout support has been fixed ([#56](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/56))
 
 ## 1.3.2 (September 26, 2018)
 
