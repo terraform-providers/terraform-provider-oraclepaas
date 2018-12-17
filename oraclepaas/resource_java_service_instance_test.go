@@ -555,7 +555,6 @@ resource "oraclepaas_java_service_instance" "test" {
 
     load_balancer {}
     use_identity_service = true
-    use_oauth_for_storage = false
 
     weblogic_server {
         shape = "oc3"
@@ -573,6 +572,7 @@ resource "oraclepaas_java_service_instance" "test" {
     backups {
         cloud_storage_container = "%sacctest-%d"
         auto_generate = true
+        use_oauth_for_storage = false
     }
 }`, rInt, os.Getenv("OPC_STORAGE_URL"), rInt, rInt, os.Getenv("OPC_STORAGE_URL"), rInt)
 }

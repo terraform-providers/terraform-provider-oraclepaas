@@ -21,6 +21,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(90 * time.Minute),
+			Update: schema.DefaultTimeout(90 * time.Minute),
 			Delete: schema.DefaultTimeout(90 * time.Minute),
 		},
 
@@ -725,6 +726,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 		return err
 	}
 	client := jClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutCreate)
 
 	isBYOL := d.Get("bring_your_own_license").(bool)
 	useIdentityService := d.Get("use_identity_service").(bool)
@@ -860,6 +862,7 @@ func resourceOraclePAASJavaServiceInstanceDelete(d *schema.ResourceData, meta in
 		return err
 	}
 	client := jClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutDelete)
 	name := d.Id()
 
 	log.Printf("[DEBUG] Deleting JavaServiceInstance: %q", name)
@@ -893,6 +896,7 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 		return err
 	}
 	client := jClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutUpdate)
 
 	if d.HasChange("desired_state") {
 		desiredState := java.ServiceInstanceLifecycleStateStart
@@ -1084,6 +1088,7 @@ func expandJavaCloudStorage(d *schema.ResourceData, input *java.CreateServiceIns
 	if val, ok := attrs["cloud_storage_password"].(string); ok && val != "" {
 		input.CloudStoragePassword = val
 	}
+
 	if val, ok := attrs["use_oauth_for_storage"]; ok {
 		useOauthForStorage := val.(bool)
 		input.UseOauthForStorage = &useOauthForStorage
@@ -1229,7 +1234,7 @@ func expandWLSPorts(webLogicServer *java.CreateWLS, config map[string]interface{
 func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBalancerInfo) []interface{} {
 	result := make(map[string]interface{})
 	if loadBalancerInfo == nil {
-		return []interface{}{result}
+		return []interface{}{}
 	}
 
 	if v, ok := d.GetOk("load_balancer.0.load_balancing_policy"); ok {
@@ -1240,13 +1245,13 @@ func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBala
 	}
 
 	if loadBalancerInfo.Public.LoadBalancerAdminURL != "" {
-		result["admin_url"] = &loadBalancerInfo.Public.LoadBalancerAdminURL
+		result["admin_url"] = loadBalancerInfo.Public.LoadBalancerAdminURL
 	}
 	if loadBalancerInfo.Public.LoadBalancerConsoleURL != "" {
-		result["console_url"] = &loadBalancerInfo.Public.LoadBalancerConsoleURL
+		result["console_url"] = loadBalancerInfo.Public.LoadBalancerConsoleURL
 	}
 	if loadBalancerInfo.Public.URL != "" {
-		result["url"] = &loadBalancerInfo.Public.URL
+		result["url"] = loadBalancerInfo.Public.URL
 	}
 
 	return []interface{}{result}
