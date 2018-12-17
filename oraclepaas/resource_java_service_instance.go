@@ -21,6 +21,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(90 * time.Minute),
+			Update: schema.DefaultTimeout(90 * time.Minute),
 			Delete: schema.DefaultTimeout(90 * time.Minute),
 		},
 
@@ -725,6 +726,7 @@ func resourceOraclePAASJavaServiceInstanceCreate(d *schema.ResourceData, meta in
 		return err
 	}
 	client := jClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutCreate)
 
 	isBYOL := d.Get("bring_your_own_license").(bool)
 	useIdentityService := d.Get("use_identity_service").(bool)
@@ -860,6 +862,7 @@ func resourceOraclePAASJavaServiceInstanceDelete(d *schema.ResourceData, meta in
 		return err
 	}
 	client := jClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutDelete)
 	name := d.Id()
 
 	log.Printf("[DEBUG] Deleting JavaServiceInstance: %q", name)
@@ -893,6 +896,7 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 		return err
 	}
 	client := jClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutUpdate)
 
 	if d.HasChange("desired_state") {
 		desiredState := java.ServiceInstanceLifecycleStateStart
