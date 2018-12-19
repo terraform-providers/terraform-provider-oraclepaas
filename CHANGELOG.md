@@ -1,4 +1,9 @@
 ## 1.4.1 (Unreleased)
+
+BUG FIXES:
+
+* Added timeout support for database service instance and mysql service instance. [GH-57]
+
 ## 1.4.0 (December 17, 2018)
 
 FEATURES: 
