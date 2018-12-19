@@ -695,7 +695,6 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 		return err
 	}
 	client := dbClient.ServiceInstanceClient()
-	client.Timeout = d.Timeout(schema.TimeoutDelete)
 
 	name := d.Id()
 
