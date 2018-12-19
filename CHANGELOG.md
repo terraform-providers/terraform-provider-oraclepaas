@@ -1,8 +1,8 @@
-## 1.4.1 (Unreleased)
+## 1.4.1 (December 19, 2018)
 
 BUG FIXES:
 
-* Added timeout support for database service instance and mysql service instance. [GH-57]
+* Added timeout support for database service instance and mysql service instance. ([#57](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/57))
 
 ## 1.4.0 (December 17, 2018)
 
