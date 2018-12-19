@@ -311,6 +311,7 @@ func resourceOraclePAASMySQLServiceInstanceCreate(d *schema.ResourceData, meta i
 		return err
 	}
 	client := mySQLClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutCreate)
 
 	input := mysql.CreateServiceInstanceInput{}
 	input.ServiceParameters, err = expandServiceParameters(d)
@@ -605,6 +606,7 @@ func resourceOraclePAASMySQLServiceInstanceDelete(d *schema.ResourceData, meta i
 	}
 
 	client := mySQLClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutDelete)
 	jobID := d.Id()
 
 	log.Printf("[DEBUG] Deleting MySQL ServiceInstance: %v", jobID)

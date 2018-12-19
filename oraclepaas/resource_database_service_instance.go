@@ -29,6 +29,7 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(120 * time.Minute),
+			Update: schema.DefaultTimeout(90 * time.Minute),
 			Delete: schema.DefaultTimeout(120 * time.Minute),
 		},
 
@@ -530,6 +531,7 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		return err
 	}
 	client := dbClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutCreate)
 
 	isBYOL := d.Get("bring_your_own_license").(bool)
 
@@ -693,6 +695,7 @@ func resourceOPAASDatabaseServiceInstanceDelete(d *schema.ResourceData, meta int
 		return err
 	}
 	client := dbClient.ServiceInstanceClient()
+
 	name := d.Id()
 
 	client.Timeout = d.Timeout(schema.TimeoutDelete)
@@ -714,6 +717,7 @@ func resourceOPAASDatabaseServiceInstanceUpdate(d *schema.ResourceData, meta int
 		return err
 	}
 	client := dbClient.ServiceInstanceClient()
+	client.Timeout = d.Timeout(schema.TimeoutUpdate)
 
 	if d.HasChange("desired_state") {
 		updateInput := &database.DesiredStateInput{
