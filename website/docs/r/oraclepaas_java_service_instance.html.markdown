@@ -248,7 +248,7 @@ Database supports the following:
 
 * `password` - (Required) Password for the database administrator.
 
-* `name` - (Required) Name of the database on the Database Cloud Service.
+* `name` - (Optional) Name of the database on the Database Cloud Service.
 
 * `hostname` - (Computed) The hostname for the database.
 

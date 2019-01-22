@@ -281,7 +281,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 									},
 									"name": {
 										Type:     schema.TypeString,
-										Required: true,
+										Optional: true,
 										ForceNew: true,
 									},
 									"hostname": {
@@ -1057,7 +1057,9 @@ func expandDB(webLogicServer *java.CreateWLS, config map[string]interface{}) {
 	}
 
 	attrs := dbaInfo[0].(map[string]interface{})
-	webLogicServer.DBServiceName = attrs["name"].(string)
+	if attrs["name"].(string) != "" {
+		webLogicServer.DBServiceName = attrs["name"].(string)
+	}
 	webLogicServer.DBAName = attrs["username"].(string)
 	webLogicServer.DBAPassword = attrs["password"].(string)
 	if v := attrs["pdb_name"]; v != nil {
