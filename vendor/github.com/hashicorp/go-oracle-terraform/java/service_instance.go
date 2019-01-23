@@ -1238,8 +1238,8 @@ type CreateWLS struct {
 	// 	deployment for your Oracle Java Cloud Service instance on Oracle Cloud Infrastructure.
 	//
 	// 	An Oracle Database Cloud Service database deployment based on a RAC database is also not supported.
-	// Required
-	DBServiceName string `json:"dbServiceName"`
+	// Optional
+	DBServiceName string `json:"dbServiceName,omitempty"`
 	// Mode of the domain. Valid values include: DEVELOPMENT and PRODUCTION. The default value is PRODUCTION.
 	// Optional
 	DomainMode ServiceInstanceDomainMode `json:"domainMode,omitempty"`
