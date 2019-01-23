@@ -1,4 +1,4 @@
-## 1.4.2 (Unreleased)
+## 1.4.2 (January 23, 2019)
 
 BUG FIXES: 
 
