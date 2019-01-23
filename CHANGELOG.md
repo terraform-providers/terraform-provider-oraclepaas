@@ -1,4 +1,9 @@
 ## 1.4.2 (Unreleased)
+
+BUG FIXES: 
+
+* oraclepaas_java_service_instance - `weblogic_server.0.connect_string` can now be used in place of `weblogic_server.0.database.0.name`
+
 ## 1.4.1 (December 19, 2018)
 
 BUG FIXES:
