@@ -976,6 +976,9 @@ func expandWebLogicConfig(d *schema.ResourceData, input *java.CreateServiceInsta
 	if v := attrs["cluster_name"]; v != nil {
 		webLogicServer.ClusterName = v.(string)
 	}
+	if v := attrs["connect_string"]; v != nil {
+		webLogicServer.ConnectString = v.(string)
+	}
 	if v := attrs["ip_reservations"]; v != nil {
 		webLogicServer.IPReservations = strings.Join(getStringList(d, "weblogic_server.0.ip_reservations"), ",")
 	}
