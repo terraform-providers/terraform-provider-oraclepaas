@@ -2,11 +2,11 @@
 
 BUG FIXES: 
 
-* oraclepaas_java_service_instance - `weblogic_server.0.connect_string` is properly read from the config file
+* oraclepaas_java_service_instance - `weblogic_server.0.connect_string` is properly read from the config file [GH-60]
 
 UPDATES:
 
-* Update travis.yml to go 1.11.x
+* Update travis.yml to go 1.11.x [GH-58]
 
 ## 1.4.2 (January 23, 2019)
 
