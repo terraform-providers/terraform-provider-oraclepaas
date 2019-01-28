@@ -1,12 +1,12 @@
-## 1.4.3 (Unreleased)
+## 1.4.3 (January 28, 2019)
 
 BUG FIXES: 
 
-* oraclepaas_java_service_instance - `weblogic_server.0.connect_string` is properly read from the config file [GH-60]
+* oraclepaas_java_service_instance - `weblogic_server.0.connect_string` is properly read from the config file ([#60](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/60))
 
 UPDATES:
 
-* Update travis.yml to go 1.11.x [GH-58]
+* Update travis.yml to go 1.11.x ([#58](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/58))
 
 ## 1.4.2 (January 23, 2019)
 
