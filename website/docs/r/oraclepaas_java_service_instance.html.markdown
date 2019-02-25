@@ -3,15 +3,60 @@ layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_java_service_instance"
 sidebar_current: "docs-oraclepaas-resource-service-instance"
 description: |-
-  Creates and manages an Oracle Java Cloud Service instance on the Oracle Cloud Platform.
+  Creates and manages an Oracle Java Cloud Service instance on Oracle Cloud Infrastructure and Oracle Cloud Infrastructure Classic.
 
 ---
 
 # oraclepaas_java_service_instance
 
-The `oraclepaas_java_service_instance` resource creates and manages an Oracle Java Cloud Service instance on the Oracle Cloud Platform.
+The `oraclepaas_java_service_instance` resource creates and manages an Oracle Java Cloud Service instance on Oracle Cloud Infrastructure and Oracle Cloud Infrastructure Classic.
 
 ## Example Usage
+
+The following is an example of how to provision a service instance with on Oracle Cloud Infrastructure:
+
+```hcl
+resource "oraclepaas_java_service_instance" "jcs" {
+  name        = "example"
+  description = "Example Terraformed JCS with OCI DB"
+
+  edition                = "EE"            
+  service_version        = "12cRelease213"
+  metering_frequency     = "HOURLY"
+  bring_your_own_license = true
+
+  ssh_public_key = "${file(var.ssh_public_key_file)}"
+
+  # OCI Settings
+  region              = "${var.region}"
+  availability_domain = "${var.availability_domain}"
+  subnet              = "${var.subnet.id}"
+
+  weblogic_server {
+    shape = "VM.Standard2.1"
+
+    connect_string = "//${oci_database_db_system.database.hostname}-scan.${data.oci_core_subnet.subnet.subnet_domain_name}:1521/${oci_database_db_system.database.db_home.0.database.0.pdb_name}.${data.oci_core_subnet.subnet.subnet_domain_name}"
+
+    database {
+      username = "sys"
+      password = "${oci_database_db_system.database.db_home.0.database.0.admin_password}"
+    }
+
+    admin {
+      username = "weblogic"
+      password = "Weblogic_1"
+    }
+  }
+
+  backups {
+    cloud_storage_container = "https://swiftobjectstorage.${var.region}.oraclecloud.com/v1/${var.tenancy}/${oci_objectstorage_bucket.backup.name}"
+    cloud_storage_username  = "${var.storage_username}"
+    cloud_storage_password  = "${var.storage_auth_token_token}"
+  }
+}
+```
+
+The following is an example of how to provision a service instance with an Database Cloud Service instance on Oracle Cloud Infrastructure Classic :
 
 ```hcl
 resource "oraclepaas_database_service_instance" "default" {
@@ -167,8 +212,7 @@ the password for Oracle Public Cloud is used.
 
 WebLogic Server supports the following:
 
-* `database` - (Required) Information about the database deployment on Oracle Database Cloud Service. Database
-is documented below.
+* `database` - (Required) Information about the database deployment on Oracle Database Cloud Service or Oracle Cloud Infrastructure. Database is documented below.
 
 * `shape` - (Required) Desired compute shape.
 
@@ -187,8 +231,13 @@ for the service instance.
 
 * `cluster` - (Optional) Details the properties about one or more clusters. Cluster is documented below.
 
-* `connect_string` - (Optional) - Connection string for the database. The connection string must be entered using one
-of the following formats: host:port:SID, host:port/serviceName.
+* `connect_string` - (Optional) - Connection string for the database. The connection string must be entered using one of the following formats:
+
+  * For Oracle Cloud Infrastructure VM or Exadata DB systems 12c or later: `//host-scan.networkdomain:1521/pdbname.networkdomain`
+
+  * For Oracle Cloud Infrastructure Bare Metal DB systems 12c or later: `//host.networkdomain:1521/pdbname.networkdomain`
+
+  * For Oracle Cloud Infrastructure Classic: `host:port:SID`, `host:port/serviceName`.
 
 * `content_port` - (Optional) - Port for accessing the deployed applications using HTTP. Default value is 8001.
 
@@ -198,7 +247,7 @@ of the following formats: host:port:SID, host:port/serviceName.
 
 * `ip_reservations` - (Optional) A list of ip reservation names.
 
-* `load_balancer` - (Optional) Information about the loadbalancer to attach to the java service instance. Load Balancer is specfied below. 
+* `load_balancer` - (Optional) Information about the loadbalancer to attach to the java service instance. Load Balancer is specfied below.
 
 * `managed_servers` - (Optional) Details information about the managed servers the java service instance will
 look after. Managed Servers is documented below.
@@ -248,7 +297,7 @@ Database supports the following:
 
 * `password` - (Required) Password for the database administrator.
 
-* `name` - (Optional) Name of the database on the Database Cloud Service.
+* `name` - (Optional) Name of the database on the Database Cloud Service. For use with Oracle Database Cloud Service only, Not required when deploying with Oracle Cloud Infrastructure native VM, Bare Metal or Exadata Cloud Service instance, see `connect_string`.
 
 * `hostname` - (Computed) The hostname for the database.
 
