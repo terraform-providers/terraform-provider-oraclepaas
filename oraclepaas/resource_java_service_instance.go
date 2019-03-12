@@ -1483,7 +1483,7 @@ func flattenOTDConfig(client *java.ServiceInstanceClient, d *schema.ResourceData
 	result := make(map[string]interface{})
 
 	if d.Get("oracle_traffic_director.0.shape") == nil {
-		return []interface{}{}, nil
+		return nil, nil
 	}
 	result["root_url"] = rootURL
 	result["admin"] = flattenOTDAdmin(d, otdConfig.AdminHostName)
