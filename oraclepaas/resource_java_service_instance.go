@@ -1482,7 +1482,7 @@ func flattenWebLogicConfig(client *java.ServiceInstanceClient, d *schema.Resourc
 func flattenOTDConfig(client *java.ServiceInstanceClient, d *schema.ResourceData, otdConfig java.OTD, rootURL string) ([]interface{}, error) {
 	result := make(map[string]interface{})
 
-	if d.Get("oracle_traffic_director.0.shape") == nil {
+	if d.Get("oracle_traffic_director.0.shape").(string) == "" {
 		return nil, nil
 	}
 	result["root_url"] = rootURL
