@@ -1,8 +1,10 @@
 package java
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -618,7 +620,23 @@ type Clusters struct {
 	// Cluster type - APPLICATION_CLUSTER or CACHING_CLUSTER
 	// Shape - Compute shape used by nodes of this cluster
 	// Whether this cluster is accessible from the public network (external value is true if accessible)
-	Profile string `json:"profile"`
+	ProfileString string  `json:"profile"`
+	Profile       Profile `json:"-"`
+}
+
+// Profile defines specific cluster and server information.
+type Profile struct {
+	ClusterType          string `json:"clusterType"`
+	ServerCountString    string `json:"serverCount"`
+	ServerCount          int    `json:"-"`
+	ServersPerNodeString string `json:"serversPerNode"`
+	ServersPerNode       int    `json:"-"`
+	ClusterName          string `json:"clusterName"`
+	Type                 string `json:"type"`
+	DefaultString        string `json:"default"`
+	Default              bool   `json:"-"`
+	ExternalString       string `json:"external"`
+	External             bool   `json:"-"`
 }
 
 // PaaSServers specifies the informaiton about the different paas servers associated with the service instance
@@ -1599,6 +1617,42 @@ func (c *ServiceInstanceClient) GetServiceInstance(getInput *GetServiceInstanceI
 		return nil, err
 	}
 
+	for key, cluster := range serviceInstance.Components.WLS.Clusters {
+		profile := &Profile{}
+		err := json.Unmarshal([]byte(cluster.ProfileString), profile)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling profile: %s", err)
+		}
+		if profile.ServerCountString != "" {
+			profile.ServerCount, err = strconv.Atoi(profile.ServerCountString)
+			if err != nil {
+				return nil, fmt.Errorf("error converting string to int for profile attribute `server_count`")
+			}
+		}
+		if profile.ServersPerNodeString != "" {
+			profile.ServersPerNode, err = strconv.Atoi(profile.ServersPerNodeString)
+			if err != nil {
+				return nil, fmt.Errorf("error converting string to int for profile attribute `servers_per_node`")
+			}
+		}
+		if profile.ExternalString != "" {
+			profile.External, err = strconv.ParseBool(profile.ExternalString)
+			if err != nil {
+				return nil, fmt.Errorf("error converting string to bool for profile attribute `external`")
+			}
+		}
+		if profile.DefaultString != "" {
+			profile.Default, err = strconv.ParseBool(profile.DefaultString)
+			if err != nil {
+				return nil, fmt.Errorf("error converting string to bool for profile attribute `default`: %+v", cluster.Profile)
+			}
+		} else {
+			profile.Default = false
+		}
+		cluster.Profile = *profile
+		serviceInstance.Components.WLS.Clusters[key] = cluster
+	}
+
 	return &serviceInstance, nil
 }
 
@@ -1952,7 +2006,7 @@ func (c *ServiceInstanceClient) ScaleInServiceInstance(input *ScaleInInput) erro
 }
 
 // GetHostNameByNumber returns the requested hostname provisioned for a WLS or OTD server
-func (c *ServiceInstanceClient) GetHostNameByNumber(hosts map[string]HostName, num int) (string, error) {
+func GetHostNameByNumber(hosts map[string]HostName, num int) (string, error) {
 	if len(hosts) < num {
 		return "", fmt.Errorf("unexpected length of hosts. Expected: %d Actual: %d", num, len(hosts))
 	}

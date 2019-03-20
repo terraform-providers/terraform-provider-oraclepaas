@@ -270,19 +270,8 @@ pluggable database name when the database was created.
 * `upper_stack_product_name` - (Optional) The Oracle Fusion Middleware product installer to add to this Oracle Java
 Cloud Service instance. Valid values are `ODI` (Oracle Data Integrator) or `WCP` (Oracle WebCenter Portal)
 
-* `additional_node` - (Optional) A list of additional nodes to scale out the weblogic server. Additional Node is documented below.
 
 * `root_url` - (Computed) The URL of the WebLogic Server Administration console.
-
-Additional Node supports the following:
-
-* `cluster_name` - (Optional) Specifies the name of the WLS application cluster to scale out.
-
-* `create_cluster_if_missing` - (Optional) Specifies whether or not to create the cluster if it's missing. Defaults to `false`.
-
-* `ip_reservation` - (Optional) Specifies the ip reservation name for the managed server being added.
-
-* `managed_server_count` - (Optional) Specifies the number of managed servers to add to the weblogic server application cluster. Valid values are either `0` or `1`. Defaults to `0`.
 
 OTD supports the following:
 
@@ -301,15 +290,7 @@ This value defaults to false (that is, HA is not enabled).
 include: `least_connection_count`, `least_response_time`, `round_robin`. The default value is
 `least_connection_count`.
 
-* `secondary_node` - (Optional) Defines the properties to scale out a secondary node for the Oracle Traffic Director. Secondary Node is documented below.
-
 * `root_url` - (Computed) The URL of the OTD console.
-
-Secondary Node supports the following: 
-
-`ip_reservation` - (Optional) Specifies an IP reservation name for the load balancer node you are adding.
-
-`server_count` - (Optional) Specifies the number of user-managed load balancer nodes to add to the Oracle Traffic Director. Valid values are `0` or `1`. Defaults to `0`.
 
 Database supports the following:
 
