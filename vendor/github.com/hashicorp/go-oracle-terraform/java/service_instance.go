@@ -409,7 +409,7 @@ type ServiceInstance struct {
 	// Components key to the operation of this service instance.
 	KeyComponentInstance string `json:"keyComponentInstance"`
 	// Oracle-managed load balancer details.
-	LoadBalancer *LoadBalancerInfo `json:"loadbalancer,omitempty"`
+	LoadBalancer *LoadBalancerInfo `json:"loadBalancer,omitempty"`
 	// Current version for the service definition (schema) used by this service instance.
 	MetaVersion string `json:"metaVersion"`
 	// Metering frequency. For example: HOURLY or MONTHLY

@@ -228,9 +228,10 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 										}, false),
 									},
 									"server_count": {
-										Type:     schema.TypeInt,
-										Optional: true,
-										Default:  1,
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Default:      1,
+										ValidateFunc: validation.IntAtLeast(1),
 									},
 									"servers_per_node": {
 										Type:         schema.TypeInt,
@@ -519,7 +520,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 						"high_availability": {
 							Type:     schema.TypeBool,
 							Optional: true,
-							ForceNew: true,
 							Default:  false,
 						},
 						"ip_reservations": {
@@ -934,6 +934,67 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 		}
 	}
 
+	if d.HasChange("oracle_traffic_director.0.high_availability") {
+		getInput := java.GetServiceInstanceInput{
+			Name: d.Id(),
+		}
+		result, err := client.GetServiceInstance(&getInput)
+		if err != nil {
+			// Java Service Instance does not exist
+			if opcClient.WasNotFoundError(err) || strings.Contains(err.Error(), "No such service") {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error finding JavaServiceInstance to update %s: %s", d.Id(), err)
+		}
+
+		if result == nil {
+			log.Printf("[DEBUG] Unable to find Java Service Instance %s", d.Id())
+			d.SetId("")
+			return nil
+		}
+		_, new := d.GetChange("oracle_traffic_director.0.high_availability")
+		if new.(bool) && len(result.Components.OTD.Hosts.UserHosts) == 1 {
+			// Scale out
+			otdComponent := &java.ScaleOutOTD{
+				OTDServerCount: 1,
+			}
+
+			component := java.ScaleOutComponent{
+				OTD: otdComponent,
+			}
+
+			scaleOutInput := &java.ScaleOutInput{
+				Name:       d.Id(),
+				Components: component,
+			}
+			err := client.ScaleOutServiceInstance(scaleOutInput)
+			if err != nil {
+				return fmt.Errorf("error scaling out the oracle traffic director: %+v", err)
+			}
+		} else if !new.(bool) && len(result.Components.OTD.Hosts.UserHosts) == 2 {
+			// Scale in
+			hostNames := make([]string, 0)
+			for k := range result.Components.OTD.Hosts.UserHosts {
+				hostNames = append(hostNames, k)
+			}
+			sort.Strings(hostNames)
+			scaleInOTD := &java.ScaleInHostName{
+				HostNames: []string{hostNames[1]},
+			}
+
+			scaleInInput := &java.ScaleInInput{
+				Name:       d.Id(),
+				Components: java.ScaleInComponent{OTD: scaleInOTD},
+			}
+
+			err = client.ScaleInServiceInstance(scaleInInput)
+			if err != nil {
+				return fmt.Errorf("unable to scale in the oracle traffic director : %s", err)
+			}
+		}
+	}
+
 	if d.HasChange("weblogic_server.0.managed_servers.0.server_count") {
 		old, new := d.GetChange("weblogic_server.0.managed_servers.0.server_count")
 		currentNodeCount := old.(int)
@@ -1068,6 +1129,10 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 					return nil
 				}
 
+				// serverNames and hostnames aren't paired together in the api but their suffixes match
+				// (ie. instancename_1 matches instancename-wls-1).
+				// To scale in a cluster, we'll grab all the serverNames, sort them to find the latest and then compare it's suffix
+				// to the hostnames associated with the java service instance to determine which hostname to scale in.
 				serverNames := make([]string, 0)
 				for k := range result.Components.WLS.Clusters[attrs["name"].(string)].PaaSServers {
 					serverNames = append(serverNames, k)
