@@ -92,7 +92,7 @@ func TestAccOraclePAASJavaServiceInstance_OTD(t *testing.T) {
 	})
 }
 
-func TestAccOraclePAASJavaServiceInstance_ManagedServers(t *testing.T) {
+func TestAccOraclePAASJavaServiceInstance_1ManagedServers(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccJavaServiceInstanceManagedServers(ri)
 	config2 := testAccJavaServiceInstanceManagedServersUpdated(ri)
@@ -107,7 +107,7 @@ func TestAccOraclePAASJavaServiceInstance_ManagedServers(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckJavaServiceInstanceExists,
 					resource.TestCheckResourceAttr(
-						resourceName, "weblogic_server.0.managed_servers.0.server_count", "4"),
+						resourceName, "weblogic_server.0.managed_servers.0.server_count", "1"),
 				),
 			},
 			{
@@ -115,7 +115,7 @@ func TestAccOraclePAASJavaServiceInstance_ManagedServers(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckJavaServiceInstanceExists,
 					resource.TestCheckResourceAttr(
-						resourceName, "weblogic_server.0.managed_servers.0.server_count", "2"),
+						resourceName, "weblogic_server.0.managed_servers.0.server_count", "3"),
 				),
 			},
 			{
@@ -123,14 +123,14 @@ func TestAccOraclePAASJavaServiceInstance_ManagedServers(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckJavaServiceInstanceExists,
 					resource.TestCheckResourceAttr(
-						resourceName, "weblogic_server.0.managed_servers.0.server_count", "4"),
+						resourceName, "weblogic_server.0.managed_servers.0.server_count", "1"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccOraclePAASJavaServiceInstance_Clusters(t *testing.T) {
+func TestAccOraclePAASJavaServiceInstance_1Clusters(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccJavaServiceInstanceClusters(ri)
 	config2 := testAccJavaServiceInstanceClustersUpdated(ri)
@@ -180,7 +180,7 @@ func TestAccOraclePAASJavaServiceInstance_Clusters(t *testing.T) {
 	})
 }
 
-func TestAccOraclePAASJavaServiceInstance_UpdateShape(t *testing.T) {
+func TestAccOraclePAASJavaServiceInstance_1UpdateShape(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccJavaServiceInstanceBasic(ri)
 	config2 := testAccJavaServiceInstanceUpdateShape(ri)
@@ -210,7 +210,7 @@ func TestAccOraclePAASJavaServiceInstance_UpdateShape(t *testing.T) {
 	})
 }
 
-func TestAccOraclePAASJavaServiceInstance_LoadBalancer(t *testing.T) {
+func TestAccOraclePAASJavaServiceInstance_1LoadBalancer(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccJavaServiceInstanceLoadBalancer(ri)
 	resourceName := "oraclepaas_java_service_instance.test"

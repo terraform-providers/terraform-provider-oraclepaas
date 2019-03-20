@@ -938,7 +938,7 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 		old, new := d.GetChange("weblogic_server.0.managed_servers.0.server_count")
 		currentNodeCount := old.(int)
 		requestedNodeCount := new.(int)
-		if currentNodeCount < requestedNodeCount {
+		if currentNodeCount != 0 && currentNodeCount < requestedNodeCount {
 			for i := currentNodeCount; i < requestedNodeCount; i++ {
 				wlsComponent := &java.ScaleOutWLS{
 					ManagedServerCount: 1,
