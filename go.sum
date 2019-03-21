@@ -134,6 +134,8 @@ github.com/hashicorp/go-oracle-terraform v0.15.3 h1:Z3GWBLn1WrRPBOo3LAgGa9wCozKz
 github.com/hashicorp/go-oracle-terraform v0.15.3/go.mod h1:09jT3Y/OIsjTjQ2+3bkVNPDKqWcGIYYvjB2BEKVUdvc=
 github.com/hashicorp/go-oracle-terraform v0.16.0 h1:75hKJYf2/ZDR3FTbohxBuhe4T/OseoGQtgwxvhntTJY=
 github.com/hashicorp/go-oracle-terraform v0.16.0/go.mod h1:09jT3Y/OIsjTjQ2+3bkVNPDKqWcGIYYvjB2BEKVUdvc=
+github.com/hashicorp/go-oracle-terraform v0.16.1 h1:l2xowHZoZdDEMJNdzHwHVo64Q1SwzqziXCHbKsffhUs=
+github.com/hashicorp/go-oracle-terraform v0.16.1/go.mod h1:09jT3Y/OIsjTjQ2+3bkVNPDKqWcGIYYvjB2BEKVUdvc=
 github.com/hashicorp/go-plugin v0.0.0-20180125190438-e53f54cbf51e/go.mod h1:JSqWYsict+jzcj0+xElxyrBQRPNoiWQuddnxArJ7XHQ=
 github.com/hashicorp/go-plugin v0.0.0-20181211201406-f4c3476bd385 h1:2/QDBGQ+Q2bcTfnT0mdEevFCVMkyM06thqamOXWX5pk=
 github.com/hashicorp/go-plugin v0.0.0-20181211201406-f4c3476bd385/go.mod h1:Ft7ju2vWzhO0ETMKUVo12XmXmII6eSUS4rsPTkY/siA=
