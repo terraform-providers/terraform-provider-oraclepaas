@@ -3,6 +3,7 @@ package oraclepaas
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -209,7 +210,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 						"cluster": {
 							Type:          schema.TypeList,
 							Optional:      true,
-							ForceNew:      true,
 							ConflictsWith: []string{"weblogic_server.0.cluster_name"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -228,10 +228,10 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 										}, false),
 									},
 									"server_count": {
-										Type:     schema.TypeInt,
-										Optional: true,
-										ForceNew: true,
-										Default:  1,
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Default:      1,
+										ValidateFunc: validation.IntAtLeast(1),
 									},
 									"servers_per_node": {
 										Type:         schema.TypeInt,
@@ -350,7 +350,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 									"server_count": {
 										Type:         schema.TypeInt,
 										Optional:     true,
-										ForceNew:     true,
 										ValidateFunc: validation.IntBetween(1, 8),
 										Default:      1,
 									},
@@ -521,7 +520,6 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 						"high_availability": {
 							Type:     schema.TypeBool,
 							Optional: true,
-							ForceNew: true,
 							Default:  false,
 						},
 						"ip_reservations": {
@@ -816,7 +814,6 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 		}
 		return fmt.Errorf("Error reading JavaServiceInstance %s: %s", d.Id(), err)
 	}
-
 	if result == nil {
 		log.Printf("[DEBUG] Unable to find Java Service Instance %s", d.Id())
 		d.SetId("")
@@ -841,16 +838,21 @@ func resourceOraclePAASJavaServiceInstanceRead(d *schema.ResourceData, meta inte
 		return fmt.Errorf("error setting load balancer information for %q: %+v", result.ServiceName, err)
 	}
 
-	wlsConfig, err := flattenWebLogicConfig(d, result.Components.WLS, result.WLSRoot)
+	wlsConfig, err := flattenWebLogicConfig(client, d, result.Components.WLS, result.WLSRoot)
 	if err != nil {
 		return err
 	}
 	if err := d.Set("weblogic_server", wlsConfig); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Java Service instance WebLogic Server: %+v", err)
 	}
-	/* if err := d.Set("oracle_traffic_director", flattenOTDConfig(d, result.Components.OTD, result.OTDRoot)); err != nil {
+
+	otdConfig, err := flattenOTDConfig(client, d, result.Components.OTD, result.OTDRoot)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("oracle_traffic_director", otdConfig); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Java Service Instance Oracle Traffic Director: %+v", err)
-	} */
+	}
 
 	return nil
 }
@@ -929,6 +931,248 @@ func resourceOraclePAASJavaServiceInstanceUpdate(d *schema.ResourceData, meta in
 		err := client.ScaleUpDownServiceInstance(updateInput)
 		if err != nil {
 			return err
+		}
+	}
+
+	if d.HasChange("oracle_traffic_director.0.high_availability") {
+		getInput := java.GetServiceInstanceInput{
+			Name: d.Id(),
+		}
+		result, err := client.GetServiceInstance(&getInput)
+		if err != nil {
+			// Java Service Instance does not exist
+			if opcClient.WasNotFoundError(err) || strings.Contains(err.Error(), "No such service") {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error finding JavaServiceInstance to update %s: %s", d.Id(), err)
+		}
+
+		if result == nil {
+			log.Printf("[DEBUG] Unable to find Java Service Instance %s", d.Id())
+			d.SetId("")
+			return nil
+		}
+		_, new := d.GetChange("oracle_traffic_director.0.high_availability")
+		if new.(bool) && len(result.Components.OTD.Hosts.UserHosts) == 1 {
+			// Scale out
+			otdComponent := &java.ScaleOutOTD{
+				OTDServerCount: 1,
+			}
+
+			component := java.ScaleOutComponent{
+				OTD: otdComponent,
+			}
+
+			scaleOutInput := &java.ScaleOutInput{
+				Name:       d.Id(),
+				Components: component,
+			}
+			err := client.ScaleOutServiceInstance(scaleOutInput)
+			if err != nil {
+				return fmt.Errorf("error scaling out the oracle traffic director: %+v", err)
+			}
+		} else if !new.(bool) && len(result.Components.OTD.Hosts.UserHosts) == 2 {
+			// Scale in
+			hostNames := make([]string, 0)
+			for k := range result.Components.OTD.Hosts.UserHosts {
+				hostNames = append(hostNames, k)
+			}
+			sort.Strings(hostNames)
+			scaleInOTD := &java.ScaleInHostName{
+				HostNames: []string{hostNames[1]},
+			}
+
+			scaleInInput := &java.ScaleInInput{
+				Name:       d.Id(),
+				Components: java.ScaleInComponent{OTD: scaleInOTD},
+			}
+
+			err = client.ScaleInServiceInstance(scaleInInput)
+			if err != nil {
+				return fmt.Errorf("unable to scale in the oracle traffic director : %s", err)
+			}
+		}
+	}
+
+	if d.HasChange("weblogic_server.0.managed_servers.0.server_count") {
+		old, new := d.GetChange("weblogic_server.0.managed_servers.0.server_count")
+		currentNodeCount := old.(int)
+		requestedNodeCount := new.(int)
+		if currentNodeCount != 0 && currentNodeCount < requestedNodeCount {
+			for i := currentNodeCount; i < requestedNodeCount; i++ {
+				wlsComponent := &java.ScaleOutWLS{
+					ManagedServerCount: 1,
+				}
+
+				component := java.ScaleOutComponent{
+					WLS: wlsComponent,
+				}
+
+				scaleOutInput := &java.ScaleOutInput{
+					Name:       d.Id(),
+					Components: component,
+				}
+				err := client.ScaleOutServiceInstance(scaleOutInput)
+				if err != nil {
+					return fmt.Errorf("error scaling out managed server: %+v", err)
+				}
+			}
+		}
+		if currentNodeCount > requestedNodeCount {
+			getInput := java.GetServiceInstanceInput{
+				Name: d.Id(),
+			}
+			result, err := client.GetServiceInstance(&getInput)
+			if err != nil {
+				// Java Service Instance does not exist
+				if opcClient.WasNotFoundError(err) || strings.Contains(err.Error(), "No such service") {
+					d.SetId("")
+					return nil
+				}
+				return fmt.Errorf("Error finding JavaServiceInstance to update %s: %s", d.Id(), err)
+			}
+
+			if result == nil {
+				log.Printf("[DEBUG] Unable to find Java Service Instance %s", d.Id())
+				d.SetId("")
+				return nil
+			}
+
+			hostNames := make([]string, 0)
+			for k := range result.Components.WLS.Hosts.UserHosts {
+				hostNames = append(hostNames, k)
+			}
+			sort.Strings(hostNames)
+
+			if len(hostNames) != currentNodeCount {
+				return fmt.Errorf("`server_count` for managed servers does not match current node count. Expected %d Received %d", currentNodeCount, len(hostNames))
+			}
+			removedNodes := make([]string, 0)
+			for i := currentNodeCount; i > requestedNodeCount; i-- {
+				removedNodes = append(removedNodes, hostNames[i-1])
+			}
+			scaleInWLS := &java.ScaleInHostName{
+				HostNames: removedNodes,
+			}
+
+			scaleInInput := &java.ScaleInInput{
+				Name:       d.Id(),
+				Components: java.ScaleInComponent{WLS: scaleInWLS},
+			}
+
+			err = client.ScaleInServiceInstance(scaleInInput)
+			if err != nil {
+				return fmt.Errorf("unable to scale in the weblogic server: %s", err)
+			}
+		}
+	}
+
+	// Because scaling in nodes can be batched together, we'll instantiate removedNodes here and then scale in after we go through all of the clusters
+	removedNodes := make([]string, 0)
+	clusters := d.Get("weblogic_server.0.cluster").([]interface{})
+	for i, cluster := range clusters {
+		if d.HasChange(fmt.Sprintf("weblogic_server.0.cluster.%d.server_count", i)) {
+			old, new := d.GetChange(fmt.Sprintf("weblogic_server.0.cluster.%d.server_count", i))
+			// The only way server_count would be 0 is if this just came off the create and hasn't been set in the statefile yet.
+			if old == 0 {
+				continue
+			}
+
+			attrs := cluster.(map[string]interface{})
+			if old.(int) < new.(int) {
+				// Scale out cluster by 1
+				currNodeCount := old.(int)
+				requestedNodeCount := new.(int)
+				for i := currNodeCount; i < requestedNodeCount; i++ {
+					clusterComponent := java.CreateCluster{
+						ClusterName: attrs["name"].(string),
+						ServerCount: 1,
+						Type:        java.ServiceInstanceClusterTypeApplication,
+					}
+					wlsComponent := &java.ScaleOutWLS{
+						Clusters: []java.CreateCluster{clusterComponent},
+					}
+
+					component := java.ScaleOutComponent{
+						WLS: wlsComponent,
+					}
+
+					scaleOutInput := &java.ScaleOutInput{
+						Name:       d.Id(),
+						Components: component,
+					}
+
+					err := client.ScaleOutServiceInstance(scaleOutInput)
+					if err != nil {
+						return fmt.Errorf("error scaling out weblogic server: %+v", err)
+					}
+				}
+			} else if old.(int) > new.(int) {
+				getInput := java.GetServiceInstanceInput{
+					Name: d.Id(),
+				}
+
+				result, err := client.GetServiceInstance(&getInput)
+				if err != nil {
+					// Java Service Instance does not exist
+					if opcClient.WasNotFoundError(err) || strings.Contains(err.Error(), "No such service") {
+						d.SetId("")
+						return nil
+					}
+					return fmt.Errorf("Error finding JavaServiceInstance to update %s: %s", d.Id(), err)
+				}
+
+				if result == nil {
+					log.Printf("[DEBUG] Unable to find Java Service Instance %s", d.Id())
+					d.SetId("")
+					return nil
+				}
+
+				// serverNames and hostnames aren't paired together in the api but their suffixes match
+				// (ie. instancename_1 matches instancename-wls-1).
+				// To scale in a cluster, we'll grab all the serverNames, sort them to find the latest and then compare it's suffix
+				// to the hostnames associated with the java service instance to determine which hostname to scale in.
+				serverNames := make([]string, 0)
+				for k := range result.Components.WLS.Clusters[attrs["name"].(string)].PaaSServers {
+					serverNames = append(serverNames, k)
+				}
+				sort.Strings(serverNames)
+
+				hostnames := make([]string, 0)
+				for k := range result.Components.WLS.Hosts.UserHosts {
+					hostnames = append(hostnames, k)
+				}
+
+				currNodeCount := old.(int)
+				requestedNodeCount := new.(int)
+				for i := currNodeCount; i > requestedNodeCount; i-- {
+					currServer := serverNames[i-1]
+					splitServer := strings.Split(currServer, "_")
+					for _, hostname := range hostnames {
+						if strings.HasSuffix(hostname, splitServer[len(splitServer)-1]) {
+							removedNodes = append(removedNodes, hostname)
+							continue
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if len(removedNodes) > 0 {
+		scaleInWLS := &java.ScaleInHostName{
+			HostNames: removedNodes,
+		}
+
+		scaleInInput := &java.ScaleInInput{
+			Name:       d.Id(),
+			Components: java.ScaleInComponent{WLS: scaleInWLS},
+		}
+
+		err = client.ScaleInServiceInstance(scaleInInput)
+		if err != nil {
+			return fmt.Errorf("unable to scale in the weblogic server: %s", err)
 		}
 	}
 
@@ -1262,7 +1506,7 @@ func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBala
 	return []interface{}{result}
 }
 
-func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, rootURL string) ([]interface{}, error) {
+func flattenWebLogicConfig(client *java.ServiceInstanceClient, d *schema.ResourceData, webLogicConfig java.WLS, rootURL string) ([]interface{}, error) {
 	result := make(map[string]interface{})
 
 	result["shape"] = d.Get("weblogic_server.0.shape")
@@ -1270,7 +1514,7 @@ func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, root
 	result["admin"] = flattenWLSAdmin(d, webLogicConfig.AdminHostName)
 	result["database"] = flattenDatabase(d)
 	result["domain"] = flattenDomain(d)
-	result["managed_servers"] = flattenManagedServers(d)
+	result["managed_servers"] = flattenManagedServers(d, len(webLogicConfig.Hosts.UserHosts))
 	result["node_manager"] = flattenNodeManager(d)
 	result["ports"] = flattenWLSPorts(d)
 
@@ -1310,27 +1554,25 @@ func flattenWebLogicConfig(d *schema.ResourceData, webLogicConfig java.WLS, root
 	return []interface{}{result}, nil
 }
 
-/*
-func flattenOTDConfig(d *schema.ResourceData, otdConfig java.OTD, rootURL string) []interface{} {
+func flattenOTDConfig(client *java.ServiceInstanceClient, d *schema.ResourceData, otdConfig java.OTD, rootURL string) ([]interface{}, error) {
 	result := make(map[string]interface{})
 
-	if d.Get("otd.0.shape") == nil {
-		return []interface{}{}
-	} else {
-		result["root_url"] = rootURL
-		result["admin"] = flattenOTDAdmin(d, otdConfig.AdminHostName)
-		result["high_availability"] = d.Get("otd.0.high_availability")
-		result["listener"] = flattenListener(d)
-		result["load_balancing_policy"] = d.Get("otd.0.load_balancing_policy")
-		result["shape"] = d.Get("otd.0.shape")
+	if d.Get("oracle_traffic_director.0.shape").(string) == "" {
+		return nil, nil
+	}
+	result["root_url"] = rootURL
+	result["admin"] = flattenOTDAdmin(d, otdConfig.AdminHostName)
+	result["high_availability"] = d.Get("oracle_traffic_director.0.high_availability")
+	result["listener"] = flattenListener(d)
+	result["load_balancing_policy"] = d.Get("oracle_traffic_director.0.load_balancing_policy")
+	result["shape"] = d.Get("oracle_traffic_director.0.shape")
 
-		if _, ok := d.GetOk("otd.0.ip_reservations"); ok {
-			result["ip_reservations"] = getStringList(d, "otd.0.ip_reservations")
-		}
+	if _, ok := d.GetOk("oracle_traffic_director.0.ip_reservations"); ok {
+		result["ip_reservations"] = getStringList(d, "oracle_traffic_director.0.ip_reservations")
 	}
 
-	return []interface{}{result}
-}*/
+	return []interface{}{result}, nil
+}
 
 // Only adminHostname is returned from the api forcing the other attributes to be reset
 // here from the schema.
@@ -1356,13 +1598,13 @@ func flattenOTDAdmin(d *schema.ResourceData, adminHostname string) []interface{}
 	admin["hostname"] = adminHostname
 
 	// Setting variables that don't get returned from the api
-	if v, ok := d.GetOk("otd.0.admin.0.username"); ok {
+	if v, ok := d.GetOk("oracle_traffic_director.0.admin.0.username"); ok {
 		admin["username"] = v
 	}
-	if v, ok := d.GetOk("otd.0.admin.0.password"); ok {
+	if v, ok := d.GetOk("oracle_traffic_director.0.admin.0.password"); ok {
 		admin["password"] = v
 	}
-	if v, ok := d.GetOk("otd.0.admin.0.port"); ok {
+	if v, ok := d.GetOk("oracle_traffic_director.0.admin.0.port"); ok {
 		admin["port"] = v
 	}
 
@@ -1395,9 +1637,9 @@ func flattenClusters(d *schema.ResourceData, clusters map[string]java.Clusters) 
 		if clusterInfo.ClusterName != "" {
 			cluster := make(map[string]interface{})
 			cluster["name"] = clusterInfo.ClusterName
-			cluster["type"] = d.Get(fmt.Sprintf("weblogic_server.0.cluster.%d.type", i))
-			cluster["server_count"] = d.Get(fmt.Sprintf("weblogic_server.0.cluster.%d.server_count", i))
-			cluster["servers_per_node"] = d.Get(fmt.Sprintf("weblogic_server.0.cluster.%d.servers_per_node", i))
+			cluster["type"] = clusterInfo.Profile.ClusterType
+			cluster["server_count"] = len(clusterInfo.PaaSServers)
+			cluster["servers_per_node"] = clusterInfo.Profile.ServersPerNode
 
 			if v, ok := d.GetOk(fmt.Sprintf("weblogic_server.0.cluster.%d.shape", i)); ok {
 				cluster["shape"] = v.(string)
@@ -1450,7 +1692,7 @@ func flattenDomain(d *schema.ResourceData) []interface{} {
 	return []interface{}{domain}
 }
 
-func flattenManagedServers(d *schema.ResourceData) []interface{} {
+func flattenManagedServers(d *schema.ResourceData, serverCount int) []interface{} {
 	managedServers := make(map[string]interface{})
 	managedServerConfig := d.Get("weblogic_server.0.managed_servers").([]interface{})
 	if len(managedServerConfig) == 0 {
@@ -1458,9 +1700,7 @@ func flattenManagedServers(d *schema.ResourceData) []interface{} {
 	}
 	if managedServerConfig[0] != nil {
 		attrs := managedServerConfig[0].(map[string]interface{})
-		if val, ok := attrs["server_count"]; ok {
-			managedServers["server_count"] = val
-		}
+		managedServers["server_count"] = serverCount
 		if val, ok := attrs["initial_heap_size"]; ok {
 			managedServers["initial_heap_size"] = val
 		}
@@ -1523,12 +1763,11 @@ func flattenWLSPorts(d *schema.ResourceData) []interface{} {
 	return []interface{}{ports}
 }
 
-func flattenListener(otdAttributes java.OTDAttributes) []interface{} {
-	listener := make(map[string]interface{})
+func flattenListener(d *schema.ResourceData) []interface{} {
+	listenerConfig := d.Get("oracle_traffic_director.0.listener").([]interface{})
+	if len(listenerConfig) == 0 {
+		return nil
+	}
 
-	listener["port"] = otdAttributes.ListenerPort
-	listener["privileged_port"] = otdAttributes.PrivilgedListenerPort
-	listener["privileged_secured_port"] = otdAttributes.PrivilegedSecureListenerPort
-
-	return []interface{}{listener}
+	return []interface{}{listenerConfig[0].(map[string]interface{})}
 }

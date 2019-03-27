@@ -1,7 +1,10 @@
 package java
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +22,7 @@ var (
 	serviceInstanceResourcePath     = "/paas/api/v1.1/instancemgmt/%s/services/jaas/instances/%s"
 	serviceInstanceScaleUpDownPath  = "/hosts/scale"
 	serviceInstanceDesiredStatePath = "/hosts/%s"
+	serviceInstanceScaleInOutPath   = "/servers"
 )
 
 // ServiceInstanceClient is a client for the Service functions of the Java API.
@@ -405,7 +409,7 @@ type ServiceInstance struct {
 	// Components key to the operation of this service instance.
 	KeyComponentInstance string `json:"keyComponentInstance"`
 	// Oracle-managed load balancer details.
-	LoadBalancer *LoadBalancerInfo `json:"loadbalancer,omitempty"`
+	LoadBalancer *LoadBalancerInfo `json:"loadBalancer,omitempty"`
 	// Current version for the service definition (schema) used by this service instance.
 	MetaVersion string `json:"metaVersion"`
 	// Metering frequency. For example: HOURLY or MONTHLY
@@ -569,7 +573,7 @@ type OTD struct {
 	// Groups details about OTD VM instances by host name. Each VM instance is a JSON object element.
 	// This object will be deprecated in the near future. The properties host and userHosts contain the same
 	// information as vmInstances, and more.
-	VMInstances VMInstances `json:"vmInstances"`
+	VMInstances map[string]HostName `json:"vmInstances"`
 }
 
 // WLS sepcifies the information about the weblogic server associated with the service instance
@@ -616,7 +620,23 @@ type Clusters struct {
 	// Cluster type - APPLICATION_CLUSTER or CACHING_CLUSTER
 	// Shape - Compute shape used by nodes of this cluster
 	// Whether this cluster is accessible from the public network (external value is true if accessible)
-	Profile string `json:"profile"`
+	ProfileString string  `json:"profile"`
+	Profile       Profile `json:"-"`
+}
+
+// Profile defines specific cluster and server information.
+type Profile struct {
+	ClusterType          string `json:"clusterType"`
+	ServerCountString    string `json:"serverCount"`
+	ServerCount          int    `json:"-"`
+	ServersPerNodeString string `json:"serversPerNode"`
+	ServersPerNode       int    `json:"-"`
+	ClusterName          string `json:"clusterName"`
+	Type                 string `json:"type"`
+	DefaultString        string `json:"default"`
+	Default              bool   `json:"-"`
+	ExternalString       string `json:"external"`
+	External             bool   `json:"-"`
 }
 
 // PaaSServers specifies the informaiton about the different paas servers associated with the service instance
@@ -672,13 +692,7 @@ type OTDAttributes struct {
 
 // Hosts specifies information about the different hosts on the service instance
 type Hosts struct {
-	UserHosts UserHosts `json:"userHosts"`
-}
-
-// UserHosts specifies information about the user hosts on a service instance
-type UserHosts struct {
-	// Host names have dynamic JSON keys that need to be accounted for
-	HostName map[string]HostName `json:"host-name"`
+	UserHosts map[string]HostName `json:"userHosts"`
 }
 
 // HostName specifies information about the hostname on the service instances
@@ -1603,6 +1617,42 @@ func (c *ServiceInstanceClient) GetServiceInstance(getInput *GetServiceInstanceI
 		return nil, err
 	}
 
+	for key, cluster := range serviceInstance.Components.WLS.Clusters {
+		profile := &Profile{}
+		err := json.Unmarshal([]byte(cluster.ProfileString), profile)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling profile: %s", err)
+		}
+		if profile.ServerCountString != "" {
+			profile.ServerCount, err = strconv.Atoi(profile.ServerCountString)
+			if err != nil {
+				return nil, fmt.Errorf("error converting string to int for profile attribute `server_count`")
+			}
+		}
+		if profile.ServersPerNodeString != "" {
+			profile.ServersPerNode, err = strconv.Atoi(profile.ServersPerNodeString)
+			if err != nil {
+				return nil, fmt.Errorf("error converting string to int for profile attribute `servers_per_node`")
+			}
+		}
+		if profile.ExternalString != "" {
+			profile.External, err = strconv.ParseBool(profile.ExternalString)
+			if err != nil {
+				return nil, fmt.Errorf("error converting string to bool for profile attribute `external`")
+			}
+		}
+		if profile.DefaultString != "" {
+			profile.Default, err = strconv.ParseBool(profile.DefaultString)
+			if err != nil {
+				return nil, fmt.Errorf("error converting string to bool for profile attribute `default`: %+v", cluster.Profile)
+			}
+		} else {
+			profile.Default = false
+		}
+		cluster.Profile = *profile
+		serviceInstance.Components.WLS.Clusters[key] = cluster
+	}
+
 	return &serviceInstance, nil
 }
 
@@ -1814,4 +1864,157 @@ func (c *ServiceInstanceClient) UpdateDesiredState(input *DesiredStateInput) err
 	}
 
 	return nil
+}
+
+// ScaleOutInput defines the properties to scale out a java service instance
+type ScaleOutInput struct {
+	// Name of the Java Cloud Service instance.
+	// Required.
+	Name string `json:"-"`
+	// Groups properties for the Oracle WebLogic Server component (WLS) or the Oracle Traffice Director (OTD) component.
+	// Only one component type can be scaled at a time.
+	Components ScaleOutComponent `json:"components"`
+}
+
+// ScaleOutComponent defines the properties to scale out a WLS or an OTD
+type ScaleOutComponent struct {
+	// Defines the properties to scale out an Oracle Traffic Director
+	// Optional
+	OTD *ScaleOutOTD `json:"OTD,omitempty"`
+	// Defines the properties to scale out a Web Logic Server
+	// Optional
+	WLS *ScaleOutWLS `json:"WLS,omitempty"`
+}
+
+// ScaleOutOTD defines the properties to scale out an Oracle Traffic Director
+type ScaleOutOTD struct {
+	// A single IP reservation name for the load balancer node you are adding.
+	// Optional
+	IPReservations []string `json:"ipReservations,omitempty"`
+	// Number of user-managed load balancer nodes to add to the OTD component.
+	// Valid values are 0 and 1.
+	// Required
+	OTDServerCount int `json:"otdServerCount"`
+}
+
+// ScaleOutWLS defines the properties to scale out a Web Logic Server
+type ScaleOutWLS struct {
+	// Name of the WLS application cluster to scale out. This attribute is ignored if clusters array is used.
+	// The cluster name can be an existing cluster name or a new name. To create a new cluster,
+	// createClusterIfMissing must be set to true.
+	// Optional
+	ClusterName string `json:"clusterName,omitempty"`
+	// Groups properties of the cluster to scale.
+	// This attribute is optional for the WLS application cluster. You must, however, use
+	// the clusters array to scale out the existing caching (data grid) cluster.
+	// Optional
+	Clusters []CreateCluster `json:"clusters,omitempty"`
+	// Flag that specifies whether to add the new node to a new cluster.
+	// Set the value to true to create a new cluster, and use clusterName to specify a cluster name that
+	// does not already exist in the domain.
+	// Note: You cannot add a second caching (data grid) cluster if one already exists.
+	// You can have up to eight application clusters.
+	// Optional
+	CreateClusterIfMissing bool `json:"createClusterIfMissing,omitempty"`
+	// This attribute is not applicable to Oracle Java Cloud Service instances on Oracle Cloud Infrastructure.
+	// This attribute is only applicable when adding a Managed Server node to a WLS application cluster.
+	// A single IP reservation name for the Managed Server node you are adding.
+	// Optional
+	IPReservations []string `json:"ipReservations,omitempty"`
+	// Number of servers to add to the WLS application cluster.
+	// Valid values are 0 and 1. This might change in the future.
+	// managedServerCount must be 0 (zero) if you want to use clusters array.
+	// Optional
+	ManagedServerCount int `json:"managedServerCount,omitempty"`
+}
+
+// ScaleOutServiceInstance scales out a Java Service Instance
+func (c *ServiceInstanceClient) ScaleOutServiceInstance(input *ScaleOutInput) error {
+	var jobResponse JobResponse
+	if c.PollInterval == 0 {
+		c.PollInterval = waitForServiceInstanceReadyPollInterval
+	}
+	if c.Timeout == 0 {
+		c.Timeout = waitForServiceInstanceReadyTimeout
+	}
+
+	if err := c.updateResource(input.Name, serviceInstanceScaleInOutPath, "POST", input, &jobResponse); err != nil {
+		return err
+	}
+
+	getJobInput := &GetJobInput{
+		ID: jobResponse.Details.JobID,
+	}
+
+	err := c.Client.Jobs().WaitForJobCompletion(getJobInput, c.PollInterval, c.Timeout)
+	if err != nil {
+		return fmt.Errorf("error updating service instance %q: %+v", input.Name, err)
+	}
+
+	return nil
+}
+
+// ScaleInInput defines the properties to scale in a java service instance
+type ScaleInInput struct {
+	// Name of the Java Cloud Service instance.
+	// Required.
+	Name string `json:"-"`
+	// Groups properties for the Oracle WebLogic Server component (WLS) or the Oracle Traffice Director (OTD) component.
+	// Only one component type can be scaled at a time.
+	Components ScaleInComponent `json:"components"`
+}
+
+// ScaleInComponent defines the properties to scale in a WLS or an OTD
+type ScaleInComponent struct {
+	// Defines the properties to scale out an Oracle Traffic Director
+	// Optional
+	OTD *ScaleInHostName `json:"OTD,omitempty"`
+	// Defines the properties to scale out a Web Logic Server
+	// Optional
+	WLS *ScaleInHostName `json:"WLS,omitempty"`
+}
+
+// ScaleInHostName defines the hostname to scale in
+type ScaleInHostName struct {
+	HostNames []string `json:"hosts"`
+}
+
+// ScaleInServiceInstance scales in a Java Service Instance
+func (c *ServiceInstanceClient) ScaleInServiceInstance(input *ScaleInInput) error {
+	var jobResponse JobResponse
+	if c.PollInterval == 0 {
+		c.PollInterval = waitForServiceInstanceReadyPollInterval
+	}
+	if c.Timeout == 0 {
+		c.Timeout = waitForServiceInstanceReadyTimeout
+	}
+
+	if err := c.updateResource(input.Name, serviceInstanceScaleInOutPath, "PUT", input, &jobResponse); err != nil {
+		return err
+	}
+
+	getJobInput := &GetJobInput{
+		ID: jobResponse.Details.JobID,
+	}
+
+	err := c.Client.Jobs().WaitForJobCompletion(getJobInput, c.PollInterval, c.Timeout)
+	if err != nil {
+		return fmt.Errorf("error updating service instance %q: %+v", input.Name, err)
+	}
+
+	return nil
+}
+
+// GetHostNameByNumber returns the requested hostname provisioned for a WLS or OTD server
+func GetHostNameByNumber(hosts map[string]HostName, num int) (string, error) {
+	if len(hosts) < num {
+		return "", fmt.Errorf("unexpected length of hosts. Expected: %d Actual: %d", num, len(hosts))
+	}
+	hostNames := make([]string, 0)
+	for k := range hosts {
+		hostNames = append(hostNames, k)
+	}
+	sort.Strings(hostNames)
+
+	return hostNames[num-1], nil
 }

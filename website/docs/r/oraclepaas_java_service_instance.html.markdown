@@ -270,6 +270,7 @@ pluggable database name when the database was created.
 * `upper_stack_product_name` - (Optional) The Oracle Fusion Middleware product installer to add to this Oracle Java
 Cloud Service instance. Valid values are `ODI` (Oracle Data Integrator) or `WCP` (Oracle WebCenter Portal)
 
+
 * `root_url` - (Computed) The URL of the WebLogic Server Administration console.
 
 OTD supports the following:
