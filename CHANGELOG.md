@@ -1,8 +1,8 @@
-## 1.5.0 (Unreleased)
+## 1.5.0 (March 27, 2019)
 
 FEATURES: 
 
-* oraclepaas_java_service_instance - `server_count` can now be updated to scale out/in `managed_servers` and `clusters`. [GH-65]
+* oraclepaas_java_service_instance - `server_count` can now be updated to scale out/in `managed_servers` and `clusters`. ([#65](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/65))
 
 ## 1.4.3 (January 28, 2019)
 
