@@ -1,3 +1,9 @@
+## 1.5.0 (Unreleased)
+
+FEATURES: 
+
+* oraclepaas_java_service_instance - `server_count` can now be updated to scale out/in `managed_servers` and `clusters`. [GH-65]
+
 ## 1.4.3 (January 28, 2019)
 
 BUG FIXES: 
