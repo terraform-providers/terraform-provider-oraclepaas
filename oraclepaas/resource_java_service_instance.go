@@ -687,7 +687,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: true,
-							MinItems: 2,
+							MinItems: 1,
 							MaxItems: 2,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
@@ -1192,8 +1192,12 @@ func expandLoadBalancer(d *schema.ResourceData, input *java.CreateServiceInstanc
 	if v := attrs["load_balancing_policy"]; v != nil {
 		loadBalancer.LoadBalancingPolicy = java.ServiceInstanceLoadBalancerLoadBalancingPolicy(v.(string))
 	}
-	if v := attrs["subnets"]; v != nil {
-		loadBalancer.Subnets = getStringList(d, "load_balancer.0.subnets")
+	if v, ok := attrs["subnets"].(*schema.Set); ok {
+		subnets := []string{}
+		for _, subnet := range v.List() {
+			subnets = append(subnets, subnet.(string))
+		}
+		loadBalancer.Subnets = subnets
 	}
 
 	input.LoadBalancer = loadBalancer
