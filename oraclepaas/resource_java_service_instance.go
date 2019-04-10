@@ -1493,8 +1493,12 @@ func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBala
 	if v, ok := d.GetOk("load_balancer.0.load_balancing_policy"); ok {
 		result["load_balancing_policy"] = v
 	}
-	if _, ok := d.GetOk("load_balancer.0.subnets"); ok {
-		result["subnets"] = getStringList(d, "load_balancer.0.subnets")
+	if v, ok := d.GetOk("load_balancer.0.subnets"); ok {
+		subnets := []string{}
+		for _, subnet := range v.(*schema.Set).List() {
+			subnets = append(subnets, subnet.(string))
+		}
+		result["subnets"] = subnets
 	}
 
 	if loadBalancerInfo.Public.LoadBalancerAdminURL != "" {
