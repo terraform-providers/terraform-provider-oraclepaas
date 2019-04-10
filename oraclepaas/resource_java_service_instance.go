@@ -687,9 +687,10 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: true,
-							MinItems: 2,
+							MinItems: 1,
 							MaxItems: 2,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 						"admin_url": {
 							Type:     schema.TypeString,
@@ -1192,8 +1193,12 @@ func expandLoadBalancer(d *schema.ResourceData, input *java.CreateServiceInstanc
 	if v := attrs["load_balancing_policy"]; v != nil {
 		loadBalancer.LoadBalancingPolicy = java.ServiceInstanceLoadBalancerLoadBalancingPolicy(v.(string))
 	}
-	if v := attrs["subnets"]; v != nil {
-		loadBalancer.Subnets = getStringList(d, "load_balancer.0.subnets")
+	if v, ok := attrs["subnets"].(*schema.Set); ok {
+		subnets := []string{}
+		for _, subnet := range v.List() {
+			subnets = append(subnets, subnet.(string))
+		}
+		loadBalancer.Subnets = subnets
 	}
 
 	input.LoadBalancer = loadBalancer
@@ -1489,8 +1494,12 @@ func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBala
 	if v, ok := d.GetOk("load_balancer.0.load_balancing_policy"); ok {
 		result["load_balancing_policy"] = v
 	}
-	if _, ok := d.GetOk("load_balancer.0.subnets"); ok {
-		result["subnets"] = getStringList(d, "load_balancer.0.subnets")
+	if v, ok := d.GetOk("load_balancer.0.subnets"); ok {
+		subnets := make([]interface{}, 0)
+		for _, subnet := range v.(*schema.Set).List() {
+			subnets = append(subnets, subnet.(string))
+		}
+		result["subnets"] = schema.NewSet(schema.HashString, subnets)
 	}
 
 	if loadBalancerInfo.Public.LoadBalancerAdminURL != "" {
