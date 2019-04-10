@@ -1,8 +1,8 @@
-## 1.5.1 (Unreleased)
+## 1.5.1 (April 10, 2019)
 
 BUG FIXES: 
 
-* oraclepaas_java_service_instance - Fixed panic around `load_balancer.0.subnets` [GH-67]
+* oraclepaas_java_service_instance - Fixed panic around `load_balancer.0.subnets` ([#67](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/67))
 
 ## 1.5.0 (March 27, 2019)
 
