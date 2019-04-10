@@ -1,4 +1,9 @@
 ## 1.5.1 (Unreleased)
+
+BUG FIXES: 
+
+* oraclepaas_java_service_instance - Fixed panic around `load_balancer.0.subnets` [GH-67]
+
 ## 1.5.0 (March 27, 2019)
 
 FEATURES: 
