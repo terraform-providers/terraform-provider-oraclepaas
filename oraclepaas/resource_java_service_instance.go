@@ -690,6 +690,7 @@ func resourceOraclePAASJavaServiceInstance() *schema.Resource {
 							MinItems: 1,
 							MaxItems: 2,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 						"admin_url": {
 							Type:     schema.TypeString,
@@ -1494,11 +1495,11 @@ func flattenLoadBalancer(d *schema.ResourceData, loadBalancerInfo *java.LoadBala
 		result["load_balancing_policy"] = v
 	}
 	if v, ok := d.GetOk("load_balancer.0.subnets"); ok {
-		subnets := []string{}
+		subnets := make([]interface{}, 0)
 		for _, subnet := range v.(*schema.Set).List() {
 			subnets = append(subnets, subnet.(string))
 		}
-		result["subnets"] = subnets
+		result["subnets"] = schema.NewSet(schema.HashString, subnets)
 	}
 
 	if loadBalancerInfo.Public.LoadBalancerAdminURL != "" {
