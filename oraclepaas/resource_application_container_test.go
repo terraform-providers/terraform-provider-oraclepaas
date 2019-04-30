@@ -197,9 +197,9 @@ func testAccCheckApplicationContainerDestroy(s *terraform.State) error {
 func testAccApplicationContainerBasic(rInt int) string {
 	return fmt.Sprintf(`resource "oraclepaas_application_container" "test" {
 	name        = "testappcontainer%d"
-	tags {
-		"test" = "test123"
-		"test1" = "test234"
+	tags = {
+		test = "test123"
+		test1 = "test234"
 	}
   }`, rInt)
 }
@@ -244,9 +244,9 @@ resource "oraclepaas_application_container" "test" {
 	deployment {
 		memory = "2G"
     	instances = 1
-    	environment {
-        	"NO_OF_CONNECTIONS" = "25"
-        	"TWITTER_ID" = "JAVA"
+    	environment = {
+        	NO_OF_CONNECTIONS = "25"
+        	TWITTER_ID = "JAVA"
     	}
 	}
 }`, rInt)
@@ -272,9 +272,9 @@ resource "oraclepaas_application_container" "test" {
 	deployment {
 		memory = "2G"
     	instances = 1
-    	environment {
-        	"NO_OF_CONNECTIONS" = "25"
-        	"TWITTER_ID" = "JAVA"
+    	environment = {
+        	NO_OF_CONNECTIONS = "25"
+        	TWITTER_ID = "JAVA"
     	}
 	}
 }`, rInt)

@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/hashicorp/go-plugin/internal/plugin"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -55,12 +56,15 @@ func newGRPCClient(doneCtx context.Context, c *Client) (*GRPCClient, error) {
 	go broker.Run()
 	go brokerGRPCClient.StartStream()
 
-	return &GRPCClient{
-		Conn:    conn,
-		Plugins: c.config.Plugins,
-		doneCtx: doneCtx,
-		broker:  broker,
-	}, nil
+	cl := &GRPCClient{
+		Conn:       conn,
+		Plugins:    c.config.Plugins,
+		doneCtx:    doneCtx,
+		broker:     broker,
+		controller: plugin.NewGRPCControllerClient(conn),
+	}
+
+	return cl, nil
 }
 
 // GRPCClient connects to a GRPCServer over gRPC to dispense plugin types.
@@ -70,11 +74,14 @@ type GRPCClient struct {
 
 	doneCtx context.Context
 	broker  *GRPCBroker
+
+	controller plugin.GRPCControllerClient
 }
 
 // ClientProtocol impl.
 func (c *GRPCClient) Close() error {
 	c.broker.Close()
+	c.controller.Shutdown(c.doneCtx, &plugin.Empty{})
 	return c.Conn.Close()
 }
 
