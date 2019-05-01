@@ -1,4 +1,9 @@
 ## 1.5.2 (Unreleased)
+
+NOTES:
+
+This release includes a Terraform SDK upgrade with compatibility for Terraform v0.12. The provider remains backwards compatible with Terraform v0.11 and there should not be any significant behavioural changes. [GH-68]
+
 ## 1.5.1 (April 10, 2019)
 
 BUG FIXES: 
