@@ -155,7 +155,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 	backup_destination        = "NONE"
 	shape                 	  = "oc3"
 
-	mysql_configuration = {
+	mysql_configuration {
 		db_name               = "demo_db"
 		db_storage            = 25
 		mysql_port            = 3306
@@ -164,7 +164,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 		mysql_charset         = "utf8"
 		mysql_collation       = "utf8_general_ci"
 
-		enterprise_monitor_configuration = {
+		enterprise_monitor_configuration {
 			em_agent_password = "MySqlPassword_1"
 			em_agent_username = "admin"
 			em_password 	  = "MySqlPassword_1"
@@ -190,7 +190,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 		create_if_missing 		= true				
 	}
 			
-	mysql_configuration = {
+	mysql_configuration {
 		db_name                 = "demo_db"
 		db_storage              = 25
 		mysql_port              = 3306
@@ -215,7 +215,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 	availability_domain	= "%s"
 	shape           	= "oc3"
 
-	mysql_configuration = {
+	mysql_configuration {
 		db_name			= "demo_db"
 		db_storage      = 25
 		mysql_port      = 3306

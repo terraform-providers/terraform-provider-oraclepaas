@@ -126,7 +126,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 		create_if_missing 		= true				
 	}
 			
-	mysql_configuration = {
+	mysql_configuration {
 		db_name                 = "demo_db"
 		db_storage              = 25
 		mysql_port              = 3306
@@ -162,7 +162,7 @@ resource "oraclepaas_mysql_service_instance" "test" {
 		create_if_missing 		= true				
 	}
 			
-	mysql_configuration = {
+	mysql_configuration {
 		db_name                 = "demo_db"
 		db_storage              = 25
 		mysql_port              = 3306
