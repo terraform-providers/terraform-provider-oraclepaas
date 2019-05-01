@@ -331,7 +331,6 @@ resource "oraclepaas_database_service_instance" "test" {
 
     database_configuration {
         admin_password = "Test_String7"
-        backup_destination = "OSS"
         failover_database = false
         sid = "ORCL"
         usable_storage = 15
