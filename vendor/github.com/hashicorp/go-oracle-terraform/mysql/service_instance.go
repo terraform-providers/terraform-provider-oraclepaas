@@ -303,8 +303,6 @@ type MySQLParameters struct {
 	SnapshotName string `json:"snapshot,omitempty"`
 	//  indicates that the service instance should be created as a "snapshot clone" of another service instance. Provide the name of the existing service instance whose snapshot is to be used. dbName, mysqlCharset, mysqlCollation, mysqlEMPort, enterpriseMonitor, and associated MySQL server component parameters do not apply when cloning a service from a snapshot.
 	SourceServiceName string `json:"sourceServiceName,omitempty"`
-	// This attribute is relevant to only Oracle Cloud Infrastructure. Specify the Oracle Cloud Identifier (OCID) of a subnet from a virtual cloud network (VCN) that you had created previously in Oracle Cloud Infrastructure. For the instructions to create a VCN and subnet
-	Subnet string `json:"subnet,omitempty"`
 }
 
 // ServiceParameters details the service parameters for the create instance operation
@@ -336,6 +334,8 @@ type ServiceParameters struct {
 	ServiceDescription string `json:"serviceDescription,omitempty"`
 	// Name of the Service Instance. The name must be between 1 to 50 characters, start with a letter, contain only letters, numbers or hyphens, must not end with a hyphen, and must be unique within the identity domain.
 	ServiceName string `json:"serviceName"`
+	// This attribute is relevant to only Oracle Cloud Infrastructure. Specify the Oracle Cloud Identifier (OCID) of a subnet from a virtual cloud network (VCN) that you had created previously in Oracle Cloud Infrastructure. For the instructions to create a VCN and subnet
+	Subnet string `json:"subnet,omitempty"`
 	// Public key for the secure shell (SSH). This key will be used for authentication when connecting to the MySQL Cloud Service instance using an SSH client.
 	VMPublicKeyText string `json:"vmPublicKeyText,omitempty"`
 	// VM operating system user that is valid for variations of compute based services. It will default to the username opc when not specified.

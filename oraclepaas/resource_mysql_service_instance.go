@@ -367,6 +367,10 @@ func expandServiceParameters(d *schema.ResourceData) (mysql.ServiceParameters, e
 		input.EnableNotification = true
 	}
 
+	if val, ok := d.GetOk("subnet"); ok && val != "" {
+		input.Subnet = val.(string)
+	}
+
 	err := expandCloudStorage(d, input)
 	if err != nil {
 		return *input, err
@@ -476,10 +480,6 @@ func expandComponentParameters(d *schema.ResourceData) (mysql.ComponentParameter
 
 	if val, ok := attrs["source_service_name"]; ok && val != "" {
 		mysqlInput.SourceServiceName = val.(string)
-	}
-
-	if val, ok := d.GetOk("subnet"); ok && val != "" {
-		mysqlInput.Subnet = val.(string)
 	}
 
 	result.Mysql = *mysqlInput
