@@ -1,8 +1,8 @@
-## 1.5.3 (Unreleased)
+## 1.5.3 (September 05, 2019)
 
 BUG FIXES
 
-* `oraclepaas_mysql_service_instance` - subnet [GH-70]
+* `oraclepaas_mysql_service_instance` - subnet ([#70](https://github.com/terraform-providers/terraform-provider-oraclepaas/issues/70))
 
 ## 1.5.2 (May 01, 2019)
 
