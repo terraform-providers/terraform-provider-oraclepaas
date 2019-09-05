@@ -1,4 +1,9 @@
 ## 1.5.3 (Unreleased)
+
+BUG FIXES
+
+* `oraclepaas_mysql_service_instance` - subnet [GH-70]
+
 ## 1.5.2 (May 01, 2019)
 
 NOTES:
