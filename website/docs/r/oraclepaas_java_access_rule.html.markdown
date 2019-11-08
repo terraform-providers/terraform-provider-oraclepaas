@@ -1,4 +1,5 @@
 ---
+subcategory: "PaaS"
 layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_java_access_rule"
 sidebar_current: "docs-oraclepaas-resource-access-rule"

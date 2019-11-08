@@ -1,4 +1,5 @@
 ---
+subcategory: "PaaS"
 layout: "oraclepaas"
 page_title: "Oracle: mysql_service_instance"
 sidebar_current: "docs-oraclepaas-resource-service-instance"

@@ -1,4 +1,5 @@
 ---
+subcategory: "PaaS"
 layout: "oraclepaas"
 page_title: "Oracle: oraclepaas_database_service_instance"
 sidebar_current: "docs-oraclepaas-datasource-database-service-instance"
