@@ -1,12 +1,14 @@
 package oraclepaas
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func Provider() terraform.ResourceProvider {
-	return &schema.Provider{
+	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -85,12 +87,22 @@ func Provider() terraform.ResourceProvider {
 			"oraclepaas_mysql_service_instance":    resourceOraclePAASMySQLServiceInstance(),
 			"oraclepaas_mysql_access_rule":         resourceOraclePAASMySQLAccessRule(),
 		},
-
-		ConfigureFunc: providerConfigure,
 	}
+
+	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
+		terraformVersion := p.TerraformVersion
+		if terraformVersion == "" {
+			// Terraform 0.12 introduced this field to the protocol
+			// We can therefore assume that if it's missing it's 0.10 or 0.11
+			terraformVersion = "0.11+compatible"
+		}
+		return providerConfigure(d, terraformVersion)
+	}
+
+	return p
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(d *schema.ResourceData, terraformVersion string) (interface{}, error) {
 	config := Config{
 		User:                d.Get("user").(string),
 		Password:            d.Get("password").(string),
@@ -101,6 +113,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		MySQLEndpoint:       d.Get("mysql_endpoint").(string),
 		MaxRetries:          d.Get("max_retries").(int),
 		Insecure:            d.Get("insecure").(bool),
+		UserAgent:           fmt.Sprintf("HashiCorp-Terraform-v%s", terraformVersion),
 	}
 
 	return config.Client()

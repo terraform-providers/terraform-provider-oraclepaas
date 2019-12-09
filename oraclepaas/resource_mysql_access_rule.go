@@ -7,7 +7,7 @@ import (
 
 	opcClient "github.com/hashicorp/go-oracle-terraform/client"
 	"github.com/hashicorp/go-oracle-terraform/mysql"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceOraclePAASMySQLAccessRule() *schema.Resource {
