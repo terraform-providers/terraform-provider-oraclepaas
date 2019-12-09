@@ -13,8 +13,7 @@ import (
 	"github.com/hashicorp/go-oracle-terraform/java"
 	"github.com/hashicorp/go-oracle-terraform/mysql"
 	"github.com/hashicorp/go-oracle-terraform/opc"
-	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 )
 
 type Config struct {
@@ -27,6 +26,7 @@ type Config struct {
 	JavaEndpoint        string
 	ApplicationEndpoint string
 	MySQLEndpoint       string
+	UserAgent           string
 }
 
 type OPAASClient struct {
@@ -38,7 +38,7 @@ type OPAASClient struct {
 
 func (c *Config) Client() (*OPAASClient, error) {
 
-	userAgentString := fmt.Sprintf("HashiCorp-Terraform-v%s", terraform.VersionString())
+	userAgentString := c.UserAgent
 
 	config := opc.Config{
 		IdentityDomain: &c.IdentityDomain,

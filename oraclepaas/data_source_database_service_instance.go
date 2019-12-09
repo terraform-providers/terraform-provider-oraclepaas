@@ -3,7 +3,7 @@ package oraclepaas
 import (
 	"fmt"
 	"github.com/hashicorp/go-oracle-terraform/database"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataSourceOraclePAASDatabaseServiceInstance() *schema.Resource {

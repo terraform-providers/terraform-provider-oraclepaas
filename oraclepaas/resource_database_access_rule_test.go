@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-oracle-terraform/database"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccOPAASDatabaseAccessRule_Basic(t *testing.T) {

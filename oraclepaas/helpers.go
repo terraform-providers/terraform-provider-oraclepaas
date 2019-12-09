@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/go-oracle-terraform/database"
 	"github.com/hashicorp/go-oracle-terraform/java"
 	"github.com/hashicorp/go-oracle-terraform/mysql"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func javaServiceInstanceShapes() []string {
