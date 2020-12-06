@@ -27,14 +27,14 @@ resource "oraclepaas_database_service_instance" "default" {
 
   database_configuration {
       admin_password     = "Pa55_Word"
-      sid                = "BOTH"
-      backup_destination = "NONE"
+      sid                = "ORCL"
+      backup_destination = "BOTH"
       usable_storage     = 15
   }
 
   backups {
       cloud_storage_container = "Storage-${var.domain}/database-service-instance-backup"
-      auto_generate = true
+      auto_generate           = true
   }
 }
 ```
@@ -53,7 +53,7 @@ The following arguments are supported:
 
 * `subscription_type` - (Required) Billing unit. Possible values are `HOURLY` or `MONTHLY`.
 
-* `version` - (Required) Oracle Database software version; one of: `12.2.0.1`, `12.1.0.2`, or `11.2.0.4`.
+* `version` - (Required) Oracle Database software version; one of: `18.0.0.0`, `12.2.0.1`, `12.1.0.2`, or `11.2.0.4`.
 
 * `vm_public_key` - (Required) Public key for the secure shell (SSH). This key will be used for authentication when connecting to the Database Cloud Service instance using an SSH client.
 
@@ -97,7 +97,7 @@ Database Configuration supports the following:
 
 * `admin_password` - (Required) Password for Oracle Database administrator users sys and system. The password must meet the following requirements: Starts with a letter. Is between 8 and 30 characters long. Contains letters, at least one number, and optionally, any number of these special characters: dollar sign `$`, pound sign `#`, and underscore `_`.
 
-* `usable_storage` - (Required) Storage size for data (in GB). Minimum value is `15`. Maximum value depends on the backup destination: if `BOTH` is specified, the maximum value is `1200`; if `OSS` or `NONE` is specified, the maximum value is `2048`.
+* `usable_storage` - (Optional) Storage size for data (in GB). Minimum value is `15`. Maximum value depends on the backup destination: if `BOTH` is specified, the maximum value is `1200`; if `OSS` or `NONE` is specified, the maximum value is `2048`.
 
 * `availability_domain` - (Optional) Name of the availability domain within the region where the Oracle Database Cloud Service instance is to be provisioned.
 

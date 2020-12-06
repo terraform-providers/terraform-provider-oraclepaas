@@ -3,9 +3,11 @@ package oraclepaas
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	opcClient "github.com/hashicorp/go-oracle-terraform/client"
 	"github.com/hashicorp/go-oracle-terraform/database"
@@ -96,10 +98,11 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"admin_password": {
-							Type:      schema.TypeString,
-							Required:  true,
-							ForceNew:  true,
-							Sensitive: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ForceNew:     true,
+							Sensitive:    true,
+							ValidateFunc: validateAdminPassword,
 						},
 						"backup_destination": {
 							Type:     schema.TypeString,
@@ -165,12 +168,14 @@ func resourceOraclePAASDatabaseServiceInstance() *schema.Resource {
 							ForceNew:      true,
 							Computed:      true,
 							ConflictsWith: []string{"instantiate_from_backup", "hybrid_disaster_recovery"},
+							ValidateFunc:  validatePDBName,
 						},
 						"sid": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  "ORCL",
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     true,
+							Default:      "ORCL",
+							ValidateFunc: validateSID,
 						},
 						"timezone": {
 							Type:     schema.TypeString,
@@ -581,6 +586,10 @@ func resourceOPAASDatabaseServiceInstanceCreate(d *schema.ResourceData, meta int
 		if err != nil {
 			return err
 		}
+
+		if _, ok := d.GetOk("hybrid_disaster_recovery"); ok {
+			expandHDG(d, &input.Parameter)
+		}
 	}
 
 	if _, ok := d.GetOk("standby"); ok {
@@ -610,7 +619,7 @@ func resourceOPAASDatabaseServiceInstanceRead(d *schema.ResourceData, meta inter
 	}
 	client := dbClient.ServiceInstanceClient()
 
-	log.Printf("[DEBUG] Reading state of ip reservation %s", d.Id())
+	log.Printf("[DEBUG] Reading state of database service instance %s", d.Id())
 	getInput := database.GetServiceInstanceInput{
 		Name: d.Id(),
 	}
@@ -883,7 +892,7 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	if val, ok := attrs["pdb_name"].(string); ok && val != "" {
 		parameter.PDBName = val
 	}
-	if val, ok := attrs["db_demo"].(string); ok {
+	if val, ok := attrs["db_demo"].(string); ok && val != "" {
 		addParam := database.AdditionalParameters{
 			DBDemo: val,
 		}
@@ -894,7 +903,6 @@ func expandParameter(d *schema.ResourceData) (database.ParameterInput, error) {
 	if err != nil {
 		return parameter, err
 	}
-	expandHDG(d, &parameter)
 
 	return parameter, nil
 }
@@ -1033,4 +1041,79 @@ func flattenDatabaseConfig(d *schema.ResourceData) []interface{} {
 	result["backup_storage_volume_size"] = d.Get("database_configuration.0.backup_storage_volume_size")
 
 	return []interface{}{result}
+}
+
+// Validate the PDB name
+// up to 30 characters; must begin with a letter and can contain only letters and numbers
+func validatePDBName(v interface{}, k string) (ws []string, errors []error) {
+	if len(v.(string)) > 30 {
+		errors = append(errors, fmt.Errorf(
+			"%q must not exceed 30 characters", k))
+	}
+	if match, _ := regexp.MatchString("^([a-zA-Z])([a-zA-Z0-9]*)$", v.(string)); match != true {
+		errors = append(errors, fmt.Errorf(
+			"%q must start with a letter and can contain only letters, numbers and underscores (_); can not end with an underscore (_)", k))
+	}
+	return
+}
+
+// Validate the SID
+// up to 8 characters; must begin with a letter and can contain only letters and numbers
+func validateSID(v interface{}, k string) (ws []string, errors []error) {
+	if len(v.(string)) > 8 {
+		errors = append(errors, fmt.Errorf(
+			"%q must not exceed 8 characters", k))
+	}
+	if match, _ := regexp.MatchString("^([a-zA-Z])([a-zA-Z0-9]*)$", v.(string)); match != true {
+		errors = append(errors, fmt.Errorf(
+			"%q must start with a letter and can contain only letters, numbers and underscores (_); can not end with an underscore (_)", k))
+	}
+	return
+}
+
+// Validate Admin Password
+// must be between 8 and 30 characters with at least one lower case letter, one upper case letter, one number, one special character (_,-,#) and no white space character. It must also not contain the following keywords or their reversed form: root, sys, system, dbsnmp, oracle or your cloud storage username
+func validateAdminPassword(v interface{}, k string) (ws []string, errors []error) {
+
+	val := v.(string)
+
+	// must be between 8 and 30 characters
+	if len(val) < 8 || len(val) > 30 {
+		errors = append(errors, fmt.Errorf(
+			"%q must be between 8 and 30 characters", k))
+	}
+
+	// at least one lower case letter, one upper case letter, one number, one special character (_,-,#) and no white space character
+	var has_lower, has_upper, has_number, has_special, has_whitespace bool
+	for _, s := range val {
+		switch {
+		case unicode.IsNumber(s):
+			has_number = true
+		case unicode.IsUpper(s):
+			has_upper = true
+		case unicode.IsLower(s):
+			has_lower = true
+		case unicode.IsPunct(s) || unicode.IsSymbol(s):
+			has_special = true
+		case unicode.IsSpace(s):
+			has_whitespace = true
+		}
+	}
+	if !(has_lower && has_upper && has_number && has_special) || has_whitespace {
+		errors = append(errors, fmt.Errorf(
+			"%q must contain at least one lower case letter, one upper case letter, one number, one special character (_,-,#) and no white space character", k))
+	}
+
+	// must not contain the following keywords or their reversed form: root, sys, system, dbsnmp, oracle
+	has_keyword := strings.Contains(val, "sys") ||
+		strings.Contains(val, "root") || strings.Contains(val, "toor") ||
+		strings.Contains(val, "system") || strings.Contains(val, "metsys") ||
+		strings.Contains(val, "dbsnmp") || strings.Contains(val, "pmnsbd") ||
+		strings.Contains(val, "oracle") || strings.Contains(val, "elcaro")
+	if has_keyword {
+		errors = append(errors, fmt.Errorf(
+			"%q must not contain the following keywords or their reversed form: root, sys, system, dbsnmp, oracle or your cloud storage username", k))
+	}
+	return
+
 }
